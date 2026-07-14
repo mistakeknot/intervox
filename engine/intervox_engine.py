@@ -90,6 +90,52 @@ def strip_markdown(text: str) -> str:
     return "\n".join(out_lines)
 
 
+def extract_prose(raw_text: str) -> str:
+    """Flowing prose only, for the distributional features (16-18).
+
+    Dogfood round 1 showed function-word/connective/trigram cosines compare
+    genre, not voice, when a table-heavy draft is scored against an all-prose
+    corpus. So those three features run prose-to-prose: drop table rows,
+    heading lines, and list fragments under 8 words (full-sentence list items
+    are prose and stay), keep blockquote text minus its marker.
+    """
+    text = _FRONTMATTER_RE.sub("", raw_text)
+    text = _CODE_FENCE_RE.sub(" ", text)
+    kept: list[str] = []
+    for line in text.split("\n"):
+        s = line.strip()
+        if not s:
+            kept.append("")
+            continue
+        if s.startswith("|"):  # table row or separator
+            continue
+        if _HEADING_RE.match(s):
+            continue
+        s = re.sub(r"^>\s?", "", s)  # blockquote marker; the text is prose
+        is_list_item = bool(_LIST_MARKER_RE.match(s))
+        s = _LIST_MARKER_RE.sub("", s)
+        s = _INLINE_CODE_RE.sub(r"\1", s)
+        s = _LINK_RE.sub(r"\1", s)
+        s = _BOLD_ITALIC_RE.sub("", s)
+        if is_list_item:
+            if len(s.split()) < 8:  # fragment, not prose
+                continue
+            if s and s[-1] not in _TERMINAL_CHARS:
+                s += "."
+            kept.extend(["", s, ""])
+            continue
+        kept.append(s)
+    final: list[str] = []
+    for i, ln in enumerate(kept):
+        st = ln.rstrip()
+        if st:
+            next_blank = i + 1 >= len(kept) or not kept[i + 1].strip()
+            if next_blank and st[-1] not in _TERMINAL_CHARS:
+                st += "."
+        final.append(st)
+    return "\n".join(final)
+
+
 def paragraphs_of(text: str) -> list[str]:
     """Split cleaned text into paragraphs on blank lines."""
     raw = re.split(r"\n\s*\n", text)
@@ -495,6 +541,13 @@ def build_profile(raw_text: str, lexicon: dict | None = None) -> dict:
     total_words = len(tokens)
     tokens_lower = [t.lower() for t in tokens]
 
+    # Distributional features (16-18) compare prose-to-prose; everything else
+    # runs on the full cleaned text. See extract_prose.
+    prose = extract_prose(raw_text)
+    prose_tokens = words_of(prose)
+    prose_words = len(prose_tokens)
+    prose_tokens_lower = [t.lower() for t in prose_tokens]
+
     sentence_lens = [word_count_of(s) for s in full_sentences]
 
     profile = {
@@ -504,9 +557,9 @@ def build_profile(raw_text: str, lexicon: dict | None = None) -> dict:
         "per_1k": per_1k_features(cleaned, total_words),
         "copula": copula_features(cleaned, total_words),
         "constructions_per_1k": constructions_per_1k(full_sentences, total_words),
-        "connectives_per_10k": connectives_per_10k_of(cleaned, total_words),
-        "function_words_per_1k": function_words_per_1k_of(tokens_lower, total_words),
-        "char_trigrams": char_trigrams_of(cleaned),
+        "connectives_per_10k": connectives_per_10k_of(prose, prose_words or 1),
+        "function_words_per_1k": function_words_per_1k_of(prose_tokens_lower, prose_words or 1),
+        "char_trigrams": char_trigrams_of(prose),
         "lexical": {"mattr_w50": mattr(tokens_lower)},
         "slop": {},
     }
@@ -529,6 +582,7 @@ def build_profile(raw_text: str, lexicon: dict | None = None) -> dict:
         "paragraph_lens": [word_count_of(p) for p in paras],
         "cleaned_text": cleaned,
         "full_sentences": full_sentences,
+        "prose_word_count": prose_words,
     }
     return profile
 
@@ -779,37 +833,41 @@ def evaluate_lint(draft_profile: dict, draft_internal: dict, baseline: dict) -> 
     results.append(_feature_result(15, "paragraph_uniformity", dv_cv, bv_cv, ratio, status, hint))
 
     # 16. connective_drift
-    if word_count < 300:
+    prose_wc = draft_internal.get("prose_word_count", word_count)
+    if prose_wc < 300:
         status = "skipped"
-        hint = "Connective drift: skipped (draft under 300 words)."
+        hint = f"Connective drift: skipped ({prose_wc}w of flowing prose; structured content is excluded from distributional features)."
         sim = None
     else:
         sim = cosine_similarity(draft_profile["connectives_per_10k"], baseline["connectives_per_10k"], CONNECTIVES)
-        status = "fail" if sim < 0.30 else ("warn" if sim < 0.55 else "ok")
-        hint = f"Connective-word drift: cosine similarity {sim:.2f} vs baseline — connective usage looks off-voice."
+        # Advisory band: distributional cosines read genre as well as voice
+        # (dogfood: a README correctly has zero first-person against a blog
+        # baseline). Only anomaly-floor breaches fail; the rest warns.
+        status = "fail" if sim < 0.15 else ("warn" if sim < 0.55 else "ok")
+        hint = f"Connective-word drift: cosine similarity {sim:.2f} vs baseline — advisory unless the register corpus covers this doc genre."
     results.append(_feature_result(16, "connective_drift", sim, 1.0, sim, status, hint))
 
     # 17. function_word_delta
-    if word_count < 300:
+    if prose_wc < 300:
         status = "skipped"
-        hint = "Function-word delta: skipped (draft under 300 words)."
+        hint = f"Function-word delta: skipped ({prose_wc}w of flowing prose)."
         sim = None
     else:
         sim = cosine_similarity(draft_profile["function_words_per_1k"], baseline["function_words_per_1k"], FUNCTION_WORDS)
-        status = "fail" if sim < 0.80 else ("warn" if sim < 0.90 else "ok")
-        hint = f"Function-word profile delta: cosine similarity {sim:.2f} vs baseline — grammatical-word usage drifted from author's baseline."
+        status = "fail" if sim < 0.60 else ("warn" if sim < 0.90 else "ok")
+        hint = f"Function-word profile delta: cosine similarity {sim:.2f} vs baseline — advisory unless the register corpus covers this doc genre."
     results.append(_feature_result(17, "function_word_delta", sim, 1.0, sim, status, hint))
 
     # 18. char_trigram_delta
-    if word_count < 300:
+    if prose_wc < 300:
         status = "skipped"
-        hint = "Char-trigram delta: skipped (draft under 300 words)."
+        hint = f"Char-trigram delta: skipped ({prose_wc}w of flowing prose)."
         sim = None
     else:
         shared_keys = sorted(set(draft_profile["char_trigrams"]) & set(baseline["char_trigrams"]))
         sim = cosine_similarity(draft_profile["char_trigrams"], baseline["char_trigrams"], shared_keys) if shared_keys else 0.0
-        status = "fail" if sim < 0.60 else ("warn" if sim < 0.75 else "ok")
-        hint = f"Character-trigram delta: cosine similarity {sim:.2f} vs baseline over {len(shared_keys)} shared trigrams."
+        status = "fail" if sim < 0.40 else ("warn" if sim < 0.75 else "ok")
+        hint = f"Character-trigram delta: cosine similarity {sim:.2f} vs baseline over {len(shared_keys)} shared trigrams (advisory band below 0.75)."
     results.append(_feature_result(18, "char_trigram_delta", sim, 1.0, sim, status, hint))
 
     return results

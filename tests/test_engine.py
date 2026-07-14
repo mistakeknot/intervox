@@ -366,6 +366,89 @@ class TestScoreAndVerdict(unittest.TestCase):
         self.assertEqual(info["verdict"], "pass")  # 100 - 18 = 82, no hard fail
 
 
+class TestDistributionalAdvisoryBand(unittest.TestCase):
+    # sylveste-lbe.9: features 16-18 warn in the genre-ambiguity band and
+    # fail only below anomaly floors (0.15 / 0.60 / 0.40).
+    def _fw_feature(self, sim_target_draft):
+        base = {w: 10.0 for w in ie.FUNCTION_WORDS}
+        return base, sim_target_draft
+
+    def test_moderate_divergence_warns_not_fails(self):
+        results = self._lint_with_fw(draft_fw_scale_half=True)
+        fw = next(r for r in results if r["name"] == "function_word_delta")
+        self.assertIn(fw["status"], ("warn", "ok"))
+
+    def _lint_with_fw(self, draft_fw_scale_half):
+        corpus = "\n\n".join((CORPUS_DIR / f"sample{i}.md").read_text() for i in (1, 2, 3))
+        baseline = ie.build_profile(corpus)
+        baseline["meta"] = {"files": 3}
+        draft = (CORPUS_DIR / "sample1.md").read_text()
+        prof = ie.build_profile(draft)
+        internal = prof.pop("_internal")
+        if draft_fw_scale_half:
+            # push similarity into the 0.60-0.90 band artificially
+            fw = prof["function_words_per_1k"]
+            for i, w in enumerate(ie.FUNCTION_WORDS):
+                fw[w] = fw[w] * (1.8 if i % 2 else 0.5)
+        return ie.evaluate_lint(prof, internal, baseline)
+
+    def test_catastrophic_divergence_still_fails(self):
+        corpus = "\n\n".join((CORPUS_DIR / f"sample{i}.md").read_text() for i in (1, 2, 3))
+        baseline = ie.build_profile(corpus)
+        draft = (CORPUS_DIR / "sample1.md").read_text()
+        prof = ie.build_profile(draft)
+        internal = prof.pop("_internal")
+        fw = prof["function_words_per_1k"]
+        top = sorted(fw, key=lambda w: -baseline["function_words_per_1k"][w])
+        for w in fw: fw[w] = 0.0
+        fw[top[-1]] = 500.0  # all mass on the author's rarest function word
+        results = ie.evaluate_lint(prof, internal, baseline)
+        fwr = next(r for r in results if r["name"] == "function_word_delta")
+        self.assertEqual(fwr["status"], "fail")
+
+
+class TestProseExtraction(unittest.TestCase):
+    # sylveste-lbe.9: distributional features (16-18) compare prose-to-prose.
+    DOC = (
+        "---\nregister: oss\n---\n"
+        "# Title Line\n\n"
+        "> A blockquote claim that is real prose and should be kept intact.\n\n"
+        "A normal paragraph with enough words to matter for the comparison.\n\n"
+        "| Command | Does |\n|---|---|\n| `/x apply` | Rewrite the thing |\n\n"
+        "- short fragment\n"
+        "- This list item is a complete sentence with more than eight words in it.\n\n"
+        "Closing paragraph of ordinary flowing prose text here.\n"
+    )
+
+    def test_tables_headings_fragments_dropped(self):
+        prose = ie.extract_prose(self.DOC)
+        self.assertNotIn("Command", prose)
+        self.assertNotIn("Title Line", prose)
+        self.assertNotIn("short fragment", prose)
+
+    def test_prose_and_long_list_items_kept(self):
+        prose = ie.extract_prose(self.DOC)
+        self.assertIn("blockquote claim", prose)
+        self.assertIn("normal paragraph", prose)
+        self.assertIn("complete sentence with more than eight words", prose)
+
+    def test_table_invariance_of_distributions(self):
+        # Appending a big table must not move the function-word distribution.
+        base_prose = (CORPUS_DIR / "sample1.md").read_text(encoding="utf-8")
+        table = "\n\n" + "\n".join(f"| cell {i} | run `cmd{i}` | value {i} |" for i in range(40))
+        p1 = ie.build_profile(base_prose)
+        p2 = ie.build_profile(base_prose + table)
+        sim = ie.cosine_similarity(
+            p1["function_words_per_1k"], p2["function_words_per_1k"], ie.FUNCTION_WORDS)
+        self.assertGreater(sim, 0.995, f"table moved the distribution: {sim}")
+
+    def test_structured_doc_skips_distributional_features(self):
+        prose_bit = "One honest sentence of prose lives here among the machinery.\n\n"
+        table = "\n".join(f"| cell {i} | more cells {i} | again {i} |" for i in range(120))
+        profile = ie.build_profile(prose_bit + table)
+        self.assertLess(profile["_internal"]["prose_word_count"], 300)
+
+
 class TestFirstPersonCounter(unittest.TestCase):
     # Regression: I_RE matched lowercase-only "\\bi\\b", which never occurs
     # as an English word — first-person rate read 0.0 on a first-person essay.

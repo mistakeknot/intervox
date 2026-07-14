@@ -181,3 +181,9 @@ regex fragments joined with the built-ins via alternation.
 ```
 python3 tests/test_engine.py
 ```
+
+## Distributional features: prose extraction and the advisory band (v0.1.1)
+
+Features 16-18 (connective drift, function-word delta, char-trigram delta) are computed prose-to-prose: `extract_prose` drops table rows, heading lines, and list fragments under 8 words from both corpus and draft before the distributions are built, and the features skip when a draft has under 300 words of flowing prose. They also carry an advisory band: moderate divergence warns rather than fails (floors: 0.15 / 0.60 / 0.40), because these cosines read genre as well as voice — a README correctly contains zero first-person against a blog-essay baseline. Grow the register corpus with same-genre samples to make the comparison bind harder.
+
+**After upgrading to v0.1.1, re-run `fingerprint`** — baselines built by v0.1.0 computed distributions over full text, not extracted prose.
