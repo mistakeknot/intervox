@@ -1,0 +1,1138 @@
+"""intervox_engine — stylometric fingerprinting and LLMism linting.
+
+Single-file engine for the intervox Claude Code plugin. Everything here is
+Python 3.11+ standard library only: argparse, json, re, statistics, math,
+pathlib, collections, textwrap. No pip dependencies.
+
+Commands (see main() / build_parser()):
+    fingerprint  — build a baseline stylometric profile from a corpus
+    lint         — compare a draft against a baseline, feature by feature
+    verify       — run lint, reduce to a pass/revise/reject verdict + score
+    retrieve     — TF-IDF paragraph retrieval over a corpus
+    registers    — list register sections in a voice profile markdown file
+
+Design note: every measurement function takes plain strings/lists and
+returns plain dicts/numbers so it can be unit tested without touching the
+filesystem or argparse at all.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import re
+import statistics
+import sys
+from collections import Counter
+from pathlib import Path
+
+VERSION = "0.1.0"
+
+# ---------------------------------------------------------------------------
+# Markdown / text preprocessing
+# ---------------------------------------------------------------------------
+
+# Order matters: strip fenced code blocks before inline backticks, so a fence
+# marker never gets misread as three inline-code spans.
+_CODE_FENCE_RE = re.compile(r"```.*?```", re.DOTALL)
+_INLINE_CODE_RE = re.compile(r"`([^`]*)`")
+_HEADING_RE = re.compile(r"(?m)^#{1,6}\s+")
+_LIST_MARKER_RE = re.compile(r"(?m)^\s*(?:[-*+]|\d+[.)])\s+")
+_LINK_RE = re.compile(r"\[([^\]]*)\]\([^)]*\)")
+_BOLD_ITALIC_RE = re.compile(r"(\*\*\*|\*\*|\*|___|__|_)")
+
+
+def strip_markdown(text: str) -> str:
+    """Remove common markdown syntax while preserving paragraph boundaries.
+
+    Blank lines (paragraph separators) are left alone; everything else is
+    stripped down to plain running text.
+    """
+    text = _CODE_FENCE_RE.sub(" ", text)
+    text = _INLINE_CODE_RE.sub(r"\1", text)
+    text = _HEADING_RE.sub("", text)
+    text = _LIST_MARKER_RE.sub("", text)
+    text = _LINK_RE.sub(r"\1", text)
+    text = _BOLD_ITALIC_RE.sub("", text)
+    return text
+
+
+def paragraphs_of(text: str) -> list[str]:
+    """Split cleaned text into paragraphs on blank lines."""
+    raw = re.split(r"\n\s*\n", text)
+    return [p.strip() for p in raw if p.strip()]
+
+
+# --- sentence tokenizer -----------------------------------------------------
+
+# Abbreviations whose trailing "." must not be treated as a sentence end.
+# We mask the dot with a placeholder, split, then unmask.
+_ABBREVIATIONS = [
+    "e.g.", "i.e.", "etc.", "vs.", "cf.", "Dr.", "Mr.", "Ms.", "U.S.",
+    "Fig.", "Eq.", "Sec.", "No.",
+]
+_DOT_MASK = " DOT "
+
+_SENTENCE_SPLIT_RE = re.compile(r'(?<=[.!?])\s+(?=[A-Z"(\'\d])')
+
+
+def _mask_abbreviations(text: str) -> str:
+    out = text
+    for abbr in _ABBREVIATIONS:
+        masked = abbr.replace(".", _DOT_MASK)
+        # Case-sensitive except e.g./i.e./etc./vs./cf. which are lowercase by
+        # convention; word-boundary-ish match via simple replace is fine here
+        # since abbreviations are short and rare as substrings of other words.
+        out = out.replace(abbr, masked)
+    return out
+
+
+def _unmask_abbreviations(text: str) -> str:
+    return text.replace(_DOT_MASK, ".")
+
+
+def split_sentences(text: str) -> list[str]:
+    """Split text into sentence-like spans, protecting known abbreviations.
+
+    Returns raw (unmasked) sentence strings, whitespace-trimmed, with no
+    length filtering — callers decide what counts as a "real" sentence vs a
+    fragment (see word_count_of / sentence stats below).
+    """
+    flat = " ".join(text.split())  # collapse newlines/whitespace runs
+    masked = _mask_abbreviations(flat)
+    parts = _SENTENCE_SPLIT_RE.split(masked)
+    return [_unmask_abbreviations(p).strip() for p in parts if p.strip()]
+
+
+_WORD_RE = re.compile(r"[A-Za-z']+")
+
+
+def words_of(text: str) -> list[str]:
+    """Whitespace/punctuation-tokenized words (letters + apostrophes only)."""
+    return _WORD_RE.findall(text)
+
+
+def word_count_of(s: str) -> int:
+    return len(words_of(s))
+
+
+MIN_SENTENCE_WORDS = 3  # sentences shorter than this count as fragments
+
+
+def classify_sentences(sentences: list[str]) -> tuple[list[str], list[str]]:
+    """Split sentence list into (full_sentences, fragments) by word count."""
+    full, frag = [], []
+    for s in sentences:
+        (full if word_count_of(s) >= MIN_SENTENCE_WORDS else frag).append(s)
+    return full, frag
+
+
+# ---------------------------------------------------------------------------
+# Slop lexicon + phrases (module constants, overridable via --lexicon JSON)
+# ---------------------------------------------------------------------------
+
+TIER1_LEXEMES = {
+    "delve", "delves", "delving", "underscore", "underscores", "underscoring",
+    "tapestry", "testament", "meticulous", "meticulously", "commendable",
+    "multifaceted", "intricate", "intricacies", "showcase", "showcasing",
+    "boast", "boasts", "garner", "garnered", "bolster", "bolstered",
+    "pivotal", "realm", "holistic", "synergy", "leverage", "utilize",
+    "utilizing", "elevate", "revolutionize", "groundbreaking", "seamless",
+    "seamlessly", "robust", "vibrant", "crucial", "notably", "foster",
+    "fostering", "empower", "empowering", "unleash", "unlock", "embark",
+    "navigate", "landscape", "journey", "beacon", "paradigm", "resonate",
+    "resonates",
+}
+TIER1_WEIGHT = 3
+
+TIER2_PHRASES = [
+    r"stands as a testament",
+    r"plays a (?:vital|pivotal|crucial|significant) role",
+    r"in today'?s fast-paced (?:world|digital landscape)",
+    r"rich tapestry",
+    r"it'?s (?:important|worth) (?:to note|noting)",
+    r"shed(?:s|ding)? light on",
+    r"deep dive",
+    r"game.?changer",
+    r"paving the way",
+    r"at the forefront",
+    r"best practices",
+    r"in the (?:realm|world) of",
+    r"when it comes to",
+    r"at the end of the day",
+    r"needless to say",
+    r"in conclusion",
+    r"in summary",
+    r"to summarize",
+    r"first and foremost",
+    r"dive (?:deep|deeper) into",
+    r"a wide range of",
+    r"plethora",
+    r"myriad of",
+    r"ever.?evolving",
+]
+TIER2_WEIGHT = 2
+_TIER2_RE = re.compile("|".join(TIER2_PHRASES), re.IGNORECASE)
+
+CHAT_ARTIFACTS = [
+    "great question",
+    "i hope this helps",
+    "certainly!",
+    "as an ai",
+    "as a language model",
+    "i cannot",
+    "knowledge cutoff",
+    "let me know if",
+]
+
+
+def load_lexicon_override(path: str | None) -> dict:
+    """Load a JSON lexicon override file.
+
+    Expected optional keys: "tier1_lexemes" (list[str]), "tier2_phrases"
+    (list[str] regex fragments), "chat_artifacts" (list[str]),
+    "remove_tier1" (list[str] to unban, e.g. domain terms like "robust").
+    Returns a dict with resolved tier1_lexemes/tier2_phrases/chat_artifacts.
+    """
+    tier1 = set(TIER1_LEXEMES)
+    tier2 = list(TIER2_PHRASES)
+    chat = list(CHAT_ARTIFACTS)
+    if path:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        for w in data.get("remove_tier1", []):
+            tier1.discard(w.lower())
+        for w in data.get("tier1_lexemes", []):
+            tier1.add(w.lower())
+        tier2.extend(data.get("tier2_phrases", []))
+        chat.extend(data.get("chat_artifacts", []))
+    return {"tier1_lexemes": tier1, "tier2_phrases": tier2, "chat_artifacts": chat}
+
+
+def slop_scores(text: str, lexicon: dict | None = None) -> dict:
+    """Return per-1k-word weighted lexeme hits, phrase hits, and chat-artifact matches."""
+    lex = lexicon or {
+        "tier1_lexemes": TIER1_LEXEMES,
+        "tier2_phrases": TIER2_PHRASES,
+        "chat_artifacts": CHAT_ARTIFACTS,
+    }
+    tokens = words_of(text)
+    n = max(len(tokens), 1)
+    lowered_tokens = [t.lower() for t in tokens]
+    tier1_hits = sum(1 for t in lowered_tokens if t in lex["tier1_lexemes"])
+    lexeme_weighted = tier1_hits * TIER1_WEIGHT
+
+    tier2_re = re.compile("|".join(lex["tier2_phrases"]), re.IGNORECASE)
+    tier2_hits = len(tier2_re.findall(text))
+    phrase_weighted = tier2_hits * TIER2_WEIGHT
+
+    lowered_text = text.lower()
+    artifact_hits = [a for a in lex["chat_artifacts"] if a in lowered_text]
+
+    return {
+        "lexeme_hits_per_1k": lexeme_weighted / n * 1000,
+        "phrase_hits_per_1k": phrase_weighted / n * 1000,
+        "chat_artifacts_found": artifact_hits,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Feature-scan regex constants
+# ---------------------------------------------------------------------------
+
+PASSIVE_RE = re.compile(r"\b(?:is|are|was|were|been|being|be)\s+\w+(?:ed|en)\b", re.IGNORECASE)
+HEDGE_RE = {
+    "hedge_might": re.compile(r"\bmight\b", re.IGNORECASE),
+    "hedge_could": re.compile(r"\bcould\b", re.IGNORECASE),
+    "hedge_would": re.compile(r"\bwould\b", re.IGNORECASE),
+    "hedge_may": re.compile(r"\bmay\b", re.IGNORECASE),
+}
+WE_RE = re.compile(r"\bwe\b", re.IGNORECASE)
+I_RE = re.compile(r"\bi\b")  # first-person "I" is case-sensitive by convention
+
+COPULA_PLAIN_RE = re.compile(r"\b(?:is|are|was|were|be|being|been)\b", re.IGNORECASE)
+COPULA_AVOIDANCE_RE = re.compile(r"\b(?:serves? as|stands? as|represents?|marks?)\b", re.IGNORECASE)
+
+PARTICIPIAL_TAIL_RE = re.compile(r",\s*\w+ing\b[^,]{0,60}[.!?]$")
+NEG_PARALLELISM_RE_1 = re.compile(r"\bnot (?:just|only|merely)\b.{0,80}?\bbut\b", re.IGNORECASE)
+NEG_PARALLELISM_RE_2 = re.compile(r"it'?s not\b.{0,60}?[;,—]\s*it'?s\b", re.IGNORECASE)
+RULE_OF_THREE_RE = re.compile(r"\b\w+(?:\s\w+)?,\s+\w+(?:\s\w+)?,?\s+and\s+\w+(?:\s\w+)?\b")
+
+HEDGE_BOILERPLATE_RE = re.compile(
+    r"it is (?:important|essential|crucial) to (?:note|consider|remember)"
+    r"|it'?s worth (?:noting|considering)"
+    r"|one must consider",
+    re.IGNORECASE,
+)
+
+SCAFFOLD_MARKERS_RE = re.compile(
+    r"\bin conclusion\b|\bin summary\b|\boverall,|\bto summarize\b", re.IGNORECASE
+)
+
+PUNCT_INTERVAL_RE = re.compile(r"[,.;:—()!?]")
+
+CONNECTIVES = [
+    "however", "for example", "for instance", "in particular", "in other words",
+    "in effect", "consequently", "hence", "moreover", "furthermore", "in addition",
+    "first", "second", "third", "finally", "by this we mean", "such a", "such an",
+]
+
+# Standard function-word list from the spec (enumerated verbatim). The spec
+# calls this "60-word" but the literal enumerated list has 61 entries; kept
+# exactly as given rather than dropping a word to force a round number.
+FUNCTION_WORDS = [
+    "the", "of", "to", "and", "a", "in", "that", "is", "was", "he", "for", "it",
+    "with", "as", "his", "on", "be", "at", "by", "i", "this", "had", "not", "are",
+    "but", "from", "or", "have", "an", "they", "which", "one", "you", "were",
+    "her", "all", "she", "there", "would", "their", "we", "him", "been", "has",
+    "when", "who", "will", "more", "no", "if", "out", "so", "said", "what", "up",
+    "its", "about", "into", "than", "them", "can",
+]
+assert len(FUNCTION_WORDS) == len(set(FUNCTION_WORDS)) == 61
+
+
+# ---------------------------------------------------------------------------
+# Core stylometric measurements
+# ---------------------------------------------------------------------------
+
+def per_1k(count: int, total_words: int) -> float:
+    return count / max(total_words, 1) * 1000
+
+
+def sentence_rhythm(sentence_lens: list[int]) -> dict:
+    if not sentence_lens:
+        return {
+            "mean": 0.0, "sd": 0.0, "cv": 0.0, "median": 0.0, "p10": 0, "p90": 0,
+            "pct_under_10w": 0.0, "pct_over_35w": 0.0, "pct_under_6w": 0.0,
+        }
+    mean = statistics.fmean(sentence_lens)
+    sd = statistics.pstdev(sentence_lens) if len(sentence_lens) > 1 else 0.0
+    cv = sd / mean if mean else 0.0
+    sorted_lens = sorted(sentence_lens)
+    median = statistics.median(sorted_lens)
+    p10 = _percentile(sorted_lens, 10)
+    p90 = _percentile(sorted_lens, 90)
+    n = len(sentence_lens)
+    pct_under_10 = sum(1 for x in sentence_lens if x < 10) / n * 100
+    pct_over_35 = sum(1 for x in sentence_lens if x > 35) / n * 100
+    pct_under_6 = sum(1 for x in sentence_lens if x < 6) / n * 100
+    return {
+        "mean": mean, "sd": sd, "cv": cv, "median": median,
+        "p10": p10, "p90": p90,
+        "pct_under_10w": pct_under_10, "pct_over_35w": pct_over_35,
+        "pct_under_6w": pct_under_6,
+    }
+
+
+def _percentile(sorted_vals: list[float], pct: float) -> float:
+    """Nearest-rank percentile over an already-sorted list."""
+    if not sorted_vals:
+        return 0
+    k = max(0, min(len(sorted_vals) - 1, math.ceil(pct / 100 * len(sorted_vals)) - 1))
+    return sorted_vals[k]
+
+
+def paragraph_stats(paragraphs: list[str]) -> dict:
+    lens = [word_count_of(p) for p in paragraphs] or [0]
+    mean = statistics.fmean(lens)
+    sd = statistics.pstdev(lens) if len(lens) > 1 else 0.0
+    cv = sd / mean if mean else 0.0
+    return {"mean_words": mean, "cv": cv}
+
+
+def punct_per_1k_of(text: str, total_words: int) -> dict:
+    return {
+        "em_dash": per_1k(text.count("—"), total_words),
+        "semicolon": per_1k(text.count(";"), total_words),
+        "colon": per_1k(text.count(":"), total_words),
+        "paren": per_1k(text.count("(") + text.count(")"), total_words),
+        "question": per_1k(text.count("?"), total_words),
+        "exclaim": per_1k(text.count("!"), total_words),
+        "ellipsis": per_1k(len(re.findall(r"\.\.\.|…", text)), total_words),
+    }
+
+
+def per_1k_features(text: str, total_words: int) -> dict:
+    return {
+        "passive_est": per_1k(len(PASSIVE_RE.findall(text)), total_words),
+        "we": per_1k(len(WE_RE.findall(text)), total_words),
+        "i": per_1k(len(I_RE.findall(text)), total_words),
+        "hedge_might": per_1k(len(HEDGE_RE["hedge_might"].findall(text)), total_words),
+        "hedge_could": per_1k(len(HEDGE_RE["hedge_could"].findall(text)), total_words),
+        "hedge_would": per_1k(len(HEDGE_RE["hedge_would"].findall(text)), total_words),
+        "hedge_may": per_1k(len(HEDGE_RE["hedge_may"].findall(text)), total_words),
+    }
+
+
+def copula_features(text: str, total_words: int) -> dict:
+    plain = len(COPULA_PLAIN_RE.findall(text))
+    avoidance = len(COPULA_AVOIDANCE_RE.findall(text))
+    plain_per_1k = per_1k(plain, total_words)
+    avoidance_per_1k = per_1k(avoidance, total_words)
+    ratio = avoidance / plain if plain else (float(avoidance) if avoidance else 0.0)
+    return {
+        "plain_per_1k": plain_per_1k,
+        "avoidance_per_1k": avoidance_per_1k,
+        "avoidance_ratio": ratio,
+    }
+
+
+def constructions_per_1k(full_sentences: list[str], total_words: int) -> dict:
+    tail_hits = sum(1 for s in full_sentences if PARTICIPIAL_TAIL_RE.search(s))
+    tail_pct = tail_hits / max(len(full_sentences), 1) * 100
+
+    joined = " ".join(full_sentences)
+    neg_hits = len(NEG_PARALLELISM_RE_1.findall(joined)) + len(NEG_PARALLELISM_RE_2.findall(joined))
+    neg_per_1k = per_1k(neg_hits, total_words)
+
+    rule3_hits = len(RULE_OF_THREE_RE.findall(joined))
+    rule3_per_1k = per_1k(rule3_hits, total_words)
+
+    return {
+        "participial_tail_pct_of_sentences": tail_pct,
+        "neg_parallelism": neg_per_1k,
+        "rule_of_three": rule3_per_1k,
+    }
+
+
+def connectives_per_10k_of(text: str, total_words: int) -> dict:
+    lowered = text.lower()
+    out = {}
+    for marker in CONNECTIVES:
+        cnt = lowered.count(marker)
+        out[marker] = cnt / max(total_words, 1) * 10000
+    return out
+
+
+def function_words_per_1k_of(tokens_lower: list[str], total_words: int) -> dict:
+    counts = Counter(tokens_lower)
+    return {w: per_1k(counts.get(w, 0), total_words) for w in FUNCTION_WORDS}
+
+
+def char_trigrams_of(text: str, top_n: int = 200) -> dict:
+    """Top-N most frequent character trigrams over lowercased letters+space."""
+    cleaned = re.sub(r"[^a-z ]", "", text.lower())
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    trigrams = [cleaned[i:i + 3] for i in range(len(cleaned) - 2)]
+    trigrams = [t for t in trigrams if t.strip()]
+    total = len(trigrams) or 1
+    counts = Counter(trigrams)
+    top = counts.most_common(top_n)
+    return {tri: cnt / total for tri, cnt in top}
+
+
+def mattr(tokens_lower: list[str], window: int = 50) -> float:
+    """Moving-average type-token ratio over a sliding window."""
+    n = len(tokens_lower)
+    if n == 0:
+        return 0.0
+    if n < window:
+        return len(set(tokens_lower)) / n
+    ratios = []
+    for i in range(0, n - window + 1):
+        chunk = tokens_lower[i:i + window]
+        ratios.append(len(set(chunk)) / window)
+    return statistics.fmean(ratios)
+
+
+# ---------------------------------------------------------------------------
+# Profile assembly (shared between fingerprint corpora and lint drafts)
+# ---------------------------------------------------------------------------
+
+def build_profile(raw_text: str, lexicon: dict | None = None) -> dict:
+    """Compute the full stylometric feature set for a single blob of text.
+
+    Returns a dict matching the "sentence_rhythm"/"paragraphs"/... shape used
+    by both `fingerprint` (aggregated over a corpus) and `lint` (a draft).
+    Does NOT include the "meta" block — callers attach that themselves.
+    """
+    cleaned = strip_markdown(raw_text)
+    paras = paragraphs_of(cleaned)
+    sentences = split_sentences(cleaned)
+    full_sentences, fragments = classify_sentences(sentences)
+
+    tokens = words_of(cleaned)
+    total_words = len(tokens)
+    tokens_lower = [t.lower() for t in tokens]
+
+    sentence_lens = [word_count_of(s) for s in full_sentences]
+
+    profile = {
+        "sentence_rhythm": sentence_rhythm(sentence_lens),
+        "paragraphs": paragraph_stats(paras),
+        "punct_per_1k": punct_per_1k_of(cleaned, total_words),
+        "per_1k": per_1k_features(cleaned, total_words),
+        "copula": copula_features(cleaned, total_words),
+        "constructions_per_1k": constructions_per_1k(full_sentences, total_words),
+        "connectives_per_10k": connectives_per_10k_of(cleaned, total_words),
+        "function_words_per_1k": function_words_per_1k_of(tokens_lower, total_words),
+        "char_trigrams": char_trigrams_of(cleaned),
+        "lexical": {"mattr_w50": mattr(tokens_lower)},
+        "slop": {},
+    }
+    slop = slop_scores(cleaned, lexicon)
+    profile["slop"] = {
+        "lexeme_hits_per_1k": slop["lexeme_hits_per_1k"],
+        "phrase_hits_per_1k": slop["phrase_hits_per_1k"],
+    }
+
+    # Stash internal-use-only fields the lint command needs but that are not
+    # part of the published fingerprint schema (kept out of "meta"/top-level
+    # published keys via leading underscore so callers can pop them).
+    profile["_internal"] = {
+        "word_count": total_words,
+        "sentence_count": len(full_sentences),
+        "fragment_count": len(fragments),
+        "paragraph_count": len(paras),
+        "chat_artifacts_found": slop["chat_artifacts_found"],
+        "sentence_lens": sentence_lens,
+        "paragraph_lens": [word_count_of(p) for p in paras],
+        "cleaned_text": cleaned,
+        "full_sentences": full_sentences,
+    }
+    return profile
+
+
+def _read_corpus_files(corpus_dir: Path) -> list[Path]:
+    files = sorted(set(list(corpus_dir.rglob("*.md")) + list(corpus_dir.rglob("*.txt"))))
+    return files
+
+
+def fingerprint_corpus(paths: list[Path], register: str | None, lexicon: dict | None = None) -> dict:
+    """Build a baseline fingerprint by concatenating all corpus files.
+
+    Simpler and more robust than averaging per-file profiles (per-file
+    averaging would badly distort ratio-style features like cv/mattr on
+    small files); the spec's schema is a single aggregate profile anyway.
+    """
+    texts = [p.read_text(encoding="utf-8", errors="replace") for p in paths]
+    combined = "\n\n".join(texts)
+    profile = build_profile(combined, lexicon)
+    internal = profile.pop("_internal")
+
+    meta = {
+        "register": register,
+        "files": len(paths),
+        "words": internal["word_count"],
+        "sentences": internal["sentence_count"],
+        "generated_by": f"intervox-engine v{VERSION}",
+    }
+    profile["meta"] = meta
+    return profile
+
+
+# ---------------------------------------------------------------------------
+# Lint: feature evaluation vs baseline
+# ---------------------------------------------------------------------------
+
+def cosine_similarity(a: dict, b: dict, keys: list[str] | None = None) -> float:
+    ks = keys if keys is not None else sorted(set(a) | set(b))
+    va = [a.get(k, 0.0) for k in ks]
+    vb = [b.get(k, 0.0) for k in ks]
+    dot = sum(x * y for x, y in zip(va, vb))
+    na = math.sqrt(sum(x * x for x in va))
+    nb = math.sqrt(sum(y * y for y in vb))
+    if na == 0 or nb == 0:
+        return 0.0
+    return dot / (na * nb)
+
+
+def _status_from_thresholds(value: float, warn: float, fail: float, higher_is_worse: bool = True) -> str:
+    if higher_is_worse:
+        if value > fail:
+            return "fail"
+        if value > warn:
+            return "warn"
+        return "ok"
+    else:
+        if value < fail:
+            return "fail"
+        if value < warn:
+            return "warn"
+        return "ok"
+
+
+def _feature_result(fid: int, name: str, draft_value, baseline_value, ratio_or_delta, status: str, hint: str) -> dict:
+    return {
+        "id": fid,
+        "name": name,
+        "draft_value": draft_value,
+        "baseline_value": baseline_value,
+        "ratio_or_delta": ratio_or_delta,
+        "status": status,
+        "hint": hint,
+    }
+
+
+def evaluate_lint(draft_profile: dict, draft_internal: dict, baseline: dict) -> list[dict]:
+    """Evaluate all 18 lint features. Returns a list of feature-result dicts."""
+    results = []
+    word_count = draft_internal["word_count"]
+
+    # 1. slop_lexemes — baseline-relative: some authors legitimately use lexicon
+    # words ("leverage", "showcase" in academic ML prose), so the threshold is
+    # the max of an absolute floor and a multiple of the author's own rate.
+    dv = draft_profile["slop"]["lexeme_hits_per_1k"]
+    bv = baseline["slop"]["lexeme_hits_per_1k"]
+    warn_at = max(0.5, 1.75 * bv)
+    fail_at = max(1.5, 3.0 * bv)
+    status = "fail" if dv > fail_at else ("warn" if dv > warn_at else "ok")
+    hint = f"Slop lexemes: {dv:.2f}/1k words (baseline {bv:.2f}/1k) — cut weighted AI-cliche vocabulary like 'delve', 'underscores', 'tapestry'."
+    results.append(_feature_result(1, "slop_lexemes", dv, bv, dv - bv, status, hint))
+
+    # 2. slop_phrases
+    dv = draft_profile["slop"]["phrase_hits_per_1k"]
+    bv = baseline["slop"]["phrase_hits_per_1k"]
+    status = "fail" if dv > 1.0 else ("warn" if dv > 0.3 else "ok")
+    hint = f"Slop phrases: {dv:.2f}/1k words (baseline {bv:.2f}/1k) — rewrite stock phrases like 'plays a pivotal role' or 'rich tapestry'."
+    results.append(_feature_result(2, "slop_phrases", dv, bv, dv - bv, status, hint))
+
+    # 3. chat_artifacts
+    found = draft_internal["chat_artifacts_found"]
+    status = "fail" if found else "ok"
+    hint = f"Chat artifacts found: {', '.join(found)} — remove chatbot-register phrases entirely." if found else "No chat artifacts found."
+    results.append(_feature_result(3, "chat_artifacts", found, [], len(found), status, hint))
+
+    # 4. lexical_diversity (MATTR ratio draft/baseline)
+    dv_m = draft_profile["lexical"]["mattr_w50"]
+    bv_m = baseline["lexical"]["mattr_w50"]
+    ratio = dv_m / bv_m if bv_m else 1.0
+    status = "fail" if ratio < 0.85 else ("warn" if ratio < 0.92 else "ok")
+    hint = f"Lexical diversity (MATTR): {dv_m:.3f} vs baseline {bv_m:.3f} (ratio {ratio:.2f}) — vary word choice, avoid repeating the same nouns/verbs."
+    results.append(_feature_result(4, "lexical_diversity", dv_m, bv_m, ratio, status, hint))
+
+    # 5. participial_tails
+    dv_t = draft_profile["constructions_per_1k"]["participial_tail_pct_of_sentences"]
+    bv_t = baseline["constructions_per_1k"]["participial_tail_pct_of_sentences"]
+    if bv_t == 0:
+        status = "fail" if dv_t > 8 else ("warn" if dv_t > 4 else "ok")
+    else:
+        ratio = dv_t / bv_t
+        if ratio > 3 and dv_t > 8:
+            status = "fail"
+        elif ratio > 2 and dv_t > 4:
+            status = "warn"
+        else:
+            status = "ok"
+    hint = f"Participial tails: {dv_t:.1f}% of sentences end in ', Xing...' (baseline {bv_t:.1f}%) — vary sentence endings, cut trailing '-ing' clauses."
+    results.append(_feature_result(5, "participial_tails", dv_t, bv_t, (dv_t - bv_t), status, hint))
+
+    # 6. neg_parallelism
+    dv_n = draft_profile["constructions_per_1k"]["neg_parallelism"]
+    bv_n = baseline["constructions_per_1k"]["neg_parallelism"]
+    status = "fail" if dv_n > bv_n + 1.0 else ("warn" if dv_n > bv_n + 0.4 else "ok")
+    hint = f"Negative parallelism ('not just X but Y'): {dv_n:.2f}/1k (baseline {bv_n:.2f}/1k) — drop the not-X-but-Y crutch, state things directly."
+    results.append(_feature_result(6, "neg_parallelism", dv_n, bv_n, dv_n - bv_n, status, hint))
+
+    # 7. rule_of_three
+    dv_r = draft_profile["constructions_per_1k"]["rule_of_three"]
+    bv_r = baseline["constructions_per_1k"]["rule_of_three"]
+    status = "fail" if dv_r > 2.5 * bv_r + 0.6 else ("warn" if dv_r > 1.5 * bv_r + 0.3 else "ok")
+    hint = f"Rule-of-three triads: {dv_r:.2f}/1k (baseline {bv_r:.2f}/1k) — break up 'X, Y, and Z' listing habit."
+    results.append(_feature_result(7, "rule_of_three", dv_r, bv_r, dv_r - bv_r, status, hint))
+
+    # 8. copula_avoidance
+    dv_c = draft_profile["copula"]["avoidance_ratio"]
+    bv_c = baseline["copula"]["avoidance_ratio"]
+    if bv_c == 0:
+        status = "fail" if dv_c > 0.35 else ("warn" if dv_c > 0.15 else "ok")
+        ratio = dv_c
+    else:
+        ratio = dv_c / bv_c
+        status = "fail" if ratio > 4 else ("warn" if ratio > 2 else "ok")
+    hint = f"Copula avoidance ('serves as', 'stands as', 'represents'): ratio {dv_c:.2f} vs baseline {bv_c:.2f} — just use 'is' sometimes."
+    results.append(_feature_result(8, "copula_avoidance", dv_c, bv_c, ratio, status, hint))
+
+    # 9. hedging_boilerplate
+    hedge_hits = len(HEDGE_BOILERPLATE_RE.findall(draft_internal["cleaned_text"]))
+    per_word_rate = hedge_hits / max(word_count, 1)
+    status = "fail" if per_word_rate >= 1 / 150 else ("warn" if per_word_rate >= 1 / 300 else "ok")
+    hint = f"Hedging boilerplate ('it is important to note'): {hedge_hits} hits in {word_count} words — cut the throat-clearing, say the thing."
+    results.append(_feature_result(9, "hedging_boilerplate", hedge_hits, 0, hedge_hits, status, hint))
+
+    # 10. em_dash_density
+    dv_e = draft_profile["punct_per_1k"]["em_dash"]
+    bv_e = baseline["punct_per_1k"]["em_dash"]
+    if dv_e > 6.0 or (dv_e > 2 * bv_e and dv_e > 3.0):
+        status = "fail"
+    elif dv_e > 1.5 * bv_e:
+        status = "warn"
+    else:
+        status = "ok"
+    hint = f"Em-dash density: {dv_e:.1f}/1k words (baseline {bv_e:.1f}/1k) — swap some em-dashes for periods, commas, or parentheses."
+    results.append(_feature_result(10, "em_dash_density", dv_e, bv_e, dv_e - bv_e, status, hint))
+
+    # 11. burstiness (sentence-length SD ratio)
+    dv_sd = draft_profile["sentence_rhythm"]["sd"]
+    bv_sd = baseline["sentence_rhythm"]["sd"]
+    ratio = dv_sd / bv_sd if bv_sd else 1.0
+    status = "fail" if ratio < 0.70 else ("warn" if ratio < 0.85 else "ok")
+    hint = (
+        f"Sentence rhythm too uniform: SD {dv_sd:.1f}w vs author {bv_sd:.1f}w "
+        f"(ratio {ratio:.2f}) — split one long sentence and add a short one in a couple of paragraphs."
+    )
+    results.append(_feature_result(11, "burstiness", dv_sd, bv_sd, ratio, status, hint))
+
+    # 12. monotony (adjacent near-equal-length sentence pairs)
+    lens = draft_internal["sentence_lens"]
+    pairs = list(zip(lens, lens[1:]))
+    near_equal = [i for i, (a, b) in enumerate(pairs) if abs(a - b) <= 4]
+    pct_near_equal = len(near_equal) / max(len(pairs), 1) * 100
+    baseline_monotony = baseline.get("_derived_monotony_pct")
+    if baseline_monotony is None or baseline_monotony == 0:
+        status = "fail" if pct_near_equal > 70 else ("warn" if pct_near_equal > 55 else "ok")
+    else:
+        ratio = pct_near_equal / baseline_monotony
+        status = "fail" if ratio > 1.8 else ("warn" if ratio > 1.4 else "ok")
+    # detect runs of 4+ consecutive near-equal-length sentences
+    run_start, run_len, runs = None, 0, []
+    for i in range(len(lens)):
+        is_near = i > 0 and abs(lens[i] - lens[i - 1]) <= 4
+        if is_near:
+            if run_start is None:
+                run_start = i - 1
+            run_len += 1
+        else:
+            if run_len >= 3:  # 3 pairwise-near transitions == 4 sentences
+                runs.append((run_start + 1, run_start + run_len + 1))
+            run_start, run_len = None, 0
+    if run_len >= 3:
+        runs.append((run_start + 1, run_start + run_len + 1))
+    run_note = f"; runs of 4+ near-equal sentences at positions {runs}" if runs else ""
+    hint = f"Monotony: {pct_near_equal:.0f}% of adjacent sentence pairs within 4 words of each other{run_note} — vary sentence length more."
+    results.append(_feature_result(12, "monotony", pct_near_equal, baseline_monotony or 0.0, pct_near_equal - (baseline_monotony or 0.0), status, hint))
+
+    # 13. short_sentence_deficit
+    dv_short = draft_profile["sentence_rhythm"]["pct_under_6w"]
+    bv_short = baseline["sentence_rhythm"]["pct_under_6w"]
+    if bv_short >= 3:
+        ratio = dv_short / bv_short if bv_short else 0.0
+        status = "warn" if ratio < 0.5 else "ok"
+        hint = f"Short-sentence deficit: {dv_short:.1f}% sentences <=6w vs baseline {bv_short:.1f}% — add a few short, blunt sentences."
+    else:
+        status = "skipped"
+        hint = "Short-sentence deficit: skipped (baseline has too few short sentences to compare against)."
+    results.append(_feature_result(13, "short_sentence_deficit", dv_short, bv_short, (dv_short - bv_short), status, hint))
+
+    # 14. punct_interval_burstiness
+    dv_pi = _punct_interval_sd(draft_internal["cleaned_text"])
+    bv_pi = baseline.get("_derived_punct_interval_sd", 0.0)
+    ratio = dv_pi / bv_pi if bv_pi else 1.0
+    status = "fail" if ratio < 0.65 else ("warn" if ratio < 0.8 else "ok")
+    hint = f"Punctuation-interval burstiness: SD {dv_pi:.2f} vs baseline {bv_pi:.2f} (ratio {ratio:.2f}) — vary the gaps between punctuation marks."
+    results.append(_feature_result(14, "punct_interval_burstiness", dv_pi, bv_pi, ratio, status, hint))
+
+    # 15. paragraph_uniformity
+    dv_cv = draft_profile["paragraphs"]["cv"]
+    bv_cv = baseline["paragraphs"]["cv"]
+    ratio = dv_cv / bv_cv if bv_cv else 1.0
+    scaffold_found = bool(SCAFFOLD_MARKERS_RE.search(draft_internal["cleaned_text"]))
+    if scaffold_found:
+        status = "fail"
+    else:
+        status = "warn" if ratio < 0.6 else "ok"
+    hint = f"Paragraph uniformity: CV {dv_cv:.2f} vs baseline {bv_cv:.2f}"
+    if scaffold_found:
+        hint += " — scaffold marker found ('in conclusion'/'in summary'/'overall,'/'to summarize'); remove essay-scaffolding language."
+    else:
+        hint += " — vary paragraph length more."
+    results.append(_feature_result(15, "paragraph_uniformity", dv_cv, bv_cv, ratio, status, hint))
+
+    # 16. connective_drift
+    if word_count < 300:
+        status = "skipped"
+        hint = "Connective drift: skipped (draft under 300 words)."
+        sim = None
+    else:
+        sim = cosine_similarity(draft_profile["connectives_per_10k"], baseline["connectives_per_10k"], CONNECTIVES)
+        status = "fail" if sim < 0.30 else ("warn" if sim < 0.55 else "ok")
+        hint = f"Connective-word drift: cosine similarity {sim:.2f} vs baseline — connective usage looks off-voice."
+    results.append(_feature_result(16, "connective_drift", sim, 1.0, sim, status, hint))
+
+    # 17. function_word_delta
+    if word_count < 300:
+        status = "skipped"
+        hint = "Function-word delta: skipped (draft under 300 words)."
+        sim = None
+    else:
+        sim = cosine_similarity(draft_profile["function_words_per_1k"], baseline["function_words_per_1k"], FUNCTION_WORDS)
+        status = "fail" if sim < 0.80 else ("warn" if sim < 0.90 else "ok")
+        hint = f"Function-word profile delta: cosine similarity {sim:.2f} vs baseline — grammatical-word usage drifted from author's baseline."
+    results.append(_feature_result(17, "function_word_delta", sim, 1.0, sim, status, hint))
+
+    # 18. char_trigram_delta
+    if word_count < 300:
+        status = "skipped"
+        hint = "Char-trigram delta: skipped (draft under 300 words)."
+        sim = None
+    else:
+        shared_keys = sorted(set(draft_profile["char_trigrams"]) & set(baseline["char_trigrams"]))
+        sim = cosine_similarity(draft_profile["char_trigrams"], baseline["char_trigrams"], shared_keys) if shared_keys else 0.0
+        status = "fail" if sim < 0.60 else ("warn" if sim < 0.75 else "ok")
+        hint = f"Character-trigram delta: cosine similarity {sim:.2f} vs baseline over {len(shared_keys)} shared trigrams."
+    results.append(_feature_result(18, "char_trigram_delta", sim, 1.0, sim, status, hint))
+
+    return results
+
+
+def _punct_interval_sd(text: str) -> float:
+    """SD of token-gaps between punctuation marks [,.;:—()!?]."""
+    tokens = text.split()
+    positions = [i for i, t in enumerate(tokens) if PUNCT_INTERVAL_RE.search(t)]
+    if len(positions) < 2:
+        return 0.0
+    gaps = [b - a for a, b in zip(positions, positions[1:])]
+    return statistics.pstdev(gaps) if len(gaps) > 1 else 0.0
+
+
+def compute_corpus_derived_extras(raw_text: str) -> dict:
+    """Compute the extra derived stats (monotony%, punct-interval SD) for a
+    corpus's raw text, to be embedded as sidecar baseline fields.
+
+    These two lint features (12, 14) need a signal from the baseline that
+    the published fingerprint schema doesn't otherwise carry (raw sentence
+    order / token positions), so `fingerprint` stashes them as extra
+    "_derived_*" keys alongside the documented schema keys. If a baseline
+    JSON lacks these keys (e.g. hand-written or from an older version),
+    lint/verify fall back to the "no baseline" absolute-threshold branch
+    for those two features rather than erroring.
+    """
+    cleaned = strip_markdown(raw_text)
+    sentences = split_sentences(cleaned)
+    full_sentences, _ = classify_sentences(sentences)
+    lens = [word_count_of(s) for s in full_sentences]
+    pairs = list(zip(lens, lens[1:]))
+    near_equal = sum(1 for a, b in pairs if abs(a - b) <= 4)
+    monotony_pct = near_equal / max(len(pairs), 1) * 100
+    punct_sd = _punct_interval_sd(cleaned)
+    return {"monotony_pct": monotony_pct, "punct_interval_sd": punct_sd}
+
+
+# ---------------------------------------------------------------------------
+# TF-IDF retrieval
+# ---------------------------------------------------------------------------
+
+def chunk_paragraphs(text: str, min_words: int = 40) -> list[str]:
+    """Chunk cleaned text into paragraphs, merging adjacent short ones."""
+    cleaned = strip_markdown(text)
+    paras = paragraphs_of(cleaned)
+    chunks: list[str] = []
+    buf = ""
+    for p in paras:
+        buf = (buf + " " + p).strip() if buf else p
+        if word_count_of(buf) >= min_words:
+            chunks.append(buf)
+            buf = ""
+    if buf:
+        if chunks:
+            chunks[-1] = (chunks[-1] + " " + buf).strip()
+        else:
+            chunks.append(buf)
+    return chunks
+
+
+def build_tfidf(documents: list[list[str]]) -> tuple[list[dict], dict]:
+    """Build log-tf, smoothed-idf TF-IDF vectors for a list of tokenized docs.
+
+    Returns (list of per-doc term->weight dicts, idf dict).
+    """
+    n_docs = len(documents)
+    df = Counter()
+    for tokens in documents:
+        for term in set(tokens):
+            df[term] += 1
+    idf = {term: math.log((1 + n_docs) / (1 + dfc)) + 1 for term, dfc in df.items()}
+
+    vectors = []
+    for tokens in documents:
+        tf = Counter(tokens)
+        vec = {}
+        for term, count in tf.items():
+            log_tf = 1 + math.log(count)
+            vec[term] = log_tf * idf.get(term, 0.0)
+        vectors.append(vec)
+    return vectors, idf
+
+
+def tfidf_vector_for_query(query_tokens: list[str], idf: dict) -> dict:
+    tf = Counter(query_tokens)
+    vec = {}
+    for term, count in tf.items():
+        log_tf = 1 + math.log(count)
+        # Unseen query terms get idf=0 (contribute nothing) rather than being
+        # dropped, so cosine_similarity's key union still behaves sanely.
+        vec[term] = log_tf * idf.get(term, 0.0)
+    return vec
+
+
+def retrieve(corpus_dir: Path, query: str, k: int = 5, min_words: int = 40) -> list[dict]:
+    files = _read_corpus_files(corpus_dir)
+    chunk_records = []  # (file, position, text)
+    for f in files:
+        text = f.read_text(encoding="utf-8", errors="replace")
+        chunks = chunk_paragraphs(text, min_words)
+        for pos, c in enumerate(chunks):
+            chunk_records.append((str(f), pos, c))
+
+    tokenized = [[t.lower() for t in words_of(c[2])] for c in chunk_records]
+    vectors, idf = build_tfidf(tokenized)
+    query_tokens = [t.lower() for t in words_of(query)]
+    query_vec = tfidf_vector_for_query(query_tokens, idf)
+
+    scored = []
+    for (fname, pos, text), vec in zip(chunk_records, vectors):
+        score = cosine_similarity(query_vec, vec)
+        scored.append({"file": fname, "score": score, "text": text, "_pos": pos})
+
+    # Deterministic ordering: score desc, then file, then position.
+    scored.sort(key=lambda r: (-r["score"], r["file"], r["_pos"]))
+    top = scored[:k]
+    for r in top:
+        r.pop("_pos")
+    return top
+
+
+# ---------------------------------------------------------------------------
+# registers command
+# ---------------------------------------------------------------------------
+
+_REGISTER_HEADING_RE = re.compile(r"(?m)^##\s+(Foundation.*|Register\s+\d+\s*:.*)$")
+
+
+def parse_registers(profile_text: str) -> list[dict]:
+    out = []
+    for m in _REGISTER_HEADING_RE.finditer(profile_text):
+        heading = m.group(1).strip()
+        if heading.lower().startswith("foundation"):
+            out.append({"type": "foundation", "name": heading})
+        else:
+            num_match = re.match(r"Register\s+(\d+)\s*:\s*(.*)", heading)
+            num = int(num_match.group(1)) if num_match else None
+            name = num_match.group(2).strip() if num_match else heading
+            out.append({"type": "register", "number": num, "name": name})
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Table formatting for `lint --format table`
+# ---------------------------------------------------------------------------
+
+def _fmt_value(v) -> str:
+    if v is None:
+        return "-"
+    if isinstance(v, float):
+        return f"{v:.3f}"
+    if isinstance(v, list):
+        return ",".join(str(x) for x in v) if v else "-"
+    return str(v)
+
+
+def render_table(results: list[dict]) -> str:
+    headers = ["#", "feature", "draft", "baseline", "ratio/delta", "status"]
+    rows = []
+    for r in results:
+        rows.append([
+            str(r["id"]),
+            r["name"],
+            _fmt_value(r["draft_value"]),
+            _fmt_value(r["baseline_value"]),
+            _fmt_value(r["ratio_or_delta"]),
+            r["status"],
+        ])
+    widths = [max(len(headers[i]), *(len(row[i]) for row in rows)) if rows else len(headers[i]) for i in range(len(headers))]
+
+    def fmt_row(cells):
+        return "  ".join(c.ljust(widths[i]) for i, c in enumerate(cells))
+
+    lines = [fmt_row(headers), "  ".join("-" * w for w in widths)]
+    for row in rows:
+        lines.append(fmt_row(row))
+
+    hints = [r for r in results if r["status"] in ("warn", "fail")]
+    hints.sort(key=lambda r: (0 if r["status"] == "fail" else 1, r["id"]))
+    lines.append("")
+    lines.append("Top revision hints:")
+    if not hints:
+        lines.append("  (none — draft is clean against baseline)")
+    else:
+        for r in hints:
+            lines.append(f"  [{r['status'].upper()}] {r['hint']}")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Scoring / verdict for `verify`
+# ---------------------------------------------------------------------------
+
+# Hard-fail features force reject regardless of composite score. slop_lexemes
+# is deliberately NOT here: a single lexical feature must not solo-reject a
+# draft that passes everything else (clusters convict, single tells don't) —
+# it still costs score like any fail. chat_artifacts and em-dash flood stay
+# hard because neither has a legitimate author-baseline explanation.
+HARD_FAIL_IDS = {3, 10}  # chat_artifacts, em_dash_density
+
+
+def score_and_verdict(results: list[dict]) -> dict:
+    scored = [r for r in results if r["status"] != "skipped"]
+    score = 100
+    for r in scored:
+        if r["status"] == "fail":
+            score -= 18
+        elif r["status"] == "warn":
+            score -= 6
+    score = max(score, 0)
+
+    failures = [r["name"] for r in scored if r["status"] == "fail"]
+    hard_fail = any(r["status"] == "fail" and r["id"] in HARD_FAIL_IDS for r in scored)
+
+    if score >= 80 and not hard_fail:
+        verdict = "pass"
+    elif hard_fail or score < 60:
+        verdict = "reject"
+    else:
+        verdict = "revise"
+
+    hints = [r["hint"] for r in scored if r["status"] in ("warn", "fail")]
+    return {"score": score, "verdict": verdict, "failures": failures, "hints": hints, "hard_fail": hard_fail}
+
+
+def exit_code_for_verdict(verdict_info: dict) -> int:
+    score = verdict_info["score"]
+    hard_fail = verdict_info["hard_fail"]
+    if score >= 80 and not hard_fail:
+        return 0
+    if hard_fail or score < 60:
+        return 2
+    return 1
+
+
+# ---------------------------------------------------------------------------
+# CLI plumbing
+# ---------------------------------------------------------------------------
+
+def _load_baseline(path: str) -> dict:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def _profile_for_draft(draft_path: str, lexicon: dict | None) -> tuple[dict, dict]:
+    text = Path(draft_path).read_text(encoding="utf-8", errors="replace")
+    profile = build_profile(text, lexicon)
+    internal = profile.pop("_internal")
+    return profile, internal
+
+
+def cmd_fingerprint(args: argparse.Namespace) -> int:
+    lexicon = load_lexicon_override(args.lexicon)
+    if args.corpus:
+        corpus_dir = Path(args.corpus)
+        files = _read_corpus_files(corpus_dir)
+        if not files:
+            print(f"intervox: no *.md/*.txt files found under {corpus_dir}", file=sys.stderr)
+            return 1
+        profile = fingerprint_corpus(files, args.register, lexicon)
+        combined_text = "\n\n".join(f.read_text(encoding="utf-8", errors="replace") for f in files)
+    else:
+        p = Path(args.text)
+        profile = fingerprint_corpus([p], args.register, lexicon)
+        combined_text = p.read_text(encoding="utf-8", errors="replace")
+
+    extras = compute_corpus_derived_extras(combined_text)
+    profile["_derived_monotony_pct"] = extras["monotony_pct"]
+    profile["_derived_punct_interval_sd"] = extras["punct_interval_sd"]
+
+    out_path = Path(args.out)
+    out_path.write_text(json.dumps(profile, indent=2, sort_keys=False), encoding="utf-8")
+    print(f"intervox: wrote fingerprint to {out_path} ({profile['meta']['words']} words, {profile['meta']['files']} files)")
+    return 0
+
+
+def cmd_lint(args: argparse.Namespace) -> int:
+    lexicon = load_lexicon_override(args.lexicon)
+    baseline = _load_baseline(args.baseline)
+    draft_profile, draft_internal = _profile_for_draft(args.draft, lexicon)
+    results = evaluate_lint(draft_profile, draft_internal, baseline)
+
+    if args.format == "json":
+        print(json.dumps(results, indent=2))
+    else:
+        print(render_table(results))
+    return 0
+
+
+def cmd_verify(args: argparse.Namespace) -> int:
+    lexicon = load_lexicon_override(args.lexicon)
+    baseline = _load_baseline(args.baseline)
+    draft_profile, draft_internal = _profile_for_draft(args.draft, lexicon)
+    results = evaluate_lint(draft_profile, draft_internal, baseline)
+    verdict_info = score_and_verdict(results)
+    output = {
+        "score": verdict_info["score"],
+        "verdict": verdict_info["verdict"],
+        "failures": verdict_info["failures"],
+        "hints": verdict_info["hints"],
+    }
+    print(json.dumps(output, indent=2))
+    return exit_code_for_verdict(verdict_info)
+
+
+def cmd_retrieve(args: argparse.Namespace) -> int:
+    results = retrieve(Path(args.corpus), args.query, args.k, args.min_words)
+    print(json.dumps(results, indent=2))
+    return 0
+
+
+def cmd_registers(args: argparse.Namespace) -> int:
+    text = Path(args.profile).read_text(encoding="utf-8", errors="replace")
+    regs = parse_registers(text)
+    print(json.dumps(regs, indent=2))
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="intervox", description="Stylometric fingerprinting and LLMism linter.")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    fp = sub.add_parser("fingerprint", help="Build a baseline stylometric profile from a corpus or single text.")
+    fp_group = fp.add_mutually_exclusive_group(required=True)
+    fp_group.add_argument("--corpus", help="Directory of *.md/*.txt files (recursive).")
+    fp_group.add_argument("--text", help="Single document to fingerprint.")
+    fp.add_argument("--out", required=True, help="Output JSON path.")
+    fp.add_argument("--register", default=None, help="Optional register name to record in meta.")
+    fp.add_argument("--lexicon", default=None, help="Optional JSON lexicon override file.")
+    fp.set_defaults(func=cmd_fingerprint)
+
+    lint = sub.add_parser("lint", help="Lint a draft against a baseline fingerprint.")
+    lint.add_argument("--draft", required=True)
+    lint.add_argument("--baseline", required=True)
+    lint.add_argument("--format", choices=["json", "table"], default="table")
+    lint.add_argument("--lexicon", default=None)
+    lint.set_defaults(func=cmd_lint)
+
+    verify = sub.add_parser("verify", help="Run lint and reduce to a pass/revise/reject verdict.")
+    verify.add_argument("--draft", required=True)
+    verify.add_argument("--baseline", required=True)
+    verify.add_argument("--lexicon", default=None)
+    verify.set_defaults(func=cmd_verify)
+
+    retr = sub.add_parser("retrieve", help="TF-IDF paragraph retrieval over a corpus.")
+    retr.add_argument("--corpus", required=True)
+    retr.add_argument("--query", required=True)
+    retr.add_argument("--k", type=int, default=5)
+    retr.add_argument("--min-words", type=int, default=40, dest="min_words")
+    retr.set_defaults(func=cmd_retrieve)
+
+    regs = sub.add_parser("registers", help="List register sections found in a voice profile markdown file.")
+    regs.add_argument("--profile", required=True)
+    regs.set_defaults(func=cmd_registers)
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

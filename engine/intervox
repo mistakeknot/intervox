@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"""Executable shim for the intervox measurement engine.
+
+Thin wrapper so the engine can be invoked directly as `./engine/intervox
+<command> ...` without a `python3 -m` prefix. All logic lives in
+intervox_engine.py, imported from this file's directory regardless of the
+caller's current working directory.
+"""
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import intervox_engine
+
+if __name__ == "__main__":
+    sys.exit(intervox_engine.main())
