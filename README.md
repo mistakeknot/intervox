@@ -1,22 +1,28 @@
 # intervox
 
-> Generate and edit prose in your voice, then prove it: every draft is scored against your measured stylometric fingerprint before it reaches you.
+> Your voice profile tells the model how to write; your fingerprint checks whether it listened.
 
-intervox is the third generation of the voice lineage (interfluence → intervoice → intervox) and the first with a closed loop. Its predecessors steered generation with a prose profile and graded the result by vibes. intervox keeps the prose profile as the generation interface and adds the missing half: a measurement engine that fingerprints your corpus, lints drafts for LLMisms, retrieves your own sentences as exemplars, and gates output on verified closeness to your baseline.
+Every "write in my style" tool works the same way: describe the voice in prose, prompt the model, hope. intervox keeps the prose profile (it is the right interface for steering a model) and adds the half those tools skip: a measurement engine that fingerprints your actual writing, lints every draft against that baseline, and attaches the verdict to the output. Drafts arrive with a report card, not a vibe.
 
-The design principle: **prose steers, numbers verify.**
+The principle: prose steers, numbers verify.
+
+## What's real (v0.1.0)
+
+The deterministic loop is real and tested (52 tests): fingerprint, a 17-feature linter, the verify gate, TF-IDF exemplar retrieval, and the closed-loop apply skill that ties them together into something you can actually run on a draft. Embedding centroids and surprisal scoring do not exist yet. They are planned optional tiers; until they land, the engine reports "skipped" rather than faking a number. The profile format is inherited unchanged from intervoice, which means an existing profile works on day one and the migration is nothing more dramatic than a symlink.
 
 ## What it does
 
+Each subcommand maps to a skill and the table below is the entire surface area there is to learn.
+
 | Command | Does |
 |---|---|
-| `/intervox apply [--register=<r>] <path>` | Closed-loop rewrite: retrieve your exemplars, draft, lint, revise (≤3 rounds), verify, present with a report card. |
-| `/intervox lint <path>` | Score any text against your fingerprint: 18 LLMism/voice features, each with a concrete revision hint. |
-| `/intervox fingerprint` | Recompute your stylometric baseline from the corpus (per register + overall). |
-| `/intervox ingest <samples...>` | Add writing samples to your corpus with provenance and AI-contamination screening. |
-| `/intervox analyze` | Voice-analyzer agent reads corpus + fingerprint and writes the prose profile, with every claim backed by a number or a quote. |
+| `/intervox apply [--register=<r>] <path>` | Closed-loop rewrite: retrieve your exemplars, draft, lint, revise (3 rounds max), verify, present with a report card. |
+| `/intervox lint <path>` | Score any text against your fingerprint; every flag comes with a concrete revision hint. |
+| `/intervox fingerprint` | Recompute your baseline from the corpus (per register, plus overall). |
+| `/intervox ingest <samples...>` | Add writing samples with provenance and contamination screening. |
+| `/intervox analyze` | The voice-analyzer agent writes the prose profile; every claim cites a quote or a number. |
 | `/intervox compare <path>` | How close is existing text to your voice? Score plus deviations. |
-| `/intervox optimize` | Tighten the prose profile's token cost without dropping rules. |
+| `/intervox optimize` | Cut the profile's token cost without dropping rules. |
 | `/intervox migrate` | Import interfluence corpora and the intervoice profile. |
 
 ## The loop
@@ -26,37 +32,35 @@ corpus ──► fingerprint (JSON baseline per register)
               │
 brief ──► retrieve exemplars ──► draft (Foundation + Register + exemplars)
               │                     │
-              │                  lint ◄─── revise (≤3 rounds)
+              │                  lint ◄─── revise (3 rounds max)
               │                     │
               └────────────► verify gate ──► report card + draft
 ```
 
-Generation is prompted with your prose profile and your own retrieved passages. Verification is deterministic: sentence-rhythm burstiness, punctuation profile, slop lexicon (effect-size weighted, model-era versioned), participial tails, contrast frames, rule-of-three density, connective drift, function-word and character-trigram distance. Every threshold is calibrated to *your* baseline, not universal constants, and the verdict weighs cluster co-occurrence, not single tells.
+Generation is prompted with your profile plus passages retrieved from your own corpus (retrieved passages beat style adjectives in every benchmark that compares them). Verification is deterministic. The linter measures sentence-rhythm burstiness, punctuation profile, a slop lexicon weighted by published effect sizes, participial tails, contrast frames, connective drift, and function-word and character-trigram distance; every threshold is relative to your measured baseline. For example, an em-dash rate that would convict one author is another author's signature, so the engine compares you to you. The gate weighs clusters of tells. A single flagged feature, however, still shows up on the report card; it just cannot reject a draft alone.
 
 ## Storage
 
 Everything lives under `${XDG_CONFIG_HOME:-~/.config}/intervox/`:
 
 ```
-voice-profile.md        # Foundation + Register sections (intervoice-compatible format)
+voice-profile.md        # Foundation + Register sections (intervoice-compatible)
 corpus/<register>/*.md  # your writing samples, YAML provenance frontmatter
 fingerprints/<register>.json
 lexicon.json            # optional slop-lexicon override
 ```
 
-The profile format is unchanged from intervoice: one `## Foundation` section (invariants, hard bans) plus `## Register N: <Name>` sections (Team / Internal / External / Open Source dosage). Existing profiles work as-is; the resolver falls back to the intervoice path until you migrate.
+The profile format is one `## Foundation` section (invariants, hard bans) plus `## Register N: <Name>` sections (Team, Internal, External, Open Source). Keep the source of truth in your dotfiles and symlink it the way you would version any other config file you care about. The resolver falls back to the intervoice path until you migrate so nothing breaks while both directories exist.
 
 ## The engine
 
-`engine/intervox` is a dependency-free Python CLI (stdlib only): `fingerprint`, `lint`, `verify`, `retrieve`, `registers`. Skills call it with Bash; nothing needs a build step or a server. See [`engine/README.md`](engine/README.md).
+`engine/intervox` is a Python CLI with zero dependencies outside the standard library: `fingerprint`, `lint`, `verify`, `retrieve`, `registers`. Skills call it with Bash and the whole thing runs anywhere Python 3.11 runs without asking you to install packages or trust a server you cannot read. No build step, no node_modules. See [`engine/README.md`](engine/README.md).
 
-Deliberately out of v0: embedding centroids (StyleDistance/LUAR) and surprisal scoring — both land behind optional extras in a later release; the deterministic features carry the loop until then.
+## Lineage
 
-## Lineage and evidence
-
-- interfluence (deprecated): per-project corpora, glob-routed voices, MCP filing cabinet, prose-only grading.
-- intervoice (deprecated): global multi-register profile, resolver, no measurement.
-- intervox: intervoice's profile model + a measurement engine built on the 2023–2026 stylometry/LLMism literature — see [`docs/research/`](docs/research/) for the three source reports (authorship verification, controllable generation, LLMism/rhythm detection).
+- interfluence (deprecated): per-project corpora, glob-routed voices, an MCP filing cabinet, no measurement.
+- intervoice (deprecated): the global multi-register profile this plugin inherits and still no measurement of whether output actually matched the author.
+- intervox: the same profile plus the measurement engine, built on the 2023-2026 stylometry and LLM-detection literature; the three source reports live in [`docs/research/`](docs/research/).
 
 ## Install
 
@@ -64,4 +68,4 @@ Deliberately out of v0: embedding centroids (StyleDistance/LUAR) and surprisal s
 claude plugin install intervox@interagency-marketplace
 ```
 
-Then `/intervox migrate` (if coming from interfluence/intervoice) or `/intervox ingest` to start a corpus, `/intervox fingerprint`, and you're live.
+Coming from a predecessor: first run `/intervox migrate`, then `/intervox fingerprint`. Starting fresh: run `/intervox ingest` with 20,000+ words of your own pre-LLM writing (the floor for a trustworthy baseline; less works, noisily), then `/intervox fingerprint`. That's it. Finally, if a lint feature keeps flagging vocabulary you legitimately use, override it in `lexicon.json` rather than fighting the gate.
