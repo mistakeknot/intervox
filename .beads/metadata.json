@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "sylveste",
+  "project_id": "906fedb0-b174-4320-b0ac-a8db645e796f"
+}
