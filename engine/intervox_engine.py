@@ -43,19 +43,51 @@ _LINK_RE = re.compile(r"\[([^\]]*)\]\([^)]*\)")
 _BOLD_ITALIC_RE = re.compile(r"(\*\*\*|\*\*|\*|___|__|_)")
 
 
+_FRONTMATTER_RE = re.compile(r"\A---\s*\n.*?\n---\s*\n", re.DOTALL)
+_TERMINAL_CHARS = ".!?:;"
+
+
 def strip_markdown(text: str) -> str:
     """Remove common markdown syntax while preserving paragraph boundaries.
 
-    Blank lines (paragraph separators) are left alone; everything else is
-    stripped down to plain running text.
+    Corpus files carry YAML frontmatter (ingest convention) — stripped here so
+    provenance keys never pollute the stats. Headings, list items, and
+    paragraph-final lines get terminal punctuation appended when missing:
+    without it, block elements merge into one enormous "sentence" and wreck
+    every rhythm statistic (found dogfooding on a real blog post: a 757-word
+    "sentence").
     """
+    text = _FRONTMATTER_RE.sub("", text)
     text = _CODE_FENCE_RE.sub(" ", text)
     text = _INLINE_CODE_RE.sub(r"\1", text)
-    text = _HEADING_RE.sub("", text)
-    text = _LIST_MARKER_RE.sub("", text)
-    text = _LINK_RE.sub(r"\1", text)
-    text = _BOLD_ITALIC_RE.sub("", text)
-    return text
+
+    lines = text.split("\n")
+    out_lines: list[str] = []
+    for i, line in enumerate(lines):
+        is_heading = bool(_HEADING_RE.match(line))
+        is_list_item = bool(_LIST_MARKER_RE.match(line))
+        line = _HEADING_RE.sub("", line)
+        line = _LIST_MARKER_RE.sub("", line)
+        line = _LINK_RE.sub(r"\1", line)
+        line = _BOLD_ITALIC_RE.sub("", line)
+        stripped = line.rstrip()
+        if stripped:
+            next_blank = i + 1 >= len(lines) or not lines[i + 1].strip()
+            needs_terminator = (
+                (is_heading or is_list_item or next_blank)
+                and stripped[-1] not in _TERMINAL_CHARS
+            )
+            if needs_terminator:
+                stripped = stripped + "."
+            # Headings and list items are standalone blocks; isolate them so
+            # they can never glue onto the following paragraph.
+            if is_heading or is_list_item:
+                out_lines.append("")
+                out_lines.append(stripped)
+                out_lines.append("")
+                continue
+        out_lines.append(stripped)
+    return "\n".join(out_lines)
 
 
 def paragraphs_of(text: str) -> list[str]:
@@ -98,11 +130,19 @@ def split_sentences(text: str) -> list[str]:
     Returns raw (unmasked) sentence strings, whitespace-trimmed, with no
     length filtering — callers decide what counts as a "real" sentence vs a
     fragment (see word_count_of / sentence stats below).
+
+    Splits paragraph-first: a sentence never spans a blank line. The regex
+    splitter needs an uppercase/digit follow-character, which lowercase-
+    starting blocks (list items) don't provide — the paragraph boundary is
+    the authoritative break there.
     """
-    flat = " ".join(text.split())  # collapse newlines/whitespace runs
-    masked = _mask_abbreviations(flat)
-    parts = _SENTENCE_SPLIT_RE.split(masked)
-    return [_unmask_abbreviations(p).strip() for p in parts if p.strip()]
+    sentences: list[str] = []
+    for para in paragraphs_of(text):
+        flat = " ".join(para.split())  # collapse whitespace runs within the paragraph
+        masked = _mask_abbreviations(flat)
+        parts = _SENTENCE_SPLIT_RE.split(masked)
+        sentences.extend(_unmask_abbreviations(p).strip() for p in parts if p.strip())
+    return sentences
 
 
 _WORD_RE = re.compile(r"[A-Za-z']+")
@@ -248,7 +288,7 @@ HEDGE_RE = {
     "hedge_may": re.compile(r"\bmay\b", re.IGNORECASE),
 }
 WE_RE = re.compile(r"\bwe\b", re.IGNORECASE)
-I_RE = re.compile(r"\bi\b")  # first-person "I" is case-sensitive by convention
+I_RE = re.compile(r"\bI\b")  # first-person "I": uppercase only, so "i.e."-ish tokens never count
 
 COPULA_PLAIN_RE = re.compile(r"\b(?:is|are|was|were|be|being|been)\b", re.IGNORECASE)
 COPULA_AVOIDANCE_RE = re.compile(r"\b(?:serves? as|stands? as|represents?|marks?)\b", re.IGNORECASE)

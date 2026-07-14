@@ -366,6 +366,39 @@ class TestScoreAndVerdict(unittest.TestCase):
         self.assertEqual(info["verdict"], "pass")  # 100 - 18 = 82, no hard fail
 
 
+class TestFirstPersonCounter(unittest.TestCase):
+    # Regression: I_RE matched lowercase-only "\\bi\\b", which never occurs
+    # as an English word — first-person rate read 0.0 on a first-person essay.
+    def test_capital_i_counted(self):
+        prof = ie.build_profile("I think this works. I checked it twice today.")
+        self.assertGreater(prof["per_1k"]["i"], 0)
+
+
+class TestMarkdownBlockTermination(unittest.TestCase):
+    # Regression: dogfooding 2026-07-14 found a real blog post producing a
+    # 757-word "sentence" — frontmatter leaked and headings/list items glued
+    # onto following paragraphs.
+    DOC = (
+        "---\nsource: interfluence:somewhere\nregister: oss\n---\n"
+        "# A Heading Without Punctuation\n\n"
+        "First real sentence here. Second one follows it.\n\n"
+        "- list item one\n- list item two\n\n"
+        "A paragraph-final line without a period\n\n"
+        "Another normal paragraph ends properly.\n"
+    )
+
+    def test_frontmatter_stripped(self):
+        cleaned = ie.strip_markdown(self.DOC)
+        self.assertNotIn("interfluence:somewhere", cleaned)
+        self.assertNotIn("register: oss", cleaned)
+
+    def test_blocks_cannot_merge(self):
+        cleaned = ie.strip_markdown(self.DOC)
+        sents = ie.split_sentences(cleaned)
+        longest = max(len(s.split()) for s in sents)
+        self.assertLessEqual(longest, 8, f"block merge: {sents}")
+
+
 class TestCosineSimilarity(unittest.TestCase):
     def test_identical_vectors(self):
         v = {"a": 1.0, "b": 2.0}
