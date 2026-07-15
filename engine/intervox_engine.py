@@ -27,7 +27,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 
 # ---------------------------------------------------------------------------
 # Markdown / text preprocessing
