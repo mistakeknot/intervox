@@ -223,8 +223,11 @@ class TestLintSloppyDraft(unittest.TestCase):
     def test_rule_of_three_warn_or_fail(self):
         self.assertIn(self.by_id[7]["status"], ("warn", "fail"))
 
-    def test_all_18_features_present(self):
-        self.assertEqual(set(range(1, 19)), set(self.by_id.keys()))
+    def test_all_19_features_present(self):
+        # sylveste-lbe.10 added feature 19 (orality_drift); this test's
+        # purpose is "every lint feature id is present," so the range grows
+        # with the engine rather than staying pinned at the old count.
+        self.assertEqual(set(range(1, 20)), set(self.by_id.keys()))
 
     def test_table_format_renders(self):
         result = run_cli("lint", "--draft", str(SLOPPY_DRAFT), "--baseline", str(self.baseline_path), "--format", "table")
@@ -496,6 +499,82 @@ class TestCosineSimilarity(unittest.TestCase):
         a = {"x": 0.0}
         b = {"x": 1.0}
         self.assertEqual(ie.cosine_similarity(a, b, keys=["x"]), 0.0)
+
+
+class TestOralityAxis(unittest.TestCase):
+    # sylveste-lbe.10: orality/literacy axis (Ong/Havelock-inspired register
+    # signal). 0 = maximally oral, 1 = maximally literate.
+    CHATTY = ("""
+Hey! So you know that feeling when you're just totally stuck? Yeah, I've been there. I mean, honestly, who hasn't?
+
+You'd think it'd be easy, right? But no. So I tried a bunch of stuff. And none of it worked at first.
+
+Can you believe that? I couldn't. My friend said "just relax," and I was like, sure, easy for you to say. But you know what? She was right.
+
+So I took a break. And then I came back to it. And it just clicked. It's wild how that happens. Isn't it?
+
+You've probably had a moment like that too. I'd bet on it. It's just how our brains work, I guess. Anyway, that's my story!
+""" * 3)
+
+    FORMAL = ("""
+The implementation of the proposed methodology was undertaken in consideration of several structural constraints. Nominalization of the underlying processes was determined to be a necessary precondition for the standardization of the subsequent evaluation, whereas the informal alternatives were dismissed for their insufficient rigor.
+
+Although the initial documentation was considered comprehensive, the specification was later found to be incomplete, because the underlying assumptions had not been fully articulated. The examination of these assumptions was undertaken by a committee whose recommendations were subsequently incorporated into the revised documentation, whereby the ambiguities were eliminated through further clarification and specification.
+
+The subordination of individual preferences to institutional requirements was regarded as essential to the maintenance of organizational coherence. Consideration was given to alternative formulations, whose applicability was assessed through a systematic evaluation of their respective implications, thereby ensuring that the selected formulation was consistent with established conventions.
+
+It should be noted that the categorization employed throughout this discussion was informed by prior classification schemes, which were themselves derived from earlier investigations into related phenomena. The generalization of these findings was constrained by limitations in the available documentation, wherein the completeness of the underlying data could not be independently verified.
+""" * 3)
+
+    def _orality_of(self, text: str) -> dict:
+        prose = ie.extract_prose(text)
+        tokens_lower = [t.lower() for t in ie.words_of(prose)]
+        return ie.build_orality_block(prose, tokens_lower, len(tokens_lower))
+
+    def test_chatty_fixture_scores_oral(self):
+        block = self._orality_of(self.CHATTY)
+        self.assertLess(block["axis"], 0.4, block)
+
+    def test_formal_fixture_scores_literate(self):
+        block = self._orality_of(self.FORMAL)
+        self.assertGreater(block["axis"], 0.6, block)
+
+    def test_determinism(self):
+        a = self._orality_of(self.CHATTY)
+        b = self._orality_of(self.CHATTY)
+        self.assertEqual(a["axis"], b["axis"])
+        self.assertEqual(a["markers"], b["markers"])
+
+    def test_orality_drift_never_fails_even_with_extreme_drift(self):
+        corpus = "\n\n".join((CORPUS_DIR / f"sample{i}.md").read_text() for i in (1, 2, 3))
+        baseline = ie.build_profile(corpus)
+        internal = baseline.pop("_internal")
+        prose = internal["prose_text"]
+        tokens_lower = [t.lower() for t in ie.words_of(prose)]
+        baseline["orality"] = ie.build_orality_block(prose, tokens_lower, internal["prose_word_count"])
+        # Force the baseline to the opposite extreme from the formal draft so
+        # the drift is as large as the [0,1] axis allows.
+        baseline["orality"] = dict(baseline["orality"])
+        baseline["orality"]["axis"] = 0.0
+
+        draft_profile = ie.build_profile(self.FORMAL)
+        draft_internal = draft_profile.pop("_internal")
+        results = ie.evaluate_lint(draft_profile, draft_internal, baseline)
+        drift = next(r for r in results if r["id"] == 19)
+        self.assertIn(drift["status"], ("warn", "ok"))
+        self.assertNotEqual(drift["status"], "fail")
+
+    def test_lint_skips_feature_19_against_baseline_without_orality_block(self):
+        corpus = "\n\n".join((CORPUS_DIR / f"sample{i}.md").read_text() for i in (1, 2, 3))
+        baseline = ie.build_profile(corpus)
+        baseline.pop("_internal")
+        self.assertNotIn("orality", baseline)  # old-style baseline: no orality block
+
+        draft_profile = ie.build_profile(self.FORMAL)
+        draft_internal = draft_profile.pop("_internal")
+        results = ie.evaluate_lint(draft_profile, draft_internal, baseline)
+        drift = next(r for r in results if r["id"] == 19)
+        self.assertEqual(drift["status"], "skipped")
 
 
 if __name__ == "__main__":

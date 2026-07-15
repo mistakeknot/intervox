@@ -27,7 +27,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-VERSION = "0.1.1"
+VERSION = "0.2.0"
 
 # ---------------------------------------------------------------------------
 # Markdown / text preprocessing
@@ -522,6 +522,137 @@ def mattr(tokens_lower: list[str], window: int = 50) -> float:
 
 
 # ---------------------------------------------------------------------------
+# Orality/literacy axis (sylveste-lbe.10) — Ong/Havelock-inspired register
+# signal: oral registers (chat, blog) skew toward direct address, questions,
+# contractions; literate registers (academic, formal docs) skew toward
+# nominalization, subordination, and lexical density. Deterministic,
+# regex-based, stdlib only — same style as the rest of the engine.
+# ---------------------------------------------------------------------------
+
+SECOND_PERSON_RE = re.compile(r"\b(?:you|your|yours|yourself)\b", re.IGNORECASE)
+FIRST_SINGULAR_OBLIQUE_RE = re.compile(r"\b(?:me|my|mine)\b", re.IGNORECASE)
+CONTRACTIONS_RE = re.compile(r"\b\w+['’](?:t|s|re|ve|ll|d|m)\b", re.IGNORECASE)
+SENTENCE_INITIAL_CONJ_RE = re.compile(r"^(?:And|But|So|Or)\b")
+
+NOMINALIZATION_SUFFIX_RE = re.compile(
+    r"^[a-z]+(?:tion|tions|sion|sions|ment|ments|ness|ity|ities)$"
+)
+SUBORDINATORS_RE = re.compile(
+    r"\b(?:because|although|though|whereas|whereby|which|whom|whose|thereby|wherein)\b",
+    re.IGNORECASE,
+)
+
+# v0 reference ranges, NOT empirical percentiles. Chosen as plausible
+# min/max bounds for each marker's per-1k (or per-100s / 0-1) rate so a
+# clamp((value - lo) / (hi - lo), 0, 1) scale lands in [0, 1] for real prose.
+# These are a starting point for calibration, not a measured distribution —
+# revisit once enough fingerprinted corpora exist to compute real percentiles.
+ORALITY_CALIBRATION = {
+    "second_person_per_1k": (0, 25),
+    "questions_per_1k": (0, 8),
+    "exclaims_per_1k": (0, 4),
+    "first_singular_per_1k": (0, 30),
+    "contractions_per_1k": (0, 30),
+    "sentence_initial_conj_per_100s": (0, 15),
+    "nominalizations_per_1k": (10, 80),
+    "passive_per_1k": (0, 25),
+    "subordinators_per_1k": (5, 45),
+    "long_words_per_1k": (40, 220),
+    "lexical_density": (0.35, 0.65),
+}
+
+ORAL_MARKER_NAMES = (
+    "second_person_per_1k",
+    "questions_per_1k",
+    "exclaims_per_1k",
+    "first_singular_per_1k",
+    "contractions_per_1k",
+    "sentence_initial_conj_per_100s",
+)
+LITERATE_MARKER_NAMES = (
+    "nominalizations_per_1k",
+    "passive_per_1k",
+    "subordinators_per_1k",
+    "long_words_per_1k",
+    "lexical_density",
+)
+
+
+def _clamp01(x: float) -> float:
+    return max(0.0, min(1.0, x))
+
+
+def _scale_marker(name: str, value: float) -> float:
+    lo, hi = ORALITY_CALIBRATION[name]
+    if hi == lo:
+        return 0.0
+    return _clamp01((value - lo) / (hi - lo))
+
+
+def orality_markers(prose: str, prose_tokens_lower: list[str], prose_words: int) -> dict:
+    """Raw per-1k (or per-100s / 0-1) rates for the 11 orality markers.
+
+    Computed on the same prose text used for the other distributional
+    features (16-18) — see extract_prose. `prose_tokens_lower` and
+    `prose_words` are passed in so callers that already tokenized the prose
+    (build_profile) don't redo it.
+    """
+    sentences = split_sentences(prose)
+    n_sentences = len(sentences) or 1
+
+    second_person = len(SECOND_PERSON_RE.findall(prose))
+    questions = prose.count("?")
+    exclaims = prose.count("!")
+    first_singular = len(I_RE.findall(prose)) + len(FIRST_SINGULAR_OBLIQUE_RE.findall(prose))
+    contractions = len(CONTRACTIONS_RE.findall(prose))
+    sentence_initial_conj = sum(1 for s in sentences if SENTENCE_INITIAL_CONJ_RE.match(s.strip()))
+
+    nominalizations = sum(1 for t in prose_tokens_lower if len(t) >= 8 and NOMINALIZATION_SUFFIX_RE.match(t))
+    passive = len(PASSIVE_RE.findall(prose))
+    subordinators = len(SUBORDINATORS_RE.findall(prose))
+    long_words = sum(1 for t in prose_tokens_lower if t.isalpha() and len(t) >= 9)
+    content_words = sum(1 for t in prose_tokens_lower if t not in FUNCTION_WORDS)
+    lexical_density = content_words / prose_words if prose_words else 0.0
+
+    return {
+        "second_person_per_1k": per_1k(second_person, prose_words),
+        "questions_per_1k": per_1k(questions, prose_words),
+        "exclaims_per_1k": per_1k(exclaims, prose_words),
+        "first_singular_per_1k": per_1k(first_singular, prose_words),
+        "contractions_per_1k": per_1k(contractions, prose_words),
+        "sentence_initial_conj_per_100s": sentence_initial_conj / n_sentences * 100,
+        "nominalizations_per_1k": per_1k(nominalizations, prose_words),
+        "passive_per_1k": per_1k(passive, prose_words),
+        "subordinators_per_1k": per_1k(subordinators, prose_words),
+        "long_words_per_1k": per_1k(long_words, prose_words),
+        "lexical_density": lexical_density,
+    }
+
+
+def orality_axis_of(markers: dict) -> dict:
+    """Scale the 11 raw marker rates to [0,1] and combine into the axis.
+
+    orality_axis: 0 = maximally oral, 1 = maximally literate, 0.5 = balanced.
+    """
+    oral_scaled = [_scale_marker(name, markers[name]) for name in ORAL_MARKER_NAMES]
+    literate_scaled = [_scale_marker(name, markers[name]) for name in LITERATE_MARKER_NAMES]
+    oral_component = statistics.fmean(oral_scaled)
+    literate_component = statistics.fmean(literate_scaled)
+    axis = _clamp01(0.5 + (literate_component - oral_component) / 2)
+    return {
+        "axis": axis,
+        "oral_component": oral_component,
+        "literate_component": literate_component,
+        "markers": markers,
+    }
+
+
+def build_orality_block(prose: str, prose_tokens_lower: list[str], prose_words: int) -> dict:
+    markers = orality_markers(prose, prose_tokens_lower, prose_words)
+    return orality_axis_of(markers)
+
+
+# ---------------------------------------------------------------------------
 # Profile assembly (shared between fingerprint corpora and lint drafts)
 # ---------------------------------------------------------------------------
 
@@ -583,6 +714,7 @@ def build_profile(raw_text: str, lexicon: dict | None = None) -> dict:
         "cleaned_text": cleaned,
         "full_sentences": full_sentences,
         "prose_word_count": prose_words,
+        "prose_text": prose,
     }
     return profile
 
@@ -612,6 +744,15 @@ def fingerprint_corpus(paths: list[Path], register: str | None, lexicon: dict | 
         "generated_by": f"intervox-engine v{VERSION}",
     }
     profile["meta"] = meta
+
+    # Orality/literacy axis (sylveste-lbe.10): computed on the same prose
+    # text as the other distributional features (16-18). Attached outside
+    # build_profile so build_profile's own return schema — asserted exactly
+    # by TestProfileSchema — stays unchanged; fingerprint_corpus is the
+    # actual fingerprint-assembly boundary.
+    prose = internal["prose_text"]
+    prose_tokens_lower = [t.lower() for t in words_of(prose)]
+    profile["orality"] = build_orality_block(prose, prose_tokens_lower, internal["prose_word_count"])
     return profile
 
 
@@ -870,6 +1011,42 @@ def evaluate_lint(draft_profile: dict, draft_internal: dict, baseline: dict) -> 
         hint = f"Character-trigram delta: cosine similarity {sim:.2f} vs baseline over {len(shared_keys)} shared trigrams (advisory band below 0.75)."
     results.append(_feature_result(18, "char_trigram_delta", sim, 1.0, sim, status, hint))
 
+    # 19. orality_drift — advisory only (never in HARD_FAIL_IDS, status never
+    # exceeds "warn"): register-level oral(0)-literate(1) axis drift versus
+    # baseline. Skips like 16-18 on short-prose drafts, and additionally
+    # skips when the baseline fingerprint predates this feature (no
+    # "orality" block) so old baselines keep working without a crash.
+    baseline_orality = baseline.get("orality")
+    if prose_wc < 300:
+        status = "skipped"
+        hint = f"Orality drift: skipped ({prose_wc}w of flowing prose)."
+        draft_axis = None
+        base_axis = None
+    elif baseline_orality is None:
+        status = "skipped"
+        hint = "Orality drift: skipped (baseline fingerprint predates the orality axis; re-run fingerprint to add it)."
+        draft_axis = None
+        base_axis = None
+    else:
+        draft_orality = draft_profile.get("orality")
+        if draft_orality is None:
+            prose_text = draft_internal["prose_text"]
+            prose_tokens_lower = [t.lower() for t in words_of(prose_text)]
+            draft_orality = build_orality_block(prose_text, prose_tokens_lower, prose_wc)
+        draft_axis = draft_orality["axis"]
+        base_axis = baseline_orality["axis"]
+        delta = draft_axis - base_axis
+        status = "warn" if abs(delta) > 0.15 else "ok"  # advisory only, never "fail"
+        direction = "lean more literate" if delta < 0 else "lean more oral"
+        hint = (
+            f"Orality drift: draft {draft_axis:.2f} vs baseline {base_axis:.2f} on the "
+            f"oral(0)-literate(1) axis — {direction} (more conversational: contractions, "
+            f"direct address, questions; more literate: nominalizations, subordination)."
+        )
+    results.append(_feature_result(19, "orality_drift", draft_axis, base_axis, (
+        (draft_axis - base_axis) if draft_axis is not None and base_axis is not None else None
+    ), status, hint))
+
     return results
 
 
@@ -1116,6 +1293,9 @@ def _profile_for_draft(draft_path: str, lexicon: dict | None) -> tuple[dict, dic
     text = Path(draft_path).read_text(encoding="utf-8", errors="replace")
     profile = build_profile(text, lexicon)
     internal = profile.pop("_internal")
+    prose = internal["prose_text"]
+    prose_tokens_lower = [t.lower() for t in words_of(prose)]
+    profile["orality"] = build_orality_block(prose, prose_tokens_lower, internal["prose_word_count"])
     return profile, internal
 
 
@@ -1186,6 +1366,25 @@ def cmd_registers(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_orality(args: argparse.Namespace) -> int:
+    if args.corpus:
+        corpus_dir = Path(args.corpus)
+        files = _read_corpus_files(corpus_dir)
+        if not files:
+            print(f"intervox: no *.md/*.txt files found under {corpus_dir}", file=sys.stderr)
+            return 1
+        combined = "\n\n".join(f.read_text(encoding="utf-8", errors="replace") for f in files)
+    else:
+        combined = Path(args.text).read_text(encoding="utf-8", errors="replace")
+
+    prose = extract_prose(combined)
+    prose_tokens = words_of(prose)
+    prose_tokens_lower = [t.lower() for t in prose_tokens]
+    block = build_orality_block(prose, prose_tokens_lower, len(prose_tokens))
+    print(json.dumps(block, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="intervox", description="Stylometric fingerprinting and LLMism linter.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -1222,6 +1421,12 @@ def build_parser() -> argparse.ArgumentParser:
     regs = sub.add_parser("registers", help="List register sections found in a voice profile markdown file.")
     regs.add_argument("--profile", required=True)
     regs.set_defaults(func=cmd_registers)
+
+    orality = sub.add_parser("orality", help="Compute the orality/literacy axis block for a corpus or single text.")
+    orality_group = orality.add_mutually_exclusive_group(required=True)
+    orality_group.add_argument("--corpus", help="Directory of *.md/*.txt files (recursive).")
+    orality_group.add_argument("--text", help="Single document to score.")
+    orality.set_defaults(func=cmd_orality)
 
     return parser
 
