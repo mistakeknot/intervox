@@ -1,0 +1,23 @@
+{
+  "name": "intervox",
+  "version": "0.2.0",
+  "description": "Voice engine with a closed loop: generate and edit prose in your voice, then verify it against your measured fingerprint. Register-aware profile (Team/Internal/External/Open Source), stylometric baseline, LLMism linter, exemplar retrieval, critique-revise apply. Successor to interfluence and intervoice.",
+  "license": "MIT",
+  "keywords": [
+    "voice",
+    "writing",
+    "style",
+    "stylometry",
+    "fingerprint",
+    "llmisms",
+    "registers",
+    "prose"
+  ],
+  "author": "mistakeknot",
+  "interface": {
+    "displayName": "intervox",
+    "shortDescription": "Voice engine with a closed loop: generate and edit prose in your voice, then verify it against your measured fingerpr..."
+  },
+  "skills": "./skills/",
+  "commands": "./commands/"
+}
