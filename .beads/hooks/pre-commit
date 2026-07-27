@@ -22,3 +22,17 @@ if command -v bd >/dev/null 2>&1; then
   if [ $_bd_exit -ne 0 ]; then exit $_bd_exit; fi
 fi
 # --- END BEADS INTEGRATION v1.0.0 ---
+
+# --- BEGIN SHARED PRE-COMMIT DISPATCHER ---
+# Call the shared secret scanner / config-invariant checks. Kept as a call from
+# this tracked hook rather than letting the installer symlink over it: that
+# displaced this file (a tracked typechange) and left a pre-commit.bak-* behind
+# for the dispatcher to chain back to, so the repo could never be clean and the
+# untracked .bak was load-bearing.
+#
+# $HOME-relative with a presence check, so this stays committable and is a
+# no-op on any machine without the dotfiles checkout.
+if [ -x "$HOME/projects/dotfiles/cloud/pre-commit.sh" ]; then
+  "$HOME/projects/dotfiles/cloud/pre-commit.sh" "$@" || exit $?
+fi
+# --- END SHARED PRE-COMMIT DISPATCHER ---
