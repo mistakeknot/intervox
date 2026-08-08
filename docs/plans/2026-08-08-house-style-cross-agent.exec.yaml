@@ -1,0 +1,70 @@
+version: 1
+mode: dependency-driven
+tier: deep
+max_parallel: 4
+timeout_per_task: 600
+
+stages:
+  - name: "Wave 1 — repairs + independent groundwork"
+    tasks:
+      - id: task-1
+        title: "Repair voice-profile symlink chain"
+        files: []
+        depends: []
+      - id: task-3
+        title: "voicepaths.py declaration module"
+        files: [engine/voicepaths.py, tests/test_voicepaths.py]
+        depends: []
+      - id: task-7
+        title: "Vale GSV style canonical copy to gsvdotcom"
+        files: []
+        depends: []
+  - name: "Wave 2 — resolution + orchestrator"
+    tasks:
+      - id: task-2
+        title: "gsv-site register in resolve-register.sh"
+        files: [scripts/resolve-register.sh, tests/test_resolve_register.sh]
+        depends: [task-1]
+      - id: task-4
+        title: "voice-check.sh layered orchestrator"
+        files: [scripts/voice-check.sh, tests/test_voice_check.sh]
+        depends: [task-2, task-3]
+  - name: "Wave 3 — canon (INTERACTIVE: main session only, mk required)"
+    tasks:
+      - id: task-8
+        title: "Canon consolidation with mk sample ruling"
+        files: []
+        depends: [task-7]
+  - name: "Wave 4 — plugin surface + adoption"
+    tasks:
+      - id: task-5
+        title: "Plugin hooks (advisory + commit gate) + 0.3.0"
+        files: [hooks/hooks.json, hooks/voice-advisory.sh, hooks/voice-commit-gate.sh, tests/test_hooks.sh, .claude-plugin/plugin.json, kimi.plugin.json]
+        depends: [task-4]
+      - id: task-6
+        title: "housecheck skill"
+        files: [skills/housecheck/SKILL.md]
+        depends: [task-4]
+      - id: task-9
+        title: "gsvdotcom adoption (.voicepaths + AGENTS.md)"
+        files: []
+        depends: [task-4, task-8]
+      - id: task-10
+        title: "jawnomicon adoption (rules-only)"
+        files: []
+        depends: [task-4, task-7]
+      - id: task-11
+        title: "Codex global AGENTS.md wiring"
+        files: []
+        depends: [task-4]
+        tier: fast
+      - id: task-12
+        title: "Rebuild gsv-site fingerprint from real prose"
+        files: []
+        depends: [task-1, task-8]
+  - name: "Wave 5 — publish"
+    tasks:
+      - id: task-13
+        title: "Publish intervox 0.3.0 + marketplace sync + install"
+        files: []
+        depends: [task-5, task-6]
