@@ -1,3 +1,8 @@
+# Orchestrated subset: mechanical tasks only.
+# Held in-session (main, interactive or skill-flow): task-8 (canon consolidation,
+# mk ruling), task-12 (corpus ingest via /intervox ingest), task-13 (publish).
+# task-9's plan-level dep on task-8 is relaxed here: it references the canon
+# path, not the merged content; the path exists throughout.
 version: 1
 mode: dependency-driven
 tier: deep
@@ -29,13 +34,7 @@ stages:
         title: "voice-check.sh layered orchestrator"
         files: [scripts/voice-check.sh, tests/test_voice_check.sh]
         depends: [task-2, task-3]
-  - name: "Wave 3 — canon (INTERACTIVE: main session only, mk required)"
-    tasks:
-      - id: task-8
-        title: "Canon consolidation with mk sample ruling"
-        files: []
-        depends: [task-7]
-  - name: "Wave 4 — plugin surface + adoption"
+  - name: "Wave 3 — plugin surface + adoption"
     tasks:
       - id: task-5
         title: "Plugin hooks (advisory + commit gate) + 0.3.0"
@@ -48,7 +47,7 @@ stages:
       - id: task-9
         title: "gsvdotcom adoption (.voicepaths + AGENTS.md)"
         files: []
-        depends: [task-4, task-8]
+        depends: [task-4, task-7]
       - id: task-10
         title: "jawnomicon adoption (rules-only)"
         files: []
@@ -58,13 +57,3 @@ stages:
         files: []
         depends: [task-4]
         tier: fast
-      - id: task-12
-        title: "Rebuild gsv-site fingerprint from real prose"
-        files: []
-        depends: [task-1, task-8]
-  - name: "Wave 5 — publish"
-    tasks:
-      - id: task-13
-        title: "Publish intervox 0.3.0 + marketplace sync + install"
-        files: []
-        depends: [task-5, task-6]
