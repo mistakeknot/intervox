@@ -143,6 +143,9 @@ for file in ${verify_matched[@]+"${verify_matched[@]}"}; do
     [[ -n "$intervox_output" ]] && printf '%s\n' "$intervox_output"
     if [[ $intervox_status -eq 2 ]]; then
       failed=1
+    elif [[ $intervox_status -eq 1 && "$gate_mode" == "strict" ]]; then
+      echo "voice-check: revise blocks under gate: strict — $file"
+      failed=1
     fi
   else
     echo "voice-check: intervox lint — $file"
