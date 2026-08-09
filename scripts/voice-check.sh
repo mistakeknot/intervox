@@ -80,6 +80,21 @@ while IFS= read -r file; do
   [[ -n "$file" ]] && matched+=("$file")
 done <<<"$matched_output"
 
+# The stylometric layer only makes sense on markdown prose declared at the
+# full layer: "rules-only:" globs (governance docs, page templates, READMEs)
+# and non-markdown files (.astro and friends are source code to a
+# stylometer) get Vale only.
+set +e
+verify_output="$(python3 "$VOICEPATHS" match --layer=full "$root" "${paths[@]}")"
+set -e
+verify_matched=()
+while IFS= read -r file; do
+  [[ -n "$file" ]] || continue
+  case "$file" in
+    *.md|*.mdx) verify_matched+=("$file") ;;
+  esac
+done <<<"$verify_output"
+
 failed=0
 
 if command -v vale >/dev/null 2>&1; then
