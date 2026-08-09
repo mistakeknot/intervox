@@ -6,7 +6,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 VOICEPATHS="$PROJECT_ROOT/engine/voicepaths.py"
-ENGINE="$PROJECT_ROOT/engine/intervox"
+# INTERVOX_ENGINE override exists for the test suite (the engine is invoked
+# by absolute path, so a PATH stub can't reach it the way the vale stub does).
+ENGINE="${INTERVOX_ENGINE:-$PROJECT_ROOT/engine/intervox}"
 
 usage() {
   echo "usage: voice-check.sh [--gate] [--root <repo-root>] <file>..." >&2
