@@ -43,6 +43,19 @@ def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
     assert len(config["patterns"]) == 2
 
 
+def test_gate_key_parses_and_defaults_to_none(declared_repo: Path, tmp_path: Path) -> None:
+    assert voicepaths.load(declared_repo)["gate"] is None
+
+    strict_repo = tmp_path / "strict"
+    strict_repo.mkdir()
+    (strict_repo / ".voicepaths").write_text(
+        "register: gsv-site\ngate: strict\n*.md\n", encoding="utf-8"
+    )
+    config = voicepaths.load(strict_repo)
+    assert config["gate"] == "strict"
+    assert config["globs"] == ["*.md"]
+
+
 def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
     assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
 
