@@ -32,7 +32,14 @@ def _glob_to_re(glob: str) -> re.Pattern:
 
 def load(root: str | Path) -> dict:
     p = Path(root) / ".voicepaths"
-    cfg = {"register": None, "style": None, "globs": [], "patterns": [], "layers": []}
+    cfg = {
+        "register": None,
+        "style": None,
+        "gate": None,
+        "globs": [],
+        "patterns": [],
+        "layers": [],
+    }
     if not p.is_file():
         return cfg
 
