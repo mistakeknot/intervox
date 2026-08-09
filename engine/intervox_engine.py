@@ -1026,9 +1026,20 @@ def evaluate_lint(draft_profile: dict, draft_internal: dict, baseline: dict) -> 
     results.append(_feature_result(15, "paragraph_uniformity", dv_cv, bv_cv, ratio, status, hint))
 
     # 16. connective_drift
+    draft_conn_occurrences = sum(draft_profile["connectives_per_10k"].values()) * prose_wc / 10000
+    base_conn_rate = sum(baseline["connectives_per_10k"].values())
     if prose_wc < 300:
         status = "skipped"
         hint = f"Connective drift: skipped ({prose_wc}w of flowing prose; structured content is excluded from distributional features)."
+        sim = None
+    elif draft_conn_occurrences < 3 or base_conn_rate <= 0:
+        # Cosine over near-empty sparse vectors is noise, not drift: a draft
+        # that uses none of the tracked connectives against a baseline that
+        # barely uses them (gsv-site's only living entries are the
+        # enumerators first/second/third) scores 0.00 "similarity" when
+        # agreement-on-absence is the true reading.
+        status = "skipped"
+        hint = "Connective drift: skipped (too few connective occurrences to compare distributions)."
         sim = None
     else:
         sim = cosine_similarity(draft_profile["connectives_per_10k"], baseline["connectives_per_10k"], CONNECTIVES)
