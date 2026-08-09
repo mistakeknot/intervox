@@ -1383,6 +1383,7 @@ def cmd_fingerprint(args: argparse.Namespace) -> int:
         combined_text = "\n\n".join(f.read_text(encoding="utf-8", errors="replace") for f in files)
     else:
         p = Path(args.text)
+        files = [p]
         profile = fingerprint_corpus([p], args.register, lexicon)
         combined_text = p.read_text(encoding="utf-8", errors="replace")
 
