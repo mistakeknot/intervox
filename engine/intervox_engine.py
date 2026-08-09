@@ -1439,6 +1439,15 @@ def cmd_verify(args: argparse.Namespace) -> int:
     lexicon = load_lexicon_override(args.lexicon)
     baseline = _load_baseline(args.baseline)
     draft_profile, draft_internal = _profile_for_draft(args.draft, lexicon)
+    thin = _skip_for_thin_prose(draft_internal)
+    if thin is not None:
+        print(json.dumps({
+            "score": None,
+            "verdict": "skip",
+            "failures": [],
+            "hints": [f"Skipped: {thin}w of flowing prose (floor {MIN_VERIFY_PROSE_WORDS}w); nothing to measure."],
+        }, indent=2))
+        return 0
     results = evaluate_lint(draft_profile, draft_internal, baseline)
     verdict_info = score_and_verdict(results)
     output = {
