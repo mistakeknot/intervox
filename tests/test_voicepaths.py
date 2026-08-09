@@ -61,6 +61,7 @@ def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
     assert config == {
         "register": None,
         "style": None,
+        "gate": None,
         "globs": [],
         "patterns": [],
         "layers": [],
