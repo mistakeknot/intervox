@@ -978,10 +978,15 @@ def evaluate_lint(draft_profile: dict, draft_internal: dict, baseline: dict) -> 
 
     # 14. punct_interval_burstiness
     dv_pi = _punct_interval_sd(draft_internal["cleaned_text"])
-    bv_pi = baseline.get("_derived_punct_interval_sd", 0.0)
-    ratio = dv_pi / bv_pi if bv_pi else 1.0
-    status = "fail" if ratio < 0.65 else ("warn" if ratio < 0.8 else "ok")
-    hint = f"Punctuation-interval burstiness: SD {dv_pi:.2f} vs baseline {bv_pi:.2f} (ratio {ratio:.2f}) — vary the gaps between punctuation marks."
+    bv_pi = per_file.get("punct_interval_sd_median") or baseline.get("_derived_punct_interval_sd", 0.0)
+    if not rhythm_ready:
+        ratio = None
+        status = "skipped"
+        hint = f"Punctuation-interval burstiness: skipped ({prose_wc}w of flowing prose; rhythm features need 300w)."
+    else:
+        ratio = dv_pi / bv_pi if bv_pi else 1.0
+        status = "fail" if ratio < 0.65 else ("warn" if ratio < 0.8 else "ok")
+        hint = f"Punctuation-interval burstiness: SD {dv_pi:.2f} vs baseline {bv_pi:.2f} (ratio {ratio:.2f}) — vary the gaps between punctuation marks."
     results.append(_feature_result(14, "punct_interval_burstiness", dv_pi, bv_pi, ratio, status, hint))
 
     # 15. paragraph_uniformity
