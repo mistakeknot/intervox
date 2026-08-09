@@ -938,8 +938,10 @@ def evaluate_lint(draft_profile: dict, draft_internal: dict, baseline: dict) -> 
     pairs = list(zip(lens, lens[1:]))
     near_equal = [i for i, (a, b) in enumerate(pairs) if abs(a - b) <= 4]
     pct_near_equal = len(near_equal) / max(len(pairs), 1) * 100
-    baseline_monotony = baseline.get("_derived_monotony_pct")
-    if baseline_monotony is None or baseline_monotony == 0:
+    baseline_monotony = per_file.get("monotony_pct_median") or baseline.get("_derived_monotony_pct")
+    if not rhythm_ready:
+        status = "skipped"
+    elif baseline_monotony is None or baseline_monotony == 0:
         status = "fail" if pct_near_equal > 70 else ("warn" if pct_near_equal > 55 else "ok")
     else:
         ratio = pct_near_equal / baseline_monotony
