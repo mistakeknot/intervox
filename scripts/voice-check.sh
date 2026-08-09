@@ -124,6 +124,12 @@ fi
 register="$(PYTHONPATH="$PROJECT_ROOT/engine" python3 -c \
   'import sys; from voicepaths import load; print(load(sys.argv[1])["register"] or "all")' \
   "$root")"
+# "gate: strict" in .voicepaths makes verify exit 1 (revise) block too, not
+# just exit 2 (reject). Repos opt in once their register baseline is real
+# enough that "measurably flatter than the house voice" deserves to block.
+gate_mode="$(PYTHONPATH="$PROJECT_ROOT/engine" python3 -c \
+  'import sys; from voicepaths import load; print(load(sys.argv[1])["gate"] or "default")' \
+  "$root")"
 config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
 baseline="$config_home/intervox/fingerprints/$register.json"
 
