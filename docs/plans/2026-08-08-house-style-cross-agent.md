@@ -286,13 +286,25 @@ BasedOnStyles = GSV
 
 **Files:** Create: `gsvdotcom/.voicepaths`; Modify: `gsvdotcom/AGENTS.md`, `gsvdotcom/CLAUDE.md`
 
-`.voicepaths`:
+`.voicepaths` (mk ruled 2026-08-08: machine-facing surfaces — the roadmap
+collection and llm_context frontmatter — are out of voice scope; declare
+voice-carrying collections explicitly, no roadmap):
 ```
 # Voice-carrying paths — see docs/canon/copy-voice.md
+# Machine-facing surfaces (src/content/roadmap/, llm_context frontmatter)
+# are out of voice scope per mk's 2026-08-08 ruling.
 register: gsv-site
 style: GSV
-src/content/**/*.md
-src/content/**/*.mdx
+src/content/concepts/**/*.md
+src/content/experiments/**/*.md
+src/content/plays/**/*.md
+src/content/plugins/**/*.md
+src/content/projects/**/*.md
+src/content/concepts/**/*.mdx
+src/content/experiments/**/*.mdx
+src/content/plays/**/*.mdx
+src/content/plugins/**/*.mdx
+src/content/projects/**/*.mdx
 src/pages/**/*.astro
 docs/canon/*.md
 README.md
