@@ -1,0 +1,2952 @@
+VERDICT: CLEAN  
+FILES_CHANGED: [skills/housecheck/SKILL.md]
+
+Implemented the layered report-card workflow. Verification:
+
+- 71 pytest tests passed
+- Resolve-register and voice-check shell tests passed
+- Skill validator passed
+- Committed and pushed: `55477fe`
+
+Unrelated concurrent task changes remain untouched.
+
+
+
+--- stderr ---
+Tier 'deep' resolved to model: gpt-5.6-sol
+Note: gawk not found — running without live statusline updates
+Reading additional input from stdin...
+OpenAI Codex v0.146.0
+--------
+workdir: /Users/sma/projects/Sylveste/interverse/intervox
+model: gpt-5.6-sol
+provider: openai
+approval: on-request
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019fe3ec-32ca-77d3-8c73-7fb4a0c75fc3
+--------
+user
+<!-- clavain-context-gateway:v1 sha256=4b532ccfe07e05fc488045bb59004231aec7a03b6b864f79253bda137c35a35a -->
+<tldrs-context>
+# Agent context packet
+
+Use the precomputed candidates below to bound the first source read. Do not perform repository-wide discovery or invoke additional reconnaissance tools. Read full source where needed for a safe edit; the packet is not a substitute for verification.
+
+## Precomputed bounded context
+
+Generated only from the public task text and visible workspace source.
+Candidates are ranked hints; verify the local invariant before editing.
+
+### Candidate 1: scripts/resolve-register.sh:1
+
+```sh
+#!/usr/bin/env bash
+# resolve-register.sh — extract the working voice profile for a given register.
+#
+# Reads the global multi-register profile and prints:
+#   the "## Foundation" section (always, the base)
+# followed by the selected "## Register N: <Name>" section (the delta).
+#
+# Usage:
+#   resolve-register.sh <register>            # explicit register by name or number
+#   resolve-register.sh --infer <path>        # infer register from a target path
+#   resolve-register.sh --list              
+```
+
+### Candidate 2: scripts/voice-check.sh:78
+
+```sh
+matched=()
+while IFS= read -r file; do
+  [[ -n "$file" ]] && matched+=("$file")
+done <<<"$matched_output"
+
+failed=0
+
+if command -v vale >/dev/null 2>&1; then
+  if [[ -f "$root/.vale.ini" ]]; then
+    set +e
+    vale_output="$(cd "$root" && vale --output=line "${matched[@]}" 2>&1)"
+    set -e
+    if [[ -n "$vale_output" ]]; then
+      echo "voice-check: Vale rules"
+      printf '%s\n' "$vale_output"
+      if printf '%s\n' "$vale_output" | grep -Eiq ':[0-9]+:[0-9]+:error:'; then
+        failed=1
+ 
+```
+
+### Candidate 3: tests/test_resolve_register.sh:41
+
+```sh
+[[ "$direct_output" == *'## Foundation'* ]]
+[[ "$direct_output" == *'## Register 3: External'* ]]
+
+for alias in GSV site 'gsv site'; do
+  alias_output="$(resolve "$alias")"
+  [[ "$alias_output" == "$direct_output" ]]
+done
+
+REPO="$TMP_DIR/repo"
+mkdir -p "$REPO/.git" "$REPO/docs"
+printf '%s\n' 'register: gsv-site' '*.md' >"$REPO/.voicepaths"
+touch "$REPO/docs/spec.md"
+
+inferred_output="$(resolve --infer "$REPO/docs/spec.md" 2>"$TMP_DIR/infer.err")"
+[[ "$inferred_output" == "$direct_output" ]]
+grep
+```
+
+</tldrs-context>
+
+## Context from dependencies
+
+### task-4: voice-check.sh layered orchestrator
+**Status:** warn
+--- VERDICT ---
+STATUS: warn
+FILES: 0 changed
+FINDINGS: 0 (P0: 0, P1: 0, P2: 0)
+SUMMARY: No model output — zero turns, messages, and commands.
+---
+Implemented and verified the layered voice-check orchestrator.
+
+- Task test: passed
+- Regression suite: 71 passed
+- Shell syntax: clean
+- Existing Task 2 and `.clavain` artifacts untouched
+- Not committed or pushed pending landing choice
+
+VERDICT: NEEDS_ATTENTION [implementation verified; choose commit and push, commit locally, or review first]  
+FILES_CHANGED: [[scripts/voice-check.sh](/Users/sma/projects/Sylveste/interverse/intervox/scripts/voice-check.sh), [tests/test_voice_check.sh](/Users/sma/projects/Sylveste/interverse/intervox/tests/test_voice_check.sh)]
+
+### task-2: gsv-site register in resolve-register.sh
+**Status:** warn
+--- VERDICT ---
+STATUS: warn
+FILES: 0 changed
+FINDINGS: 0 (P0: 0, P1: 0, P2: 0)
+SUMMARY: No model output — zero turns, messages, and commands.
+---
+Implementation is verified: 71 tests passed. No commit has been made because landing requires your choice:
+
+1. Commit and push
+2. Commit locally
+3. Review diff first
+
+VERDICT: NEEDS_ATTENTION [awaiting landing choice]  
+FILES_CHANGED: [scripts/resolve-register.sh, tests/test_resolve_register.sh]
+
+## Task: housecheck skill
+
+**Files:**
+- skills/housecheck/SKILL.md
+
+**Full plan:** docs/plans/2026-08-08-house-style-cross-agent.md
+Read the plan for detailed step-by-step instructions for this task.
+
+When done, report:
+VERDICT: CLEAN | NEEDS_ATTENTION [reason]
+FILES_CHANGED: [list]
+warning: Under-development features enabled: chronicle. Under-development features are incomplete and may behave unpredictably. To suppress this warning, set `suppress_unstable_features_warning = true` in /Users/sma/.codex/config.toml.
+hook: SessionStart
+hook: SessionStart Completed
+hook: UserPromptSubmit
+hook: UserPromptSubmit Completed
+codex
+I’ll implement the housecheck skill from the bounded plan, preserving the existing uncommitted task-2/task-4 work. I’m using the executing-plans workflow first, then the verification-before-completion checks because this is a plan-driven repository change with an explicit completion verdict.
+exec
+/bin/zsh -lc "sed -n '1,240p' /Users/sma/projects/Sylveste/os/Clavain/skills/executing-plans/SKILL.md && sed -n '1,240p' /Users/sma/.codex/intertest/skills/verification-before-completion/SKILL.md && rg -n -i \"intervox|housecheck|house style|cross-agent\" /Users/sma/.codex/memories/MEMORY.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+---
+name: executing-plans
+description: Execute a written implementation plan in a separate session with review checkpoints.
+---
+
+<!-- compact: SKILL-compact.md — if it exists in this directory, load it instead of following the full instructions below. The compact version contains the same batch execution and interserve dispatch protocol. -->
+
+# Executing Plans
+
+Load plan, review critically, execute tasks in batches, report for review between batches. Batch execution with checkpoints for architect review.
+
+**Announce at start:** "I'm using the executing-plans skill to implement this plan."
+
+## Step 1: Load and Review Plan
+
+1. Read plan file
+2. Review critically — raise questions/concerns with human partner before starting
+3. If no concerns: create TodoWrite and proceed
+
+## Step 2: Check Execution Mode
+
+Check for `.exec.yaml` manifest (replace plan's `.md` extension). If found → Step 2C (priority).
+
+Check interserve flag: `[ -f "$(pwd)/.claude/clodex-toggle.flag" ] && echo INTERSERVE_ACTIVE || echo DIRECT_MODE`
+
+Fallback chain:
+- Manifest exists → **2C: Orchestrated**
+- Flag exists, no manifest → **2A: Codex Dispatch**
+- Neither → **2B: Direct**
+
+## Step 2A: Codex Dispatch (interserve mode)
+
+Dispatch tasks to Codex agents for parallelization.
+
+1. **Classify tasks:** Independent (parallel → Codex) | Sequential (ordered dispatch) | Exploratory (Claude subagent)
+2. **Batch:** Independent tasks in same batch run in parallel; max 5 agents/batch
+3. **Per batch** via `clavain:interserve`:
+   - Write prompt files to `/tmp/codex-task-<name>.md` (goal, files, build/test commands, verdict suffix)
+   - Dispatch independent tasks in parallel Bash calls; wait for completion
+   - Read `.verdict` file first (7 lines) — STATUS `pass` → trust and move on; `warn`/`fail` → read full output
+   - No `.verdict` → fall back to full output
+4. **Between batches:** Report pass/fail/issues; wait for feedback
+5. **On failure:** Offer retry with tighter prompt, fall back to 2B, or skip
+
+## Step 2B: Direct Execution (default)
+
+Default: first 3 tasks per batch. Per task: mark in_progress → follow steps exactly → run verifications → mark completed.
+
+## Step 2C: Orchestrated Execution (manifest exists)
+
+1. **Locate orchestrator:**
+   ```bash
+   ORCHESTRATE=$(find ~/.claude/plugins/cache -path '*/clavain/*/scripts/orchestrate.py' 2>/dev/null | head -1)
+   [ -z "$ORCHESTRATE" ] && ORCHESTRATE=$(find ~/projects -name orchestrate.py -path '*/clavain/scripts/*' 2>/dev/null | head -1)
+   ```
+2. **Validate:** `python3 "$ORCHESTRATE" --validate "$MANIFEST"` — on failure, report errors, fall back to 2A/2B
+3. **Dry-run:** `python3 "$ORCHESTRATE" --dry-run "$MANIFEST"` — present wave breakdown (parallelism, cross-stage deps, tasks missing files)
+4. **Ask for approval** (AskUserQuestion): Approve | Edit mode | Skip to manual
+5. **Execute:** `python3 "$ORCHESTRATE" "$MANIFEST" --plan "$PLAN_PATH" --project-dir "$(pwd)"` with `timeout: 600000`
+6. **Read summary:** `pass` → trust; `warn` → read output, assess; `fail`/`error` → offer retry/manual/skip; `skipped` → report dep failure
+7. **On partial failure:** Offer re-run orchestrator (skips finished tasks) | execute failed tasks via 2B | skip
+
+## Step 2D: Post-Task Verification
+
+After each task (any mode): parse `<verify>...</verify>` block for `run:`/`expect:` pairs.
+- `expect: exit 0` — must exit 0; `expect: contains "string"` — output must include string
+- Pass → log "Verify passed for Task N"; failure → treat as Rule 1 auto-fix (3-attempt limit, then log and continue)
+- No verify block → skip silently
+
+**Vetting signal write** — when all per-task verifications pass for a plan that is part of a tracked bead, persist vetting state so the auto-proceed authz gate can evaluate at ship time (see `docs/canon/policy-merge.md`):
+```bash
+if [[ -n "${CLAVAIN_BEAD_ID:-}" ]]; then
+  bd set-state "$CLAVAIN_BEAD_ID" vetted_at="$(date +%s)"            --reason "executing-plans task verified" 2>/dev/null || true
+  bd set-state "$CLAVAIN_BEAD_ID" vetted_sha="$(git rev-parse HEAD)" --reason "executing-plans task verified" 2>/dev/null || true
+  bd set-state "$CLAVAIN_BEAD_ID" tests_passed="true"                --reason "executing-plans task verified" 2>/dev/null || true
+  bd set-state "$CLAVAIN_BEAD_ID" sprint_or_work_flow="true"         --reason "executing-plans task verified" 2>/dev/null || true
+fi
+```
+
+## Step 3: Report
+
+Per batch: what was implemented | verify results (pass/fail) | deviations (Rules 1-3) | deferred items | "Ready for feedback."
+
+## Step 4: Continue
+
+Apply feedback → next batch → repeat until complete.
+
+## Step 4B: Must-Have Validation
+
+After all tasks, check for `## Must-Haves` in plan header:
+- **Truths:** verify observable (run commands/URLs, check code paths)
+- **Artifacts:** verify file exists with listed exports (grep/read)
+- **Key Links:** verify connection in source (grep import + function call)
+
+Report results:
+```
+Must-Have Validation:
+  Truths: 3/3 verified
+  Artifacts: 2/2 exist with exports
+  Key Links: 1/2 — Registration endpoint missing validate_email call
+```
+
+Failures are advisory — user decides. No `Must-Haves` section → skip silently.
+
+## Step 5: Complete Development
+
+Announce: "I'm using the landing-a-change skill to complete this work." → **clavain:landing-a-change** (required).
+
+## Deviation Rules
+
+Track all deviations for batch report.
+
+- **Rule 1 — Auto-fix bugs:** Wrong queries, type errors, logic errors → fix inline, verify, continue. No permission.
+- **Rule 2 — Auto-add critical functionality:** Missing error handling, no input validation, no auth on protected routes, missing DB indexes → add, verify, continue. No permission.
+- **Rule 3 — Auto-fix blockers:** Missing dependency, broken imports, build config errors → fix, verify, continue. No permission.
+- **Rule 4 — Ask about architectural changes:** New DB table, switching libraries, breaking API changes, new service layer → STOP, report finding + proposed change + alternatives. User decision required.
+
+**Priority:** Rule 4 → STOP | Rules 1-3 → fix automatically | Unsure → treat as Rule 4.
+
+**Scope:** Only auto-fix issues caused by the current task's changes. Pre-existing warnings/failures in unrelated files → log to `deferred-items.md`, do NOT fix.
+
+**Fix attempt limit:** 3 attempts per task. After 3, document in "Deferred Issues" and continue.
+
+**Analysis paralysis guard:** 5+ consecutive Read/Grep/Glob without Edit/Write/Bash → STOP. State why in one sentence, then write code or report "blocked" with specific missing info.
+
+## Stop Conditions
+
+Stop immediately and ask when: mid-batch blocker | critical plan gaps | unclear instruction | repeated verification failure. Never start on main/master without explicit user consent.
+
+## Integration
+
+- **clavain:writing-plans** — creates the plan this skill executes
+- **clavain:landing-a-change** — required after all tasks complete
+- **clavain:interserve** — Codex dispatch (interserve mode)
+---
+name: verification-before-completion
+description: Use when about to claim work is complete, fixed, or passing, or before committing/creating PRs — requires running verification commands and confirming output before any success claims; evidence before assertions.
+---
+
+# Verification Before Completion
+
+## Overview
+
+Claiming work is complete without verification is dishonesty, not efficiency.
+
+**Core principle:** Evidence before claims, always.
+
+**Violating the letter of this rule is violating the spirit of this rule.**
+
+## The Iron Law
+
+```
+NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
+```
+
+If you haven't run the verification command in this message, you cannot claim it passes.
+
+## The Gate Function
+
+```
+BEFORE claiming any status or expressing satisfaction:
+
+1. IDENTIFY: What command proves this claim?
+2. RUN: Execute the FULL command (fresh, complete)
+3. READ: Full output, check exit code, count failures
+4. VERIFY: Does output confirm the claim?
+   - If NO: State actual status with evidence
+   - If YES: State claim WITH evidence
+5. ONLY THEN: Make the claim
+
+Skip any step = lying, not verifying
+```
+
+## Common Failures
+
+| Claim | Requires | Not Sufficient |
+|-------|----------|----------------|
+| Tests pass | Test command output: 0 failures | Previous run, "should pass" |
+| Linter clean | Linter output: 0 errors | Partial check, extrapolation |
+| Build succeeds | Build command: exit 0 | Linter passing, logs look good |
+| Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
+| Regression test works | Red-green cycle verified | Test passes once |
+| Agent completed | VCS diff shows changes | Agent reports "success" |
+| Requirements met | Line-by-line checklist | Tests passing |
+
+## Red Flags - STOP
+
+- Using "should", "probably", "seems to"
+- Expressing satisfaction before verification ("Great!", "Perfect!", "Done!", etc.)
+- About to commit/push/PR without verification
+- Trusting agent success reports
+- Relying on partial verification
+- Thinking "just this once"
+- Tired and wanting work over
+- **ANY wording implying success without having run verification**
+
+## Rationalization Prevention
+
+| Excuse | Reality |
+|--------|---------|
+| "Should work now" | RUN the verification |
+| "I'm confident" | Confidence ≠ evidence |
+| "Just this once" | No exceptions |
+| "Linter passed" | Linter ≠ compiler |
+| "Agent said success" | Verify independently |
+| "I'm tired" | Exhaustion ≠ excuse |
+| "Partial check is enough" | Partial proves nothing |
+| "Different words so rule doesn't apply" | Spirit over letter |
+
+## Key Patterns
+
+**Tests:**
+```
+✅ [Run test command] [See: 34/34 pass] "All tests pass"
+❌ "Should pass now" / "Looks correct"
+```
+
+**Regression tests (TDD Red-Green):**
+```
+✅ Write → Run (pass) → Revert fix → Run (MUST FAIL) → Restore → Run (pass)
+❌ "I've written a regression test" (without red-green verification)
+```
+
+**Build:**
+```
+✅ [Run build] [See: exit 0] "Build passes"
+❌ "Linter passed" (linter doesn't check compilation)
+```
+
+**Requirements:**
+```
+✅ Re-read plan → Create checklist → Verify each → Report gaps or completion
+❌ "Tests pass, phase complete"
+```
+
+**Agent delegation:**
+```
+✅ Agent reports success → Check VCS diff → Verify changes → Report actual state
+❌ Trust agent report
+```
+
+## Why This Matters
+
+From 24 failure memories:
+- your human partner said "I don't believe you" - trust broken
+- Undefined functions shipped - would crash
+- Missing requirements shipped - incomplete features
+- Time wasted on false completion → redirect → rework
+- Violates: "Honesty is a core value. If you lie, you'll be replaced."
+
+## When To Apply
+
+**ALWAYS before:**
+- ANY variation of success/completion claims
+- ANY expression of satisfaction
+- ANY positive statement about work state
+- Committing, PR creation, task completion
+- Moving to next task
+- Delegating to agents
+
+**Rule applies to:**
+- Exact phrases
+- Paraphrases and synonyms
+- Implications of success
+- ANY communication suggesting completion/correctness
+
+## The Bottom Line
+
+**No shortcuts for verification.**
+
+Run the command. Read the output. THEN claim the result.
+
+This is non-negotiable.
+3214:- jawnomicon-ekj, jawnomicon-127, `resolve_merge`, Astro 1,812 pages, 61/61 tests, house style, LLMese, Shadowbench, `pillar.rs:241`, `pillar.rs:263`, mandate_pending, cadre-scoped destabilization, two-arm fixed-seed demo, Ravenous, journey-priced refusal, `crates/ravenous-app/tests/the_clock_runs.rs`, reservoir clock
+3230:- when asking whether a plugin/hook could avoid “LLMese” and establish a house style -> treat it as a concrete generated-copy quality problem and preserve the local-dev-server review before deploying. [Task 2] [chronicle memory]
+
+codex
+I’m using the executing-plans skill to implement this plan. Before editing, I’m checking the plan’s execution mode, the repository’s current state, and whether the work already has a Beads record; I’ll avoid touching the two dependency tasks’ modified files.
+exec
+/bin/zsh -lc "if [[ -f /Users/sma/projects/Sylveste/os/Clavain/skills/executing-plans/SKILL-compact.md ]]; then sed -n '1,260p' /Users/sma/projects/Sylveste/os/Clavain/skills/executing-plans/SKILL-compact.md; fi
+sed -n '1,260p' /Users/sma/.codex/intertest/skills/test-driven-development/SKILL.md
+wc -l docs/plans/2026-08-08-house-style-cross-agent.md
+sed -n '1,260p' docs/plans/2026-08-08-house-style-cross-agent.md
+if [[ -f docs/plans/2026-08-08-house-style-cross-agent.exec.yaml ]]; then echo MANIFEST_PRESENT; else echo NO_MANIFEST; fi
+if [[ -f .claude/clodex-toggle.flag ]]; then echo INTERSERVE_ACTIVE; else echo DIRECT_MODE; fi
+git status --short --branch
+bd prime
+bd list --status=open --json
+sed -n '3208,3234p' /Users/sma/.codex/memories/MEMORY.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 1011ms:
+[bd prime] If this output is truncated by your host, read the full persisted hook output before continuing; it may contain project memories and session rules not visible in the preview.
+
+# Beads Workflow Context
+
+> **Context Recovery**: Run `bd prime` after compaction, clear, or new session
+> Hooks auto-call this in Claude Code and Codex when a beads workspace is resolved
+
+# 🚨 SESSION CLOSE PROTOCOL 🚨
+
+**CRITICAL**: Before saying "done" or "complete", you MUST run this checklist:
+
+```
+[ ] 1. bd close <id1> <id2> ...   (close completed issues)
+[ ] 2. run quality gates        (tests, linters, builds when relevant)
+[ ] 3. git status               (check what changed)
+[ ] 4. follow active profile    (conservative: report handoff; team-maintainer: commit/sync/push if enabled)
+```
+
+**Policy:** Conservative is the default. Commit, sync, or push only when the active user, orchestrator, or repository profile grants that authority.
+
+## Core Rules
+- **Default**: Use beads for ALL task tracking (`bd create`, `bd ready`, `bd close`)
+- **Prohibited**: Do NOT use TodoWrite, TaskCreate, or markdown files for task tracking
+- **Workflow**: Create beads issue BEFORE writing code, mark in_progress when starting
+- **Memory**: Use `bd remember "insight"` for persistent knowledge across sessions. Do NOT use MEMORY.md files — they fragment across accounts. Search with `bd memories <keyword>`.
+- Persistence you don't need beats lost context
+- Default: do not commit, push, or run dolt remote sync without explicit authority. Team-maintainer behavior is opt-in and still subordinate to user/orchestrator instructions.
+- Git workflow: conservative by default; commit/push only with explicit user/orchestrator or team-maintainer authority
+- Session management: check `bd ready` for available work
+
+## Essential Commands
+
+### Finding Work
+- `bd ready` - Show issues ready to work (no blockers)
+- `bd list --status=open` - All open issues
+- `bd list --status=in_progress` - Your active work
+- `bd show <id>` - Detailed issue view with dependencies
+
+### Creating & Updating
+- `bd create --title="Summary of this issue" --description="Why this issue exists and what needs to be done" --type=task|bug|feature --priority=2` - New issue
+  - Priority: 0-4 or P0-P4 (0=critical, 2=medium, 4=backlog). NOT "high"/"medium"/"low"
+- `bd create ... --parent=<id>` - Hierarchical child (task under epic, subtask under task; inherits parent labels)
+- `bd update <id> --claim` - Claim work
+- `bd update <id> --assignee=username` - Assign to someone
+- `bd update <id> --title/--description/--notes/--design` - Update fields inline
+- `bd close <id>` - Mark complete
+- `bd close <id1> <id2> ...` - Close multiple issues at once (more efficient)
+- `bd close <id> --reason="explanation"` - Close with reason
+- **Tip**: When creating multiple issues/tasks/epics, use parallel subagents for efficiency
+- **WARNING**: Do NOT use `bd edit` - it opens $EDITOR (vim/nano) which blocks agents
+
+### Dependencies & Blocking
+- `bd dep add <issue> <depends-on>` - Add dependency (issue depends on depends-on)
+- `bd blocked` - Show all blocked issues
+- `bd show <id>` - See what's blocking/blocked by this issue
+
+### Sync & Collaboration
+- `bd dolt push` - Push beads to Dolt remote
+- `bd dolt pull` - Pull beads from Dolt remote
+- `bd search <query>` - Search issues by keyword
+
+### Project Health
+- `bd stats` - Project statistics (open/closed/blocked counts)
+- `bd doctor` - Check for issues (sync problems, missing hooks)
+- `bd doctor --check=conventions` - Check for convention drift (lint, stale, orphans)
+
+### Quality Tools
+- `bd create --validate` - Check description has required sections
+- `bd create --acceptance="criteria"` - Set acceptance criteria (checked by --validate)
+- `bd create --design="decisions"` - Record design decisions
+- `bd create --notes="context"` - Add supplementary notes
+- `bd config set validation.on-create warn` - Auto-validate on every create
+- `bd lint` - Check existing issues for missing sections
+
+### Lifecycle & Hygiene
+- `bd defer <id> --until="date"` - Defer work to a future date
+- `bd supersede <id> --with=<new-id>` - Mark issue as superseded
+- `bd close <id> --suggest-next` - Show newly unblocked issues after closing
+- `bd stale` - Find issues with no recent activity
+- `bd orphans` - Find issues with broken dependencies
+- `bd preflight` - Pre-PR checks (lint, stale, orphans)
+- `bd human <id>` - Flag for human decision (list/respond/dismiss)
+
+### Structured Workflows
+- `bd formula list` - See available workflow templates
+- `bd mol pour <name>` - Start structured workflow from formula
+
+## Common Workflows
+
+**Starting work:**
+```bash
+bd ready           # Find available work
+bd show <id>       # Review issue details
+bd update <id> --claim  # Claim it
+```
+
+**Completing work:**
+```bash
+bd close <id1> <id2> ...    # Close all completed issues at once
+git status                  # Check changed files
+# Conservative/minimal/default: report status and proposed commands; wait for approval
+# Team-maintainer opt-in only, unless current instructions forbid it:
+# git add . && git commit -m "..."
+# bd dolt push
+# git push
+```
+
+**Creating dependent work:**
+```bash
+# Run bd create commands in parallel (use subagents for many items)
+bd create --title="Implement feature X" --description="Why this issue exists and what needs to be done" --type=feature
+bd create --title="Write tests for X" --description="Why this issue exists and what needs to be done" --type=task
+bd dep add beads-yyy beads-xxx  # Tests depend on Feature (Feature blocks tests)
+```
+
+> **Note**: AGENTS.md and CLAUDE.md are independent files (not symlinked and not sharing an inode). Mirror substantive edits across both, or symlink one to the other.
+Warning: refusing to auto-apply 30 pending schema migrations to a remote-backed database (v23 -> v53): migrating clones independently forks the schema (#4259)
+  Read-only command: continuing on schema v23 without migrating.
+  Writes are blocked until the schema is reconciled.  This is a
+  coordination decision, not an auto-fix - do NOT run a migration unless
+  you are the single designated migrator (only ONE clone may migrate a
+  shared remote, else the schema forks; #4259):
+    • designated migrator (only ONE machine): BD_ALLOW_REMOTE_MIGRATE=1 bd migrate && bd dolt push
+    • every other clone (another already migrated): bd bootstrap
+Error: search count issues: Error 1105: column "depends_on_issue_id" could not be found in any table in scope
+### rollout_summary_files
+
+- extensions/chronicle/resources/2026-08-08T21-03-00-iwsi-10min-memory-summary.md (cwd=/Users/sma/projects/jawnomicon, /Users/sma/projects/shadow-work, and /Users/sma/projects/ravenous, rollout_path=extensions/chronicle/resources/2026-08-08T21-03-00-iwsi-10min-memory-summary.md, updated_at=2026-08-08T21:03:00+00:00, thread_id=None, Jawnomicon verification recap plus Shadowbench and Ravenous policy forks observed [chronicle memory])
+
+### keywords
+
+- jawnomicon-ekj, jawnomicon-127, `resolve_merge`, Astro 1,812 pages, 61/61 tests, house style, LLMese, Shadowbench, `pillar.rs:241`, `pillar.rs:263`, mandate_pending, cadre-scoped destabilization, two-arm fixed-seed demo, Ravenous, journey-priced refusal, `crates/ravenous-app/tests/the_clock_runs.rs`, reservoir clock
+
+## Task 3: Scope Palettice/Mind State civilization-history generation and costs, outcome stratified genesis and a snapshot-load successor remained design gates
+
+### rollout_summary_files
+
+- extensions/chronicle/resources/2026-08-08T23-09-00-LJgm-10min-memory-summary.md (cwd=/Users/sma/projects/palettice and Mind State worktrees, rollout_path=extensions/chronicle/resources/2026-08-08T23-09-00-LJgm-10min-memory-summary.md, updated_at=2026-08-08T23:09:00+00:00, thread_id=None, deep-history goal draft, stratified-genesis correction, and After Them gear routing observed [chronicle memory])
+- extensions/chronicle/resources/2026-08-08T21-03-00-iwsi-10min-memory-summary.md (cwd=/Users/sma/projects/palettice and Mind State worktrees, rollout_path=extensions/chronicle/resources/2026-08-08T21-03-00-iwsi-10min-memory-summary.md, updated_at=2026-08-08T21:03:00+00:00, thread_id=None, `Palettice-zfy` closeout and snapshot-shaped read successor observed [chronicle memory])
+
+### keywords
+
+- Mind State, palettice, `Palettice-zfy`, civ-soul, `MemSoulStore`, `civ_scale --settle`, 20 civs x 200 members, 120+ centuries, snapshot-shaped reads, stratified genesis, physics galaxies stars planets, readable chronicle, Reynolds layer, Dixon layer, `mk-67q`, `8a5ffa11`
+
+## User preferences
+
+- when asking whether Mind State should first generate “physics/galaxies/stars/planets” -> use stratified genesis: generate thin substrate first to ground homeworlds, neighborhoods, contact reach, and ruins, but do not let deep astrophysics become slice-one scope. [Task 3] [chronicle memory]
+- when asking whether a plugin/hook could avoid “LLMese” and establish a house style -> treat it as a concrete generated-copy quality problem and preserve the local-dev-server review before deploying. [Task 2] [chronicle memory]
+
+## Reusable knowledge
+
+- Keep Intermux defects separate: macOS cwd/process discovery cannot depend on Linux `/proc`, and actual `iterm[...]` session names need parser support. Implement portable process helpers and test the real convention. [Task 1] [chronicle memory]
+
+codex
+The tracker is in its documented schema-write block, so this plan intentionally has no Bead; I won’t migrate or mutate it. The manifest evidence shows this is already an orchestrated task-6 run, so I’m executing only the assigned housecheck slice rather than launching the umbrella manifest again. I’m also applying the skill-authoring and shared-repo coordination guidance before creating the file.
+exec
+/bin/zsh -lc "sed -n '1,320p' /Users/sma/.codex/skills/.system/skill-creator/SKILL.md
+sed -n '1,320p' /Users/sma/.codex/interlock/skills/coordination-protocol/SKILL.md
+sed -n '241,440p' docs/plans/2026-08-08-house-style-cross-agent.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+---
+name: skill-creator
+description: Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Codex's capabilities with specialized knowledge, workflows, or tool integrations.
+metadata:
+  short-description: Create or update a skill
+---
+
+# Skill Creator
+
+This skill provides guidance for creating effective skills.
+
+## About Skills
+
+Skills are modular, self-contained folders that extend Codex's capabilities by providing
+specialized knowledge, workflows, and tools. Think of them as "onboarding guides" for specific
+domains or tasks—they transform Codex from a general-purpose agent into a specialized agent
+equipped with procedural knowledge that no model can fully possess.
+
+### What Skills Provide
+
+1. Specialized workflows - Multi-step procedures for specific domains
+2. Tool integrations - Instructions for working with specific file formats or APIs
+3. Domain expertise - Company-specific knowledge, schemas, business logic
+4. Bundled resources - Scripts, references, and assets for complex and repetitive tasks
+
+## Core Principles
+
+### Concise is Key
+
+The context window is a public good. Skills share the context window with everything else Codex needs: system prompt, conversation history, other Skills' metadata, and the actual user request.
+
+**Default assumption: Codex is already very smart.** Only add context Codex doesn't already have. Challenge each piece of information: "Does Codex really need this explanation?" and "Does this paragraph justify its token cost?"
+
+Prefer concise examples over verbose explanations.
+
+### Set Appropriate Degrees of Freedom
+
+Match the level of specificity to the task's fragility and variability:
+
+**High freedom (text-based instructions)**: Use when multiple approaches are valid, decisions depend on context, or heuristics guide the approach.
+
+**Medium freedom (pseudocode or scripts with parameters)**: Use when a preferred pattern exists, some variation is acceptable, or configuration affects behavior.
+
+**Low freedom (specific scripts, few parameters)**: Use when operations are fragile and error-prone, consistency is critical, or a specific sequence must be followed.
+
+Think of Codex as exploring a path: a narrow bridge with cliffs needs specific guardrails (low freedom), while an open field allows many routes (high freedom).
+
+### Protect Validation Integrity
+
+You may use subagents during iteration to validate whether a skill works on realistic tasks or whether a suspected problem is real. This is most useful when you want an independent pass on the skill's behavior, outputs, or failure modes after a revision.  Only do this when it is possible to start new subagents.
+
+When using subagents for validation, treat that as an evaluation surface. The goal is to learn whether the skill generalizes, not whether another agent can reconstruct the answer from leaked context.
+
+Prefer raw artifacts such as example prompts, outputs, diffs, logs, or traces. Give the minimum task-local context needed to perform the validation. Avoid passing the intended answer, suspected bug, intended fix, or your prior conclusions unless the validation explicitly requires them.
+
+### Anatomy of a Skill
+
+Every skill consists of a required SKILL.md file and optional bundled resources:
+
+```
+skill-name/
+├── SKILL.md (required)
+│   ├── YAML frontmatter metadata (required)
+│   │   ├── name: (required)
+│   │   └── description: (required)
+│   └── Markdown instructions (required)
+├── agents/ (recommended)
+│   └── openai.yaml - UI metadata for skill lists and chips
+└── Bundled Resources (optional)
+    ├── scripts/          - Executable code (Python/Bash/etc.)
+    ├── references/       - Documentation intended to be loaded into context as needed
+    └── assets/           - Files used in output (templates, icons, fonts, etc.)
+```
+
+#### SKILL.md (required)
+
+Every SKILL.md consists of:
+
+- **Frontmatter** (YAML): Contains `name` and `description` fields. These are the only fields that Codex reads to determine when the skill gets used, thus it is very important to be clear and comprehensive in describing what the skill is, and when it should be used.
+- **Body** (Markdown): Instructions and guidance for using the skill. Only loaded AFTER the skill triggers (if at all).
+
+#### Agents metadata (recommended)
+
+- UI-facing metadata for skill lists and chips
+- Read references/openai_yaml.md before generating values and follow its descriptions and constraints
+- Create: human-facing `display_name`, `short_description`, and `default_prompt` by reading the skill
+- Generate deterministically by passing the values as `--interface key=value` to `scripts/generate_openai_yaml.py` or `scripts/init_skill.py`
+- On updates: validate `agents/openai.yaml` still matches SKILL.md; regenerate if stale
+- Only include other optional interface fields (icons, brand color) if explicitly provided
+- See references/openai_yaml.md for field definitions and examples
+
+#### Bundled Resources (optional)
+
+##### Scripts (`scripts/`)
+
+Executable code (Python/Bash/etc.) for tasks that require deterministic reliability or are repeatedly rewritten.
+
+- **When to include**: When the same code is being rewritten repeatedly or deterministic reliability is needed
+- **Example**: `scripts/rotate_pdf.py` for PDF rotation tasks
+- **Benefits**: Token efficient, deterministic, may be executed without loading into context
+- **Note**: Scripts may still need to be read by Codex for patching or environment-specific adjustments
+
+##### References (`references/`)
+
+Documentation and reference material intended to be loaded as needed into context to inform Codex's process and thinking.
+
+- **When to include**: For documentation that Codex should reference while working
+- **Examples**: `references/finance.md` for financial schemas, `references/mnda.md` for company NDA template, `references/policies.md` for company policies, `references/api_docs.md` for API specifications
+- **Use cases**: Database schemas, API documentation, domain knowledge, company policies, detailed workflow guides
+- **Benefits**: Keeps SKILL.md lean, loaded only when Codex determines it's needed
+- **Best practice**: If files are large (>10k words), include grep search patterns in SKILL.md
+- **Avoid duplication**: Information should live in either SKILL.md or references files, not both. Prefer references files for detailed information unless it's truly core to the skill—this keeps SKILL.md lean while making information discoverable without hogging the context window. Keep only essential procedural instructions and workflow guidance in SKILL.md; move detailed reference material, schemas, and examples to references files.
+
+##### Assets (`assets/`)
+
+Files not intended to be loaded into context, but rather used within the output Codex produces.
+
+- **When to include**: When the skill needs files that will be used in the final output
+- **Examples**: `assets/logo.png` for brand assets, `assets/slides.pptx` for PowerPoint templates, `assets/frontend-template/` for HTML/React boilerplate, `assets/font.ttf` for typography
+- **Use cases**: Templates, images, icons, boilerplate code, fonts, sample documents that get copied or modified
+- **Benefits**: Separates output resources from documentation, enables Codex to use files without loading them into context
+
+#### What to Not Include in a Skill
+
+A skill should only contain essential files that directly support its functionality. Do NOT create extraneous documentation or auxiliary files, including:
+
+- README.md
+- INSTALLATION_GUIDE.md
+- QUICK_REFERENCE.md
+- CHANGELOG.md
+- etc.
+
+The skill should only contain the information needed for an AI agent to do the job at hand. It should not contain auxiliary context about the process that went into creating it, setup and testing procedures, user-facing documentation, etc. Creating additional documentation files just adds clutter and confusion.
+
+### Progressive Disclosure Design Principle
+
+Skills use a three-level loading system to manage context efficiently:
+
+1. **Metadata (name + description)** - Always in context (~100 words)
+2. **SKILL.md body** - When skill triggers (<5k words)
+3. **Bundled resources** - As needed by Codex (Unlimited because scripts can be executed without reading into context window)
+
+#### Progressive Disclosure Patterns
+
+Keep SKILL.md body to the essentials and under 500 lines to minimize context bloat. Split content into separate files when approaching this limit. When splitting out content into other files, it is very important to reference them from SKILL.md and describe clearly when to read them, to ensure the reader of the skill knows they exist and when to use them.
+
+**Key principle:** When a skill supports multiple variations, frameworks, or options, keep only the core workflow and selection guidance in SKILL.md. Move variant-specific details (patterns, examples, configuration) into separate reference files.
+
+**Pattern 1: High-level guide with references**
+
+```markdown
+# PDF Processing
+
+## Quick start
+
+Extract text with pdfplumber:
+[code example]
+
+## Advanced features
+
+- **Form filling**: See [FORMS.md](FORMS.md) for complete guide
+- **API reference**: See [REFERENCE.md](REFERENCE.md) for all methods
+- **Examples**: See [EXAMPLES.md](EXAMPLES.md) for common patterns
+```
+
+Codex loads FORMS.md, REFERENCE.md, or EXAMPLES.md only when needed.
+
+**Pattern 2: Domain-specific organization**
+
+For Skills with multiple domains, organize content by domain to avoid loading irrelevant context:
+
+```
+bigquery-skill/
+├── SKILL.md (overview and navigation)
+└── reference/
+    ├── finance.md (revenue, billing metrics)
+    ├── sales.md (opportunities, pipeline)
+    ├── product.md (API usage, features)
+    └── marketing.md (campaigns, attribution)
+```
+
+When a user asks about sales metrics, Codex only reads sales.md.
+
+Similarly, for skills supporting multiple frameworks or variants, organize by variant:
+
+```
+cloud-deploy/
+├── SKILL.md (workflow + provider selection)
+└── references/
+    ├── aws.md (AWS deployment patterns)
+    ├── gcp.md (GCP deployment patterns)
+    └── azure.md (Azure deployment patterns)
+```
+
+When the user chooses AWS, Codex only reads aws.md.
+
+**Pattern 3: Conditional details**
+
+Show basic content, link to advanced content:
+
+```markdown
+# DOCX Processing
+
+## Creating documents
+
+Use docx-js for new documents. See [DOCX-JS.md](DOCX-JS.md).
+
+## Editing documents
+
+For simple edits, modify the XML directly.
+
+**For tracked changes**: See [REDLINING.md](REDLINING.md)
+**For OOXML details**: See [OOXML.md](OOXML.md)
+```
+
+Codex reads REDLINING.md or OOXML.md only when the user needs those features.
+
+**Important guidelines:**
+
+- **Avoid deeply nested references** - Keep references one level deep from SKILL.md. All reference files should link directly from SKILL.md.
+- **Structure longer reference files** - For files longer than 100 lines, include a table of contents at the top so Codex can see the full scope when previewing.
+
+## Skill Creation Process
+
+Skill creation involves these steps:
+
+1. Understand the skill with concrete examples
+2. Plan reusable skill contents (scripts, references, assets)
+3. Initialize the skill (run init_skill.py)
+4. Edit the skill (implement resources and write SKILL.md)
+5. Validate the skill (run quick_validate.py)
+6. Iterate based on real usage and forward-test complex skills.
+
+Follow these steps in order, skipping only if there is a clear reason why they are not applicable.
+
+### Skill Naming
+
+- Use lowercase letters, digits, and hyphens only; normalize user-provided titles to hyphen-case (e.g., "Plan Mode" -> `plan-mode`).
+- When generating names, generate a name under 64 characters (letters, digits, hyphens).
+- Prefer short, verb-led phrases that describe the action.
+- Namespace by tool when it improves clarity or triggering (e.g., `gh-address-comments`, `linear-address-issue`).
+- Name the skill folder exactly after the skill name.
+
+### Step 1: Understanding the Skill with Concrete Examples
+
+Skip this step only when the skill's usage patterns are already clearly understood. It remains valuable even when working with an existing skill.
+
+To create an effective skill, clearly understand concrete examples of how the skill will be used. This understanding can come from either direct user examples or generated examples that are validated with user feedback.
+
+For example, when building an image-editor skill, relevant questions include:
+
+- "What functionality should the image-editor skill support? Editing, rotating, anything else?"
+- "Can you give some examples of how this skill would be used?"
+- "I can imagine users asking for things like 'Remove the red-eye from this image' or 'Rotate this image'. Are there other ways you imagine this skill being used?"
+- "What would a user say that should trigger this skill?"
+- "Where should I create this skill? If you do not have a preference, I will place it in `$CODEX_HOME/skills` (or `~/.codex/skills` when `CODEX_HOME` is unset) so Codex can discover it automatically."
+
+To avoid overwhelming users, avoid asking too many questions in a single message. Start with the most important questions and follow up as needed for better effectiveness.
+
+Conclude this step when there is a clear sense of the functionality the skill should support.
+
+### Step 2: Planning the Reusable Skill Contents
+
+To turn concrete examples into an effective skill, analyze each example by:
+
+1. Considering how to execute on the example from scratch
+2. Identifying what scripts, references, and assets would be helpful when executing these workflows repeatedly
+
+Example: When building a `pdf-editor` skill to handle queries like "Help me rotate this PDF," the analysis shows:
+
+1. Rotating a PDF requires re-writing the same code each time
+2. A `scripts/rotate_pdf.py` script would be helpful to store in the skill
+
+Example: When designing a `frontend-webapp-builder` skill for queries like "Build me a todo app" or "Build me a dashboard to track my steps," the analysis shows:
+
+1. Writing a frontend webapp requires the same boilerplate HTML/React each time
+2. An `assets/hello-world/` template containing the boilerplate HTML/React project files would be helpful to store in the skill
+
+Example: When building a `big-query` skill to handle queries like "How many users have logged in today?" the analysis shows:
+
+1. Querying BigQuery requires re-discovering the table schemas and relationships each time
+2. A `references/schema.md` file documenting the table schemas would be helpful to store in the skill
+
+To establish the skill's contents, analyze each concrete example to create a list of the reusable resources to include: scripts, references, and assets.
+
+### Step 3: Initializing the Skill
+
+At this point, it is time to actually create the skill.
+
+Skip this step only if the skill being developed already exists. In this case, continue to the next step.
+
+Before running `init_skill.py`, ask where the user wants the skill created. If they do not specify a location, default to `$CODEX_HOME/skills`; when `CODEX_HOME` is unset, fall back to `~/.codex/skills` so the skill is auto-discovered.
+
+When creating a new skill from scratch, always run the `init_skill.py` script. The script conveniently generates a new template skill directory that automatically includes everything a skill requires, making the skill creation process much more efficient and reliable.
+
+Usage:
+
+```bash
+scripts/init_skill.py <skill-name> --path <output-directory> [--resources scripts,references,assets] [--examples]
+```
+
+Examples:
+
+```bash
+scripts/init_skill.py my-skill --path "${CODEX_HOME:-$HOME/.codex}/skills"
+scripts/init_skill.py my-skill --path "${CODEX_HOME:-$HOME/.codex}/skills" --resources scripts,references
+scripts/init_skill.py my-skill --path ~/work/skills --resources scripts --examples
+```
+
+The script:
+
+- Creates the skill directory at the specified path
+- Generates a SKILL.md template with proper frontmatter and TODO placeholders
+- Creates `agents/openai.yaml` using agent-generated `display_name`, `short_description`, and `default_prompt` passed via `--interface key=value`
+- Optionally creates resource directories based on `--resources`
+- Optionally adds example files when `--examples` is set
+
+After initialization, customize the SKILL.md and add resources as needed. If you used `--examples`, replace or delete placeholder files.
+
+Generate `display_name`, `short_description`, and `default_prompt` by reading the skill, then pass them as `--interface key=value` to `init_skill.py` or regenerate with:
+---
+name: coordination-protocol
+description: Use when multiple agents are editing the same repository — guides the reserve-work-release workflow to prevent file conflicts and lost work
+---
+
+## Overview
+
+Interlock provides file-level coordination for multi-agent sessions. Core principle: reserve before editing, release when done. This prevents silent overwrites and merge conflicts between concurrent agents.
+
+## Prerequisites
+
+- Agent must be registered via `/interlock:join` before reserving files
+- intermute service must be running (verify with `/interlock:status`)
+
+## The Workflow
+
+### 1. RESERVE: Before editing, call `reserve_files` with file patterns
+- Specify a reason (what you're doing)
+- Set appropriate TTL (default: 15 minutes)
+- If conflict returned, switch to conflict-recovery skill
+
+### 2. WORK: Edit reserved files normally
+- Call `my_reservations` to verify what you hold
+- Extend reservation if work takes longer than expected
+
+### 3. RELEASE: After done, call `release_files` or `release_all`
+- Release as soon as edits are committed
+- Stop hook auto-releases on session end (safety net, not primary)
+
+## MCP Tools Quick Reference
+
+| Tool | Purpose |
+|------|---------|
+| `reserve_files` | Reserve files by glob pattern before editing |
+| `release_files` | Release specific file reservations |
+| `release_all` | Release all your reservations at once |
+| `check_conflicts` | Check if files are reserved by another agent |
+| `my_reservations` | List your current reservations |
+| `list_agents` | Show all active agents in the project |
+| `send_message` | Send a message to another agent |
+| `fetch_inbox` | Check messages from other agents |
+| `request_release` | Ask another agent to release their reservation |
+| `negotiate_release` | Request release with urgency, thread tracking, and optional wait |
+| `respond_to_release` | Reply to a negotiation by releasing now or deferring with ETA |
+
+## Best Practices
+
+- **Reserve narrowly** — reserve specific files, not entire directories
+- **Short TTLs** — 15 minutes default; extend only if needed
+- **Release early** — release as soon as you commit, don't hold until session end
+- **Check before reserving** — call `check_conflicts` before `reserve_files` to avoid surprise 409s
+- **Include a reason** — helps other agents understand why files are held
+- **One concern per reservation** — separate reservations for separate tasks
+
+## Common Mistakes
+
+- Reserving too broadly (e.g., `src/**`) — reserve only files you will edit
+- Forgetting to release after committing — always `release_files` or `release_all` after `git commit`
+- Ignoring conflict responses — if `reserve_files` returns a conflict, do NOT edit the file; the git pre-commit hook will block the commit
+- Not joining first — `reserve_files` fails if agent is not registered; run `/interlock:join` first
+</verify>
+
+### Task 7: Vale GSV style → gsvdotcom (canonical home)
+
+**Files:** Create: `gsvdotcom/vale/styles/GSV/{Buzzwords,ThroatClearing,Overdefining,AIGenericisms}.yml` (copy from `interbrowse/vale/styles/GSV/`), `gsvdotcom/.vale.ini`; Modify: `interbrowse/vale/styles/GSV/*.yml` (header comment), `interbrowse/skills/register-lint/SKILL.md` (source note)
+
+**Step 1:** Copy the four rule files verbatim into gsvdotcom; update each header comment to `# Canonical copy. Derived from docs/canon/copy-voice.md (2026-08-08 derivation; supersedes the 2026-07-07 COPY_GUIDE derivation).`
+**Step 2:** `gsvdotcom/.vale.ini`:
+```ini
+StylesPath = vale/styles
+MinAlertLevel = suggestion
+
+[*.{md,mdx,astro}]
+BasedOnStyles = GSV
+```
+**Step 3:** interbrowse: add to each rule header `# Vendored fallback — canonical copy: gsvdotcom vale/styles/GSV (derived from docs/canon/copy-voice.md).` and the same one-liner under the SKILL.md "bundled style" paragraph.
+**Step 4:** If `command -v vale`: `cd ~/projects/gsvdotcom && vale README.md >/dev/null; echo $?` — any exit is fine (findings expected); the check is that Vale parses the config. Vale absent: note it and continue.
+**Step 5:** Commit both repos separately: gsvdotcom `style: adopt canonical Vale GSV style + .vale.ini`; interbrowse `docs: mark bundled GSV style as vendored fallback`.
+
+<verify>
+- run: `ls ~/projects/gsvdotcom/vale/styles/GSV/ | wc -l | grep -q 4 && test -s ~/projects/gsvdotcom/.vale.ini && echo ok`
+  expect: contains "ok"
+</verify>
+
+### Task 8: Canon consolidation — INTERACTIVE (mk rules against real samples)
+
+**Files:** Modify: `gsvdotcom/docs/canon/copy-voice.md`, `gsvdotcom/COPY_GUIDE.md`, `gsvdotcom/VOICE.md`; possibly `gsvdotcom/vale/styles/GSV/Buzzwords.yml`
+
+**Run in the main session only.** mk ruled (2026-08-08): decide the vocabulary line against real samples, not in the abstract.
+
+**Step 1:** Harvest material: grep shipped prose (`gsvdotcom/src/content/**/*.md*`, jawnomicon `site/src` chrome strings) for the contested terms (comparative advantage, coordination mechanism, dispersed judgment, topology, emergence, substrate, legibility, leverage, ecosystem, synergy). Collect 10–15 real sentences with file:line. If a term never appears in shipped prose, say so — absence is evidence.
+**Step 2:** Present the samples to mk via AskUserQuestion (batched by term-group, recommendation first, per interview rules) and record the ruling in mk's actual selections.
+**Step 3:** Write the merged `docs/canon/copy-voice.md`: keep the "Document, don't pitch" core; fold in VOICE.md's constraints; add `## Ruling (mk, 2026-08-08): the vocabulary line` recording the ruling and the sample citations; add a derivations footer naming the Vale style and gsv-site fingerprint as dated derivations.
+**Step 4:** Reduce `COPY_GUIDE.md` and `VOICE.md` each to a 3-line pointer stub at `docs/canon/copy-voice.md` (keep the files — inbound links survive).
+**Step 5:** If the ruling moved the buzz line, update `Buzzwords.yml` tokens to match and bump its derivation date.
+**Step 6:** Commit (gsvdotcom): `canon: consolidate copy-voice as single house-style source (mk vocabulary ruling inside)`.
+
+<verify>
+- run: `grep -c "Ruling (mk, 2026-08" ~/projects/gsvdotcom/docs/canon/copy-voice.md`
+  expect: contains "1"
+- run: `wc -l < ~/projects/gsvdotcom/COPY_GUIDE.md | tr -d ' '`
+  expect: contains "3"
+</verify>
+
+### Task 9: gsvdotcom adoption
+
+**Files:** Create: `gsvdotcom/.voicepaths`; Modify: `gsvdotcom/AGENTS.md`, `gsvdotcom/CLAUDE.md`
+
+`.voicepaths` (mk ruled 2026-08-08: machine-facing surfaces — the roadmap
+collection and llm_context frontmatter — are out of voice scope; declare
+voice-carrying collections explicitly, no roadmap):
+```
+# Voice-carrying paths — see docs/canon/copy-voice.md
+# Machine-facing surfaces (src/content/roadmap/, llm_context frontmatter)
+# are out of voice scope per mk's 2026-08-08 ruling.
+register: gsv-site
+style: GSV
+src/content/concepts/**/*.md
+src/content/experiments/**/*.md
+src/content/plays/**/*.md
+src/content/plugins/**/*.md
+src/content/projects/**/*.md
+src/content/concepts/**/*.mdx
+src/content/experiments/**/*.mdx
+src/content/plays/**/*.mdx
+src/content/plugins/**/*.mdx
+src/content/projects/**/*.mdx
+src/pages/**/*.astro
+docs/canon/*.md
+README.md
+```
+`AGENTS.md` — append (verbatim):
+```markdown
+## House style (all agents)
+
+Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
+Before committing changes to those paths, run:
+
+    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
+
+Exit 2 means fix the copy before committing. Claude Code sessions get this
+automatically via the intervox plugin hooks; Codex/Kimi sessions run it
+manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+```
+`CLAUDE.md`: replace the `_Add your project-specific conventions here_` placeholder with a one-line pointer to that AGENTS.md section. Commit: `chore: declare voice-carrying paths + house-style gate wiring`.
+
+<verify>
+- run: `grep -q "voice-check.sh" ~/projects/gsvdotcom/AGENTS.md && test -s ~/projects/gsvdotcom/.voicepaths && echo ok`
+  expect: contains "ok"
+</verify>
+
+### Task 10: jawnomicon adoption (rules-only until a fingerprint exists)
+
+**Files:** Create: `jawnomicon/.voicepaths`; Modify: `jawnomicon/AGENTS.md`
+
+Pre-step: `git -C ~/projects/jawnomicon log --oneline -3` — if HEAD moved beyond `5dfdb86`, `git pull --rebase` first (sibling-owned repo).
+`.voicepaths`: register `gsv-site` is WRONG for jawnomicon's voice — omit `register:` (stylometric layer then uses `all.json`, mk's own baseline) and set `style: GSV` only if jawnomicon gets a `.vale.ini` (it does: copy gsvdotcom's `.vale.ini` — the four LLMese rules are brand-neutral except Buzzwords; include a `# Buzzwords derives from gsvdotcom canon; revisit if it over-fires here` comment). Globs: `site/src/pages/**/*.astro`, `site/src/layouts/**/*.astro`, `README.md`.
+AGENTS.md: same House-style section as task-9 with the jawnomicon paths. Commit (jawnomicon repo): `chore: declare voice-carrying paths (site chrome) + house-style gate`.
+
+<verify>
+- run: `test -s ~/projects/jawnomicon/.voicepaths && grep -q "voice-check.sh" ~/projects/jawnomicon/AGENTS.md && echo ok`
+  expect: contains "ok"
+</verify>
+
+### Task 11: Codex global wiring
+
+**Files:** Modify: `~/.codex/AGENTS.md` (readlink first — if it is a symlink into dotfiles, edit the target in the dotfiles repo and commit there)
+
+Append a `## House style` section: same content as task-9's but generic — "any repo with a `.voicepaths` file: run voice-check.sh --gate before committing declared files; canon lives at the path the repo's AGENTS.md names." Commit in whichever repo owns the file (dotfiles) or note "machine-local file, no repo" in the execution log.
+
+<verify>
+- run: `grep -q "voicepaths" ~/.codex/AGENTS.md && echo ok`
+  expect: contains "ok"
+</verify>
+
+### Task 12: Rebuild the gsv-site fingerprint from real prose
+
+**Files:** `~/.config/intervox/corpus/gsv-site/` (replace synthetic samples), `~/.config/intervox/fingerprints/gsv-site.json` (regenerate)
+
+**Step 1:** Remove the 8 synthetic `sample-2026071*-concept-*` files (they are fabricated baseline — worse than thin).
+**Step 2:** Ingest real shipped prose with provenance frontmatter per corpus convention: gsvdotcom `src/content/**/*.md*` body text (strip frontmatter), the post-consolidation `docs/canon/*.md`, and gsvdotcom page prose. Use the existing `/intervox ingest` skill flow (contamination screening included). Do NOT ingest jawnomicon copy (different voice).
+**Step 3:** `engine/intervox fingerprint` for register gsv-site; print total word count. Record honestly in the fingerprint meta and execution log: if < 20,000 words, note "gate stays rules-heavy (verify exit 1 passes)" — this is expected; do not pad the corpus to hit the floor.
+**Step 4:** No repo commit (config lives outside git); log the word count.
+
+<verify>
+- run: `python3 -c "import json,glob; d=json.load(open(glob.glob('/Users/sma/.config/intervox/fingerprints/gsv-site.json')[0])); print('wc', d.get('meta',{}).get('word_count') or d.get('meta',{}))"`
+  expect: contains "wc"
+- run: `ls /Users/sma/.config/intervox/corpus/gsv-site/ | grep -c "sample-2026071" || true`
+  expect: contains "0"
+</verify>
+
+### Task 13: Publish intervox 0.3.0
+
+**Files:** intervox repo (push), `Sylveste/core/marketplace/.claude-plugin/marketplace.json` (version sync)
+
+**Step 1:** Full intervox suite green: `python3 -m pytest -q` + the three bash test files.
+**Step 2:** Push intervox to `origin` (github.com/mistakeknot/intervox) — `git pull --rebase && git push`, verify `## main...origin/main` clean.
+**Step 3:** Version sync via `/interpub:release` (it syncs plugin.json ↔ marketplace.json). If the release skill is unavailable in-session, edit the marketplace entry's `"version"` to `0.3.0` by hand, commit in the Sylveste repo (protected main — land via the repo's normal flow; check branch rules before pushing).
+**Step 4:** Install here: `claude plugin install intervox@interagency-marketplace` (or update), then confirm the hook fires: edit a scratch file under a temp repo with `.voicepaths` and observe the advisory. Note: marketplace pulls from GitHub, so step 2 must precede step 4.
+**Step 5:** Log zklw/other-machine rollout as follow-up (publish wave runs from zklw per ops memory).
+
+<verify>
+- run: `cd ~/projects/Sylveste/interverse/intervox && git status -sb | head -1`
+  expect: contains "## main...origin/main"
+- run: `python3 -c "import json;a=json.load(open('/Users/sma/projects/Sylveste/interverse/intervox/.claude-plugin/plugin.json'));b=json.load(open('/Users/sma/projects/Sylveste/core/marketplace/.claude-plugin/marketplace.json'));v=[p for p in b['plugins'] if p['name']=='intervox'][0]['version'];assert a['version']==v=='0.3.0', (a['version'],v)"`
+  expect: exit 0
+</verify>
+
+---
+
+## Acceptance Criteria
+
+1. Register resolution works end-to-end, including the new register.
+   ```check
+   bash ~/projects/Sylveste/interverse/intervox/scripts/resolve-register.sh gsv-site >/dev/null
+   ```
+2. Full intervox test suite green (existing 52 + voicepaths + voice-check + hooks + resolve-register tests).
+   ```check
+   cd ~/projects/Sylveste/interverse/intervox && python3 -m pytest -q && bash tests/test_resolve_register.sh && bash tests/test_voice_check.sh && bash tests/test_hooks.sh
+   ```
+3. The gate blocks LLMese and passes clean copy: sloppy fixture exits 2 under `--gate`, clean fixture exits 0 (asserted inside test_voice_check.sh, run above).
+4. Undeclared files are untouched: a commit-gate invocation whose staged files match no `.voicepaths` glob exits 0 silently (asserted inside test_hooks.sh).
+5. Canon consolidated with mk's ruling recorded.
+   ```check
+   grep -q "Ruling (mk, 2026-08" ~/projects/gsvdotcom/docs/canon/copy-voice.md && [ "$(wc -l < ~/projects/gsvdotcom/COPY_GUIDE.md)" -le 5 ] && [ "$(wc -l < ~/projects/gsvdotcom/VOICE.md)" -le 5 ]
+   ```
+6. Both adopter repos declare paths and wire the gate for non-Claude agents.
+   ```check
+   test -s ~/projects/gsvdotcom/.voicepaths && grep -q voice-check ~/projects/gsvdotcom/AGENTS.md && test -s ~/projects/jawnomicon/.voicepaths && grep -q voice-check ~/projects/jawnomicon/AGENTS.md && grep -q voicepaths ~/.codex/AGENTS.md
+   ```
+7. Canonical Vale style lives in gsvdotcom (4 rules + .vale.ini); interbrowse copy marked vendored.
+   ```check
+   [ "$(ls ~/projects/gsvdotcom/vale/styles/GSV/*.yml | wc -l)" -eq 4 ] && test -s ~/projects/gsvdotcom/.vale.ini && grep -ql "vendored" ~/projects/Sylveste/interverse/interbrowse/vale/styles/GSV/Buzzwords.yml
+   ```
+8. gsv-site corpus contains no synthetic samples; fingerprint regenerated; word count recorded (rules-heavy mode documented if under floor).
+   ```check
+   [ "$(ls /Users/sma/.config/intervox/corpus/gsv-site/ | grep -c 'sample-2026071')" -eq 0 ]
+   ```
+9. intervox 0.3.0 published: repo clean vs origin, plugin.json/marketplace.json versions agree at 0.3.0 (task-13 verify commands).
+10. All repo work committed via `git commit -F <file> -- <paths>` and pushed; no repo left dirty. Stop after 2 failed attempts at any gate and escalate rather than looping (two-strikes rule).
+
+exec
+/bin/zsh -lc "wc -l /Users/sma/.codex/skills/.system/skill-creator/SKILL.md
+sed -n '321,700p' /Users/sma/.codex/skills/.system/skill-creator/SKILL.md
+if [[ -e skills/housecheck/SKILL.md ]]; then echo HOUSECHECK_EXISTS; sed -n '1,220p' skills/housecheck/SKILL.md; else echo HOUSECHECK_MISSING; fi
+git log --oneline -5 --decorate" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+     416 /Users/sma/.codex/skills/.system/skill-creator/SKILL.md
+
+```bash
+scripts/generate_openai_yaml.py <path/to/skill-folder> --interface key=value
+```
+
+Only include other optional interface fields when the user explicitly provides them. For full field descriptions and examples, see references/openai_yaml.md.
+
+### Step 4: Edit the Skill
+
+When editing the (newly-generated or existing) skill, remember that the skill is being created for another instance of Codex to use. Include information that would be beneficial and non-obvious to Codex. Consider what procedural knowledge, domain-specific details, or reusable assets would help another Codex instance execute these tasks more effectively.
+
+After substantial revisions, or if the skill is particularly tricky, you should use subagents to forward-test the skill on realistic tasks or artifacts. When doing so, pass the artifact under validation rather than your diagnosis of what is wrong, and keep the prompt generic enough that success depends on transferable reasoning rather than hidden ground truth.
+
+#### Start with Reusable Skill Contents
+
+To begin implementation, start with the reusable resources identified above: `scripts/`, `references/`, and `assets/` files. Note that this step may require user input. For example, when implementing a `brand-guidelines` skill, the user may need to provide brand assets or templates to store in `assets/`, or documentation to store in `references/`.
+
+Added scripts must be tested by actually running them to ensure there are no bugs and that the output matches what is expected. If there are many similar scripts, only a representative sample needs to be tested to ensure confidence that they all work while balancing time to completion.
+
+If you used `--examples`, delete any placeholder files that are not needed for the skill. Only create resource directories that are actually required.
+
+#### Update SKILL.md
+
+**Writing Guidelines:** Always use imperative/infinitive form.
+
+##### Frontmatter
+
+Write the YAML frontmatter with `name` and `description`:
+
+- `name`: The skill name
+- `description`: This is the primary triggering mechanism for your skill, and helps Codex understand when to use the skill.
+  - Include both what the Skill does and specific triggers/contexts for when to use it.
+  - Include all "when to use" information here - Not in the body. The body is only loaded after triggering, so "When to Use This Skill" sections in the body are not helpful to Codex.
+  - Example description for a `docx` skill: "Comprehensive document creation, editing, and analysis with support for tracked changes, comments, formatting preservation, and text extraction. Use when Codex needs to work with professional documents (.docx files) for: (1) Creating new documents, (2) Modifying or editing content, (3) Working with tracked changes, (4) Adding comments, or any other document tasks"
+
+Do not include any other fields in YAML frontmatter.
+
+##### Body
+
+Write instructions for using the skill and its bundled resources.
+
+### Step 5: Validate the Skill
+
+Once development of the skill is complete, validate the skill folder to catch basic issues early:
+
+```bash
+scripts/quick_validate.py <path/to/skill-folder>
+```
+
+The validation script checks YAML frontmatter format, required fields, and naming rules. If validation fails, fix the reported issues and run the command again.
+
+### Step 6: Iterate
+
+After testing the skill, you may detect the skill is complex enough that it requires forward-testing; or users may request improvements.
+
+User testing often this happens right after using the skill, with fresh context of how the skill performed.
+
+**Forward-testing and iteration workflow:**
+
+1. Use the skill on real tasks
+2. Notice struggles or inefficiencies
+3. Identify how SKILL.md or bundled resources should be updated
+4. Implement changes and test again
+5. Forward-test if it is reasonable and appropriate
+
+## Forward-testing
+
+To forward-test, launch subagents as a way to stress test the skill with minimal context.
+Subagents should *not* know that they are being asked to test the skill.  They should be treated as
+an agent asked to perform a task by the user.  Prompts to subagents should look like:
+  `Use $skill-x at /path/to/skill-x to solve problem y`
+Not:
+  `Review the skill at /path/to/skill-x; pretend a user asks you to...`
+
+Decision rule for forward-testing:
+  - Err on the side of forward-testing
+  - Ask for approval if you think there's a risk that forward-testing would:
+    * take a long time,
+    * require additional approvals from the user, or
+    * modify live production systems
+
+  In these cases, show the user your proposed prompt and request (1) a yes/no decision, and
+  (2) any suggested modifictions.
+
+Considerations when forward-testing:
+   - use fresh threads for independent passes
+   - pass the skill, and a request in a similar way the user would.
+   - pass raw artifacts, not your conclusions
+   - avoid showing expected answers or intended fixes
+   - rebuild context from source artifacts after each iteration
+   - review the subagent's output and reasoning and emitted artifacts
+   - avoid leaving artifacts the agent can find on disk between iterations;
+     clean up subagents' artifacts to avoid additional contamination.
+
+If forward-testing only succeeds when subagents see leaked context, tighten the skill or the
+forward-testing setup before trusting the result.
+HOUSECHECK_MISSING
+7c33222 (HEAD -> main, origin/main, origin/HEAD) chore(sync): auto-commit .clavain/orchestrate-runs/59e4dcf5/task-2/prompt.md,docs/plans/2026-08-08-house-style-cross-agent.md
+9296f77 chore(sync): auto-commit .clavain/orchestrate-runs/472b1a32/task-1/dispatch.log,.clavain/orchestrate-runs/472b1a32/task-1/meta.json,.clavain/orchestrate-runs/472b1a32/task-1/output.md,.clavain/orchestrate-runs/472b1a32/task-1/output.md.verdict,.clavain/orchestrate-runs/472b1a32/task-1/output.md.verdict.pre-error (+14 more)
+a8845cc feat: voicepaths declaration module (.voicepaths parser + matcher)
+26787e8 chore(sync): auto-commit docs/plans/2026-08-08-house-style-cross-agent.exec.yaml
+537944e docs: house-style cross-agent brainstorm + plan (mk-ruled 2026-08-08)
+
+codex
+The interlock reservation tools are not available in this session, so I can’t reserve the path through the coordination service. The target file does not exist and no other task claims it; I’ll make one narrow addition only. The plan fully specifies this small skill, so I’m skipping the generic scaffold (which would add unrequested UI metadata) and using a direct red/green file-existence check.
+exec
+/bin/zsh -lc 'test -s skills/housecheck/SKILL.md' in /Users/sma/projects/Sylveste/interverse/intervox
+ exited 1 in 0ms:
+apply patch
+patch: completed
+/Users/sma/projects/Sylveste/interverse/intervox/skills/housecheck/SKILL.md
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+codex
+The file is now in place. I’m checking the plan-required artifact, validating the skill metadata/body, and reviewing the exact diff before deciding whether any adjustment is needed.
+exec
+/bin/zsh -lc "test -s skills/housecheck/SKILL.md
+python3 /Users/sma/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/housecheck
+sed -n '1,240p' skills/housecheck/SKILL.md
+git diff --check -- skills/housecheck/SKILL.md
+git diff -- skills/housecheck/SKILL.md
+git status --short -- skills/housecheck/SKILL.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 105ms:
+Skill is valid!
+---
+name: housecheck
+description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
+allowed-tools: Bash, Read
+---
+
+# Housecheck
+
+Check prose against both house-style layers and return a report card for each declared voice file.
+
+## Resolve targets
+
+1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
+2. With no arguments, use `git diff --name-only` from the repository root.
+3. If no files remain, report that there is nothing to check and stop.
+
+The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
+
+## Run the check
+
+Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
+```
+
+When the user says `gate` or `verify`, run gate mode:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
+```
+
+Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
+
+## Report results
+
+Group each file's report by layer:
+
+- **Rules — Vale GSV:** list every rule finding.
+- **Voice — intervox:** list every stylometric finding and the verify verdict.
+
+For every finding, show:
+
+1. The flagged sentence.
+2. The rule or metric that flagged it.
+3. One concrete rewrite that addresses the finding without changing the intended claim.
+
+End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
+
+Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+?? skills/housecheck/SKILL.md
+
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+codex
+The task-level checks pass: the file is non-empty, the skill validator accepts it, and the diff has no whitespace errors. I’m using the landing-a-change skill to complete this work while staging only `skills/housecheck/SKILL.md`.
+exec
+/bin/zsh -lc "sed -n '1,320p' /Users/sma/projects/Sylveste/os/Clavain/skills/landing-a-change/SKILL.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+---
+name: landing-a-change
+description: Use when implementation is complete and tests pass — verify, document, and land on trunk.
+---
+
+<!-- compact: SKILL-compact.md — if it exists in this directory, load it instead of following the full instructions below. The compact version contains the same verify → review → document → commit → confirm process. -->
+
+# Landing a Change
+
+Verify → Review evidence → Document → Commit → Confirm.
+
+**Announce:** "I'm using the landing-a-change skill to complete this work."
+
+## Step 1: Verify Tests
+
+**Artifact-cached skip:** If inside a sprint (`CLAVAIN_BEAD_ID` set), check whether tests already passed at current HEAD:
+
+```bash
+BEAD_ID="${CLAVAIN_BEAD_ID:-}"
+if [[ -n "$BEAD_ID" ]]; then
+    test_sha=$(clavain-cli get-artifact "$BEAD_ID" "test-pass-sha" 2>/dev/null) || test_sha=""
+    current_sha=$(git rev-parse HEAD)
+    if [[ "$test_sha" == "$current_sha" ]]; then
+        echo "Tests verified at $test_sha (current HEAD). Skipping re-run."
+        # Skip to Step 2
+    fi
+fi
+```
+
+If HEAD moved since the last recorded test pass, or no test-pass-sha artifact exists, or not in a sprint: run the full test suite (`go test ./...` / `npm test` / `pytest` / `cargo test`). If tests fail, stop and fix. Do not proceed.
+
+## Step 2: Verify Plan Compliance
+
+- Were all plan checkboxes checked?
+- Any unresolved TODO comments?
+- Implementation matches agreed scope?
+
+If a plan existed, invoke `verification-before-completion` skill. Otherwise proceed.
+
+## Step 3: Evidence Checklist
+
+- [ ] Tests pass
+- [ ] Plan checkpoints complete (if plan exists)
+- [ ] No unresolved TODOs in changed files
+- [ ] No debug artifacts (`console.log`, `fmt.Println`, etc.)
+- [ ] Changes in logical commits with descriptive messages
+- [ ] Deploy verification plan exists (if deploy-relevant)
+
+If deploy-relevant, consider invoking `fd-safety`.
+
+## Step 4: Present Options (AskUserQuestion)
+
+```
+question: "Implementation verified. How would you like to land this?"
+options:
+  - Commit and push
+  - Commit locally
+  - Changelog first (runs /clavain:changelog)
+  - Review first (show git diff, return to this step)
+```
+
+## Step 5: Execute
+
+**Commit and push / Commit locally:**
+```bash
+git add <specific files>      # NOT git add .
+git commit -m "feat(scope): description
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+git push                      # only for "Commit and push"
+```
+
+`Commit locally` leaves associated beads open. A close is only eligible after
+the implementation commit is visible on the remote.
+
+**Changelog first:** Run `/clavain:changelog`, then commit.
+
+**Review first:** Show `git diff --stat && git diff`, return to Step 4.
+
+## Step 5.5: Post-Push Canary (rsj.1.2)
+
+After push succeeds and inside a sprint (`CLAVAIN_BEAD_ID` set), run a lightweight canary check on the merged state:
+
+```bash
+if [[ -n "${CLAVAIN_BEAD_ID:-}" ]] && [[ "${CLAVAIN_SKIP_CANARY:-}" != "true" ]]; then
+    source "${CLAUDE_PLUGIN_ROOT}/hooks/lib-sprint.sh" 2>/dev/null || true
+    if ! sprint_canary_check "$CLAVAIN_BEAD_ID"; then
+        echo "⚠ Post-merge canary FAILED. Sprint NOT recorded as successful."
+        echo "  Fix the issue and re-run, or set CLAVAIN_SKIP_CANARY=true to override."
+        # Do NOT close the bead or record success
+    fi
+fi
+```
+
+If canary fails: warn user, emit `quality_failure` event to Interspect, do NOT record sprint as successful. If canary passes: normal flow continues.
+
+## Step 5.6: Close After Push
+
+Only after the push and post-push canary succeed, close each selected bead
+through the canonical gate:
+
+```bash
+for bead_id in <issue-ids>; do
+  "${CLAUDE_PLUGIN_ROOT}/scripts/gates/bead-close.sh" "$bead_id" "Landed in pushed commit $(git rev-parse --short HEAD)"
+done
+bd dolt push
+git push
+```
+
+The wrapper verifies any installed-runtime evidence requirement before changing
+tracker state. If it rejects a bead, leave that bead open and report the gate.
+
+## Step 6: Capture Learnings (Optional)
+
+Run `/clavain:compound` or note insights in project memory files.
+
+## Red Flags
+
+- Never push without verified tests
+- Never close a bead before its implementation commit is pushed
+- Never `git add .` — stage specific files
+- Never auto-push without user selecting Option 1
+- Never skip the evidence checklist
+
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+exec
+/bin/zsh -lc "if [[ -f /Users/sma/projects/Sylveste/os/Clavain/skills/landing-a-change/SKILL-compact.md ]]; then sed -n '1,260p' /Users/sma/projects/Sylveste/os/Clavain/skills/landing-a-change/SKILL-compact.md; fi
+python3 -m pytest -q
+bash tests/test_resolve_register.sh
+bash tests/test_voice_check.sh
+test -s skills/housecheck/SKILL.md
+python3 /Users/sma/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/housecheck
+git diff --check -- skills/housecheck/SKILL.md
+if rg -n \"TODO|FIXME|console\\.log|fmt\\.Println\" skills/housecheck/SKILL.md; then exit 1; fi" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 6557ms:
+.......................................................................  [100%]
+71 passed in 2.18s
+test_resolve_register: all tests passed
+voice-check tests passed
+Skill is valid!
+
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+codex
+Fresh verification is green: 71 Python tests passed, both dependency shell suites passed, and the new skill passed its validator. The user-supplied plan already selects “commit and push” for this task, so I’m landing only the new skill file with the specified commit subject; the unrelated task-2/task-4 and orchestration artifacts remain unstaged.
+apply patch
+patch: completed
+/private/tmp/intervox-housecheck-commit-message.txt
+diff --git a//private/tmp/intervox-housecheck-commit-message.txt b//private/tmp/intervox-housecheck-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c4b2f13d782ec7d0d0bdde2ec0c435849174d4b
+--- /dev/null
++++ b//private/tmp/intervox-housecheck-commit-message.txt
+@@ -0,0 +1,3 @@
++feat: housecheck skill (layered report card)
++
++Co-Authored-By: Codex <noreply@openai.com>
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+diff --git a//private/tmp/intervox-housecheck-commit-message.txt b//private/tmp/intervox-housecheck-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c4b2f13d782ec7d0d0bdde2ec0c435849174d4b
+--- /dev/null
++++ b//private/tmp/intervox-housecheck-commit-message.txt
+@@ -0,0 +1,3 @@
++feat: housecheck skill (layered report card)
++
++Co-Authored-By: Codex <noreply@openai.com>
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+exec
+/bin/zsh -lc 'git diff --stat -- skills/housecheck/SKILL.md
+git diff --check -- skills/housecheck/SKILL.md
+git status --short' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 50ms:
+ M scripts/resolve-register.sh
+?? .clavain/orchestrate-runs/59e4dcf5/task-10/
+?? .clavain/orchestrate-runs/59e4dcf5/task-2/dispatch.log
+?? .clavain/orchestrate-runs/59e4dcf5/task-2/meta.json
+?? .clavain/orchestrate-runs/59e4dcf5/task-2/output.md
+?? .clavain/orchestrate-runs/59e4dcf5/task-2/output.md.verdict
+?? .clavain/orchestrate-runs/59e4dcf5/task-2/output.md.verdict.pre-error
+?? .clavain/orchestrate-runs/59e4dcf5/task-4/
+?? .clavain/orchestrate-runs/59e4dcf5/task-5/
+?? .clavain/orchestrate-runs/59e4dcf5/task-6/
+?? .clavain/orchestrate-runs/59e4dcf5/task-9/
+?? scripts/voice-check.sh
+?? skills/housecheck/
+?? tests/test_hooks.sh
+?? tests/test_resolve_register.sh
+?? tests/test_voice_check.sh
+
+diff --git a//private/tmp/intervox-housecheck-commit-message.txt b//private/tmp/intervox-housecheck-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c4b2f13d782ec7d0d0bdde2ec0c435849174d4b
+--- /dev/null
++++ b//private/tmp/intervox-housecheck-commit-message.txt
+@@ -0,0 +1,3 @@
++feat: housecheck skill (layered report card)
++
++Co-Authored-By: Codex <noreply@openai.com>
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+exec
+/bin/zsh -lc 'git add -- skills/housecheck/SKILL.md
+git diff --cached --name-only
+git diff --cached --check
+git commit -F /private/tmp/intervox-housecheck-commit-message.txt -- skills/housecheck/SKILL.md' in /Users/sma/projects/Sylveste/interverse/intervox
+ exited 1 in 1299ms:
+DRIFT  intervox: version bumped without regenerating (plugin.json=0.3.0 kimi.plugin.json=0.2.0)
+
+1 of 1 plugin(s) out of parity. Regenerate with the monorepo's scripts/gen-kimi-manifests.py, then commit kimi.plugin.json alongside the version bump.
+  pre-commit: kimi manifest parity FAILED
+    regenerate: python3 ~/projects/Sylveste/scripts/gen-kimi-manifests.py --plugin intervox
+
+diff --git a//private/tmp/intervox-housecheck-commit-message.txt b//private/tmp/intervox-housecheck-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c4b2f13d782ec7d0d0bdde2ec0c435849174d4b
+--- /dev/null
++++ b//private/tmp/intervox-housecheck-commit-message.txt
+@@ -0,0 +1,3 @@
++feat: housecheck skill (layered report card)
++
++Co-Authored-By: Codex <noreply@openai.com>
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+codex
+The commit was blocked by a repository-wide parity hook: another concurrent task has bumped `plugin.json` to 0.3.0 without yet bumping `kimi.plugin.json`. That drift is outside housecheck’s file and appears actively in progress (task-5 artifacts just appeared), so I won’t modify or bypass it. I’m unstaging my file while that task finishes to prevent accidental inclusion in another agent’s commit, then I’ll retry against the reconciled state.
+exec
+/bin/zsh -lc 'git restore --staged -- skills/housecheck/SKILL.md
+git status --short -- skills/housecheck/SKILL.md .claude-plugin/plugin.json kimi.plugin.json' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 234ms:
+ M .claude-plugin/plugin.json
+ M kimi.plugin.json
+?? skills/housecheck/SKILL.md
+
+diff --git a//private/tmp/intervox-housecheck-commit-message.txt b//private/tmp/intervox-housecheck-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c4b2f13d782ec7d0d0bdde2ec0c435849174d4b
+--- /dev/null
++++ b//private/tmp/intervox-housecheck-commit-message.txt
+@@ -0,0 +1,3 @@
++feat: housecheck skill (layered report card)
++
++Co-Authored-By: Codex <noreply@openai.com>
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+exec
+/bin/zsh -lc 'sleep 10
+git status --short -- .claude-plugin/plugin.json kimi.plugin.json hooks tests/test_hooks.sh
+git log --oneline -3 --decorate' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 10195ms:
+ M .claude-plugin/plugin.json
+ M kimi.plugin.json
+?? hooks/
+?? tests/test_hooks.sh
+7c33222 (HEAD -> main, origin/main, origin/HEAD) chore(sync): auto-commit .clavain/orchestrate-runs/59e4dcf5/task-2/prompt.md,docs/plans/2026-08-08-house-style-cross-agent.md
+9296f77 chore(sync): auto-commit .clavain/orchestrate-runs/472b1a32/task-1/dispatch.log,.clavain/orchestrate-runs/472b1a32/task-1/meta.json,.clavain/orchestrate-runs/472b1a32/task-1/output.md,.clavain/orchestrate-runs/472b1a32/task-1/output.md.verdict,.clavain/orchestrate-runs/472b1a32/task-1/output.md.verdict.pre-error (+14 more)
+a8845cc feat: voicepaths declaration module (.voicepaths parser + matcher)
+
+diff --git a//private/tmp/intervox-housecheck-commit-message.txt b//private/tmp/intervox-housecheck-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c4b2f13d782ec7d0d0bdde2ec0c435849174d4b
+--- /dev/null
++++ b//private/tmp/intervox-housecheck-commit-message.txt
+@@ -0,0 +1,3 @@
++feat: housecheck skill (layered report card)
++
++Co-Authored-By: Codex <noreply@openai.com>
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+exec
+/bin/zsh -lc 'sleep 20
+git status --short -- .claude-plugin/plugin.json kimi.plugin.json hooks tests/test_hooks.sh
+git log --oneline -3 --decorate' in /Users/sma/projects/Sylveste/interverse/intervox
+diff --git a//private/tmp/intervox-housecheck-commit-message.txt b//private/tmp/intervox-housecheck-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c4b2f13d782ec7d0d0bdde2ec0c435849174d4b
+--- /dev/null
++++ b//private/tmp/intervox-housecheck-commit-message.txt
+@@ -0,0 +1,3 @@
++feat: housecheck skill (layered report card)
++
++Co-Authored-By: Codex <noreply@openai.com>
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+ succeeded in 20006ms:
+ M .claude-plugin/plugin.json
+ M kimi.plugin.json
+?? hooks/
+?? tests/test_hooks.sh
+7c33222 (HEAD -> main, origin/main, origin/HEAD) chore(sync): auto-commit .clavain/orchestrate-runs/59e4dcf5/task-2/prompt.md,docs/plans/2026-08-08-house-style-cross-agent.md
+9296f77 chore(sync): auto-commit .clavain/orchestrate-runs/472b1a32/task-1/dispatch.log,.clavain/orchestrate-runs/472b1a32/task-1/meta.json,.clavain/orchestrate-runs/472b1a32/task-1/output.md,.clavain/orchestrate-runs/472b1a32/task-1/output.md.verdict,.clavain/orchestrate-runs/472b1a32/task-1/output.md.verdict.pre-error (+14 more)
+a8845cc feat: voicepaths declaration module (.voicepaths parser + matcher)
+
+diff --git a//private/tmp/intervox-housecheck-commit-message.txt b//private/tmp/intervox-housecheck-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c4b2f13d782ec7d0d0bdde2ec0c435849174d4b
+--- /dev/null
++++ b//private/tmp/intervox-housecheck-commit-message.txt
+@@ -0,0 +1,3 @@
++feat: housecheck skill (layered report card)
++
++Co-Authored-By: Codex <noreply@openai.com>
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+codex
+The concurrent task now has both manifest versions aligned in the working tree, so the parity hook’s specific blocker has cleared without my touching those files. I’m retrying the isolated housecheck commit with an explicit pathspec.
+exec
+/bin/zsh -lc 'test -s skills/housecheck/SKILL.md
+python3 /Users/sma/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/housecheck
+git add -- skills/housecheck/SKILL.md
+git diff --cached --name-only -- skills/housecheck/SKILL.md
+git diff --cached --check -- skills/housecheck/SKILL.md
+git commit -F /private/tmp/intervox-housecheck-commit-message.txt -- skills/housecheck/SKILL.md' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 1927ms:
+Skill is valid!
+skills/housecheck/SKILL.md
+[main 55477fe] feat: housecheck skill (layered report card)
+ 1 file changed, 50 insertions(+)
+ create mode 100644 skills/housecheck/SKILL.md
+
+diff --git a//private/tmp/intervox-housecheck-commit-message.txt b//private/tmp/intervox-housecheck-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c4b2f13d782ec7d0d0bdde2ec0c435849174d4b
+--- /dev/null
++++ b//private/tmp/intervox-housecheck-commit-message.txt
+@@ -0,0 +1,3 @@
++feat: housecheck skill (layered report card)
++
++Co-Authored-By: Codex <noreply@openai.com>
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+diff --git a//private/tmp/intervox-housecheck-commit-message.txt b//private/tmp/intervox-housecheck-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c4b2f13d782ec7d0d0bdde2ec0c435849174d4b
+--- /dev/null
++++ b//private/tmp/intervox-housecheck-commit-message.txt
+@@ -0,0 +1,3 @@
++feat: housecheck skill (layered report card)
++
++Co-Authored-By: Codex <noreply@openai.com>
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+exec
+/bin/zsh -lc 'git fetch origin main' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 1191ms:
+From https://github.com/mistakeknot/intervox
+ * branch            main       -> FETCH_HEAD
+
+diff --git a//private/tmp/intervox-housecheck-commit-message.txt b//private/tmp/intervox-housecheck-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c4b2f13d782ec7d0d0bdde2ec0c435849174d4b
+--- /dev/null
++++ b//private/tmp/intervox-housecheck-commit-message.txt
+@@ -0,0 +1,3 @@
++feat: housecheck skill (layered report card)
++
++Co-Authored-By: Codex <noreply@openai.com>
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+exec
+/bin/zsh -lc 'git status --short --branch
+git rev-parse HEAD
+git rev-parse origin/main
+git log --oneline --decorate --max-count=4' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 66ms:
+55477fe9375661c8bda6a5ce3d8f5955739aefb7
+7c33222d311c8b420692fc7f6b142d9779865692
+55477fe (HEAD -> main) feat: housecheck skill (layered report card)
+7c33222 (origin/main, origin/HEAD) chore(sync): auto-commit .clavain/orchestrate-runs/59e4dcf5/task-2/prompt.md,docs/plans/2026-08-08-house-style-cross-agent.md
+9296f77 chore(sync): auto-commit .clavain/orchestrate-runs/472b1a32/task-1/dispatch.log,.clavain/orchestrate-runs/472b1a32/task-1/meta.json,.clavain/orchestrate-runs/472b1a32/task-1/output.md,.clavain/orchestrate-runs/472b1a32/task-1/output.md.verdict,.clavain/orchestrate-runs/472b1a32/task-1/output.md.verdict.pre-error (+14 more)
+a8845cc feat: voicepaths declaration module (.voicepaths parser + matcher)
+
+diff --git a//private/tmp/intervox-housecheck-commit-message.txt b//private/tmp/intervox-housecheck-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c4b2f13d782ec7d0d0bdde2ec0c435849174d4b
+--- /dev/null
++++ b//private/tmp/intervox-housecheck-commit-message.txt
+@@ -0,0 +1,3 @@
++feat: housecheck skill (layered report card)
++
++Co-Authored-By: Codex <noreply@openai.com>
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+codex
+Origin is unchanged and the local branch is exactly one commit ahead. I’m pushing the immutable housecheck commit SHA directly to `main`, which prevents concurrent local work from being swept into this push.
+exec
+/bin/zsh -lc 'git push origin 55477fe9375661c8bda6a5ce3d8f5955739aefb7:refs/heads/main' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 2611ms:
+To https://github.com/mistakeknot/intervox.git
+   7c33222..55477fe  55477fe9375661c8bda6a5ce3d8f5955739aefb7 -> main
+
+diff --git a//private/tmp/intervox-housecheck-commit-message.txt b//private/tmp/intervox-housecheck-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c4b2f13d782ec7d0d0bdde2ec0c435849174d4b
+--- /dev/null
++++ b//private/tmp/intervox-housecheck-commit-message.txt
+@@ -0,0 +1,3 @@
++feat: housecheck skill (layered report card)
++
++Co-Authored-By: Codex <noreply@openai.com>
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+codex
+The push succeeded. I’m doing the final remote/commit verification now, including re-running the task artifact check and skill validator from the committed state; I’ll then report the exact file and commit while calling out the unrelated concurrent work still present.
+exec
+/bin/zsh -lc "git rev-parse HEAD
+git rev-parse origin/main
+git show --stat --oneline --decorate --no-renames 55477fe9375661c8bda6a5ce3d8f5955739aefb7
+git show --format= --name-only 55477fe9375661c8bda6a5ce3d8f5955739aefb7
+test -s skills/housecheck/SKILL.md
+python3 /Users/sma/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/housecheck
+git status --short --branch
+nl -ba /Users/sma/.codex/memories/MEMORY.md | sed -n '3224,3232p'" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 176ms:
+Skill is valid!
+## main...origin/main
+ M .claude-plugin/plugin.json
+ M kimi.plugin.json
+ M scripts/resolve-register.sh
+?? .clavain/orchestrate-runs/59e4dcf5/task-10/
+?? .clavain/orchestrate-runs/59e4dcf5/task-11/
+?? .clavain/orchestrate-runs/59e4dcf5/task-2/dispatch.log
+?? .clavain/orchestrate-runs/59e4dcf5/task-2/meta.json
+?? .clavain/orchestrate-runs/59e4dcf5/task-2/output.md
+?? .clavain/orchestrate-runs/59e4dcf5/task-2/output.md.verdict
+?? .clavain/orchestrate-runs/59e4dcf5/task-2/output.md.verdict.pre-error
+?? .clavain/orchestrate-runs/59e4dcf5/task-4/
+?? .clavain/orchestrate-runs/59e4dcf5/task-5/
+?? .clavain/orchestrate-runs/59e4dcf5/task-6/
+?? .clavain/orchestrate-runs/59e4dcf5/task-9/
+?? hooks/
+?? scripts/voice-check.sh
+?? tests/test_hooks.sh
+?? tests/test_resolve_register.sh
+?? tests/test_voice_check.sh
+  3224	
+  3225	- Mind State, palettice, `Palettice-zfy`, civ-soul, `MemSoulStore`, `civ_scale --settle`, 20 civs x 200 members, 120+ centuries, snapshot-shaped reads, stratified genesis, physics galaxies stars planets, readable chronicle, Reynolds layer, Dixon layer, `mk-67q`, `8a5ffa11`
+  3226	
+  3227	## User preferences
+  3228	
+  3229	- when asking whether Mind State should first generate “physics/galaxies/stars/planets” -> use stratified genesis: generate thin substrate first to ground homeworlds, neighborhoods, contact reach, and ruins, but do not let deep astrophysics become slice-one scope. [Task 3] [chronicle memory]
+  3230	- when asking whether a plugin/hook could avoid “LLMese” and establish a house style -> treat it as a concrete generated-copy quality problem and preserve the local-dev-server review before deploying. [Task 2] [chronicle memory]
+  3231	
+  3232	## Reusable knowledge
+
+diff --git a//private/tmp/intervox-housecheck-commit-message.txt b//private/tmp/intervox-housecheck-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c4b2f13d782ec7d0d0bdde2ec0c435849174d4b
+--- /dev/null
++++ b//private/tmp/intervox-housecheck-commit-message.txt
+@@ -0,0 +1,3 @@
++feat: housecheck skill (layered report card)
++
++Co-Authored-By: Codex <noreply@openai.com>
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+codex
+VERDICT: CLEAN  
+FILES_CHANGED: [skills/housecheck/SKILL.md]
+
+Implemented the layered report-card workflow. Verification:
+
+- 71 pytest tests passed
+- Resolve-register and voice-check shell tests passed
+- Skill validator passed
+- Committed and pushed: `55477fe`
+
+Unrelated concurrent task changes remain untouched.
+
+
+diff --git a//private/tmp/intervox-housecheck-commit-message.txt b//private/tmp/intervox-housecheck-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c4b2f13d782ec7d0d0bdde2ec0c435849174d4b
+--- /dev/null
++++ b//private/tmp/intervox-housecheck-commit-message.txt
+@@ -0,0 +1,3 @@
++feat: housecheck skill (layered report card)
++
++Co-Authored-By: Codex <noreply@openai.com>
+diff --git a/skills/housecheck/SKILL.md b/skills/housecheck/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..d27709828c533f50393ace92302ddad7bad5f267
+--- /dev/null
++++ b/skills/housecheck/SKILL.md
+@@ -0,0 +1,50 @@
++---
++name: housecheck
++description: Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file
++allowed-tools: Bash, Read
++---
++
++# Housecheck
++
++Check prose against both house-style layers and return a report card for each declared voice file.
++
++## Resolve targets
++
++1. Treat the arguments as file or directory targets. For a directory, use `git ls-files -- <directory>` to expand it to tracked files.
++2. With no arguments, use `git diff --name-only` from the repository root.
++3. If no files remain, report that there is nothing to check and stop.
++
++The checker filters this list through the repository's `.voicepaths`; do not invent a broader scope.
++
++## Run the check
++
++Find the repository root with `git rev-parse --show-toplevel`. Run advisory mode by default:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --root "$root" "${files[@]}"
++```
++
++When the user says `gate` or `verify`, run gate mode:
++
++```bash
++"${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh" --gate --root "$root" "${files[@]}"
++```
++
++Preserve the checker's verdict. In gate mode, exit 2 is a failure; do not soften or reinterpret it. If Vale is unavailable or a file is undeclared, report the checker's skip message plainly.
++
++## Report results
++
++Group each file's report by layer:
++
++- **Rules — Vale GSV:** list every rule finding.
++- **Voice — intervox:** list every stylometric finding and the verify verdict.
++
++For every finding, show:
++
++1. The flagged sentence.
++2. The rule or metric that flagged it.
++3. One concrete rewrite that addresses the finding without changing the intended claim.
++
++End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
++
++Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+
+tokens used
+81,461
+Warning: dispatch surfaced codex warn — verdict overridden: No model output — zero turns, messages, and commands.

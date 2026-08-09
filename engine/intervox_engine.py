@@ -886,9 +886,14 @@ def evaluate_lint(draft_profile: dict, draft_internal: dict, baseline: dict) -> 
     results.append(_feature_result(9, "hedging_boilerplate", hedge_hits, 0, hedge_hits, status, hint))
 
     # 10. em_dash_density
+    # The absolute flood threshold (6.0/1k) yields to the author's own
+    # established rate: a register whose baseline runs above it (gsv-site
+    # measures 15.4/1k across 60 shipped files) must not hard-fail drafts
+    # sitting at or below that baseline. Flood detection survives for
+    # low-em-dash authors, where 1.5x baseline is still under 6.0.
     dv_e = draft_profile["punct_per_1k"]["em_dash"]
     bv_e = baseline["punct_per_1k"]["em_dash"]
-    if dv_e > 6.0 or (dv_e > 2 * bv_e and dv_e > 3.0):
+    if (dv_e > 6.0 and dv_e > 1.5 * bv_e) or (dv_e > 2 * bv_e and dv_e > 3.0):
         status = "fail"
     elif dv_e > 1.5 * bv_e:
         status = "warn"

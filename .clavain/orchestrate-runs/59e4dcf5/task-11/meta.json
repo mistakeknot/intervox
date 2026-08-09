@@ -1,0 +1,24 @@
+{
+  "task": "task-11",
+  "title": "Codex global AGENTS.md wiring",
+  "tier": "fast",
+  "cmd": [
+    "bash",
+    "/Users/sma/.claude/plugins/cache/interagency-marketplace/clavain/0.6.295/scripts/dispatch.sh",
+    "--prompt-file",
+    "/Users/sma/projects/Sylveste/interverse/intervox/.clavain/orchestrate-runs/59e4dcf5/task-11/prompt.md",
+    "-C",
+    "/Users/sma/projects/Sylveste/interverse/intervox",
+    "-o",
+    "/Users/sma/projects/Sylveste/interverse/intervox/.clavain/orchestrate-runs/59e4dcf5/task-11/output.md",
+    "--tier",
+    "fast",
+    "-s",
+    "workspace-write"
+  ],
+  "returncode": 0,
+  "timed_out": false,
+  "duration_s": 270.6,
+  "status": "warn",
+  "note": null
+}

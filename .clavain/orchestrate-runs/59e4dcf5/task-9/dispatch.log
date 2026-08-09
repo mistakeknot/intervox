@@ -1,0 +1,2241 @@
+Implemented gsvdotcom house-style adoption:
+
+- Added `.voicepaths` with explicit voice-bearing collections.
+- Added the house-style gate instructions to `AGENTS.md`.
+- Linked `CLAUDE.md` to the shared instructions.
+- `pnpm test`: 34/34 passed.
+- Task acceptance and diff checks passed.
+- Unrelated working-tree changes were untouched.
+
+VERDICT: NEEDS_ATTENTION [implementation verified; not committed or pushed pending landing choice]  
+FILES_CHANGED: [[.voicepaths](/Users/sma/projects/gsvdotcom/.voicepaths), [AGENTS.md](/Users/sma/projects/gsvdotcom/AGENTS.md), [CLAUDE.md](/Users/sma/projects/gsvdotcom/CLAUDE.md)]
+
+
+
+--- stderr ---
+Tier 'deep' resolved to model: gpt-5.6-sol
+Note: gawk not found — running without live statusline updates
+Reading additional input from stdin...
+OpenAI Codex v0.146.0
+--------
+workdir: /Users/sma/projects/Sylveste/interverse/intervox
+model: gpt-5.6-sol
+provider: openai
+approval: on-request
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019fe3ec-331a-7393-acef-cb1093ff17d9
+--------
+user
+<!-- clavain-context-gateway:v1 sha256=a727774814fb19aa81d82deb1395659a17497c3adeeaeb2762e217165c15e72b -->
+<tldrs-context>
+# Agent context packet
+
+Use the precomputed candidates below to bound the first source read. Do not perform repository-wide discovery or invoke additional reconnaissance tools. Read full source where needed for a safe edit; the packet is not a substitute for verification.
+
+## Precomputed bounded context
+
+Generated only from the public task text and visible workspace source.
+Candidates are ranked hints; verify the local invariant before editing.
+
+### Candidate 1: scripts/resolve-register.sh:1
+
+```sh
+#!/usr/bin/env bash
+# resolve-register.sh — extract the working voice profile for a given register.
+#
+# Reads the global multi-register profile and prints:
+#   the "## Foundation" section (always, the base)
+# followed by the selected "## Register N: <Name>" section (the delta).
+#
+# Usage:
+#   resolve-register.sh <register>            # explicit register by name or number
+#   resolve-register.sh --infer <path>        # infer register from a target path
+#   resolve-register.sh --list              
+```
+
+### Candidate 2: scripts/voice-check.sh:79
+
+```sh
+while IFS= read -r file; do
+  [[ -n "$file" ]] && matched+=("$file")
+done <<<"$matched_output"
+
+failed=0
+
+if command -v vale >/dev/null 2>&1; then
+  if [[ -f "$root/.vale.ini" ]]; then
+    set +e
+    vale_output="$(cd "$root" && vale --output=line "${matched[@]}" 2>&1)"
+    set -e
+    if [[ -n "$vale_output" ]]; then
+      echo "voice-check: Vale rules"
+      printf '%s\n' "$vale_output"
+      if printf '%s\n' "$vale_output" | grep -Eiq ':[0-9]+:[0-9]+:error:'; then
+        failed=1
+      fi
+   
+```
+
+### Candidate 3: tests/test_resolve_register.sh:36
+
+```sh
+  INTERVOX_PROFILE="$PROFILE" bash "$RESOLVER" "$@"
+}
+
+direct_output="$(resolve gsv-site)"
+[[ "$direct_output" == *'<!-- register: gsv-site (prose delta: External; canon: gsvdotcom docs/canon/copy-voice.md) -->'* ]]
+[[ "$direct_output" == *'## Foundation'* ]]
+[[ "$direct_output" == *'## Register 3: External'* ]]
+
+for alias in GSV site 'gsv site'; do
+  alias_output="$(resolve "$alias")"
+  [[ "$alias_output" == "$direct_output" ]]
+done
+
+REPO="$TMP_DIR/repo"
+mkdir -p "$REPO/.git" "$REPO/docs"
+print
+```
+
+</tldrs-context>
+
+## Context from dependencies
+
+### task-4: voice-check.sh layered orchestrator
+**Status:** warn
+--- VERDICT ---
+STATUS: warn
+FILES: 0 changed
+FINDINGS: 0 (P0: 0, P1: 0, P2: 0)
+SUMMARY: No model output — zero turns, messages, and commands.
+---
+Implemented and verified the layered voice-check orchestrator.
+
+- Task test: passed
+- Regression suite: 71 passed
+- Shell syntax: clean
+- Existing Task 2 and `.clavain` artifacts untouched
+- Not committed or pushed pending landing choice
+
+VERDICT: NEEDS_ATTENTION [implementation verified; choose commit and push, commit locally, or review first]  
+FILES_CHANGED: [[scripts/voice-check.sh](/Users/sma/projects/Sylveste/interverse/intervox/scripts/voice-check.sh), [tests/test_voice_check.sh](/Users/sma/projects/Sylveste/interverse/intervox/tests/test_voice_check.sh)]
+
+### task-2: gsv-site register in resolve-register.sh
+**Status:** warn
+--- VERDICT ---
+STATUS: warn
+FILES: 0 changed
+FINDINGS: 0 (P0: 0, P1: 0, P2: 0)
+SUMMARY: No model output — zero turns, messages, and commands.
+---
+Implementation is verified: 71 tests passed. No commit has been made because landing requires your choice:
+
+1. Commit and push
+2. Commit locally
+3. Review diff first
+
+VERDICT: NEEDS_ATTENTION [awaiting landing choice]  
+FILES_CHANGED: [scripts/resolve-register.sh, tests/test_resolve_register.sh]
+
+## Task: gsvdotcom adoption (.voicepaths + AGENTS.md)
+
+**Full plan:** docs/plans/2026-08-08-house-style-cross-agent.md
+Read the plan for detailed step-by-step instructions for this task.
+
+When done, report:
+VERDICT: CLEAN | NEEDS_ATTENTION [reason]
+FILES_CHANGED: [list]
+warning: Under-development features enabled: chronicle. Under-development features are incomplete and may behave unpredictably. To suppress this warning, set `suppress_unstable_features_warning = true` in /Users/sma/.codex/config.toml.
+hook: SessionStart
+hook: SessionStart Completed
+hook: UserPromptSubmit
+hook: UserPromptSubmit Completed
+codex
+I’m using the executing-plans skill because this task points to a written implementation plan. I’ll keep reconnaissance bounded to the supplied candidates, inspect the task’s exact plan section, then edit and run the specified checks. I’ll also initialize Beads before changing code, as this repo requires.
+exec
+/bin/zsh -lc "sed -n '1,240p' /Users/sma/projects/Sylveste/os/Clavain/skills/executing-plans/SKILL.md && rg -n -i \"intervox|house-style|gsvdotcom|voicepaths\" /Users/sma/.codex/memories/MEMORY.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+---
+name: executing-plans
+description: Execute a written implementation plan in a separate session with review checkpoints.
+---
+
+<!-- compact: SKILL-compact.md — if it exists in this directory, load it instead of following the full instructions below. The compact version contains the same batch execution and interserve dispatch protocol. -->
+
+# Executing Plans
+
+Load plan, review critically, execute tasks in batches, report for review between batches. Batch execution with checkpoints for architect review.
+
+**Announce at start:** "I'm using the executing-plans skill to implement this plan."
+
+## Step 1: Load and Review Plan
+
+1. Read plan file
+2. Review critically — raise questions/concerns with human partner before starting
+3. If no concerns: create TodoWrite and proceed
+
+## Step 2: Check Execution Mode
+
+Check for `.exec.yaml` manifest (replace plan's `.md` extension). If found → Step 2C (priority).
+
+Check interserve flag: `[ -f "$(pwd)/.claude/clodex-toggle.flag" ] && echo INTERSERVE_ACTIVE || echo DIRECT_MODE`
+
+Fallback chain:
+- Manifest exists → **2C: Orchestrated**
+- Flag exists, no manifest → **2A: Codex Dispatch**
+- Neither → **2B: Direct**
+
+## Step 2A: Codex Dispatch (interserve mode)
+
+Dispatch tasks to Codex agents for parallelization.
+
+1. **Classify tasks:** Independent (parallel → Codex) | Sequential (ordered dispatch) | Exploratory (Claude subagent)
+2. **Batch:** Independent tasks in same batch run in parallel; max 5 agents/batch
+3. **Per batch** via `clavain:interserve`:
+   - Write prompt files to `/tmp/codex-task-<name>.md` (goal, files, build/test commands, verdict suffix)
+   - Dispatch independent tasks in parallel Bash calls; wait for completion
+   - Read `.verdict` file first (7 lines) — STATUS `pass` → trust and move on; `warn`/`fail` → read full output
+   - No `.verdict` → fall back to full output
+4. **Between batches:** Report pass/fail/issues; wait for feedback
+5. **On failure:** Offer retry with tighter prompt, fall back to 2B, or skip
+
+## Step 2B: Direct Execution (default)
+
+Default: first 3 tasks per batch. Per task: mark in_progress → follow steps exactly → run verifications → mark completed.
+
+## Step 2C: Orchestrated Execution (manifest exists)
+
+1. **Locate orchestrator:**
+   ```bash
+   ORCHESTRATE=$(find ~/.claude/plugins/cache -path '*/clavain/*/scripts/orchestrate.py' 2>/dev/null | head -1)
+   [ -z "$ORCHESTRATE" ] && ORCHESTRATE=$(find ~/projects -name orchestrate.py -path '*/clavain/scripts/*' 2>/dev/null | head -1)
+   ```
+2. **Validate:** `python3 "$ORCHESTRATE" --validate "$MANIFEST"` — on failure, report errors, fall back to 2A/2B
+3. **Dry-run:** `python3 "$ORCHESTRATE" --dry-run "$MANIFEST"` — present wave breakdown (parallelism, cross-stage deps, tasks missing files)
+4. **Ask for approval** (AskUserQuestion): Approve | Edit mode | Skip to manual
+5. **Execute:** `python3 "$ORCHESTRATE" "$MANIFEST" --plan "$PLAN_PATH" --project-dir "$(pwd)"` with `timeout: 600000`
+6. **Read summary:** `pass` → trust; `warn` → read output, assess; `fail`/`error` → offer retry/manual/skip; `skipped` → report dep failure
+7. **On partial failure:** Offer re-run orchestrator (skips finished tasks) | execute failed tasks via 2B | skip
+
+## Step 2D: Post-Task Verification
+
+After each task (any mode): parse `<verify>...</verify>` block for `run:`/`expect:` pairs.
+- `expect: exit 0` — must exit 0; `expect: contains "string"` — output must include string
+- Pass → log "Verify passed for Task N"; failure → treat as Rule 1 auto-fix (3-attempt limit, then log and continue)
+- No verify block → skip silently
+
+**Vetting signal write** — when all per-task verifications pass for a plan that is part of a tracked bead, persist vetting state so the auto-proceed authz gate can evaluate at ship time (see `docs/canon/policy-merge.md`):
+```bash
+if [[ -n "${CLAVAIN_BEAD_ID:-}" ]]; then
+  bd set-state "$CLAVAIN_BEAD_ID" vetted_at="$(date +%s)"            --reason "executing-plans task verified" 2>/dev/null || true
+  bd set-state "$CLAVAIN_BEAD_ID" vetted_sha="$(git rev-parse HEAD)" --reason "executing-plans task verified" 2>/dev/null || true
+  bd set-state "$CLAVAIN_BEAD_ID" tests_passed="true"                --reason "executing-plans task verified" 2>/dev/null || true
+  bd set-state "$CLAVAIN_BEAD_ID" sprint_or_work_flow="true"         --reason "executing-plans task verified" 2>/dev/null || true
+fi
+```
+
+## Step 3: Report
+
+Per batch: what was implemented | verify results (pass/fail) | deviations (Rules 1-3) | deferred items | "Ready for feedback."
+
+## Step 4: Continue
+
+Apply feedback → next batch → repeat until complete.
+
+## Step 4B: Must-Have Validation
+
+After all tasks, check for `## Must-Haves` in plan header:
+- **Truths:** verify observable (run commands/URLs, check code paths)
+- **Artifacts:** verify file exists with listed exports (grep/read)
+- **Key Links:** verify connection in source (grep import + function call)
+
+Report results:
+```
+Must-Have Validation:
+  Truths: 3/3 verified
+  Artifacts: 2/2 exist with exports
+  Key Links: 1/2 — Registration endpoint missing validate_email call
+```
+
+Failures are advisory — user decides. No `Must-Haves` section → skip silently.
+
+## Step 5: Complete Development
+
+Announce: "I'm using the landing-a-change skill to complete this work." → **clavain:landing-a-change** (required).
+
+## Deviation Rules
+
+Track all deviations for batch report.
+
+- **Rule 1 — Auto-fix bugs:** Wrong queries, type errors, logic errors → fix inline, verify, continue. No permission.
+- **Rule 2 — Auto-add critical functionality:** Missing error handling, no input validation, no auth on protected routes, missing DB indexes → add, verify, continue. No permission.
+- **Rule 3 — Auto-fix blockers:** Missing dependency, broken imports, build config errors → fix, verify, continue. No permission.
+- **Rule 4 — Ask about architectural changes:** New DB table, switching libraries, breaking API changes, new service layer → STOP, report finding + proposed change + alternatives. User decision required.
+
+**Priority:** Rule 4 → STOP | Rules 1-3 → fix automatically | Unsure → treat as Rule 4.
+
+**Scope:** Only auto-fix issues caused by the current task's changes. Pre-existing warnings/failures in unrelated files → log to `deferred-items.md`, do NOT fix.
+
+**Fix attempt limit:** 3 attempts per task. After 3, document in "Deferred Issues" and continue.
+
+**Analysis paralysis guard:** 5+ consecutive Read/Grep/Glob without Edit/Write/Bash → STOP. State why in one sentence, then write code or report "blocked" with specific missing info.
+
+## Stop Conditions
+
+Stop immediately and ask when: mid-batch blocker | critical plan gaps | unclear instruction | repeated verification failure. Never start on main/master without explicit user consent.
+
+## Integration
+
+- **clavain:writing-plans** — creates the plan this skill executes
+- **clavain:landing-a-change** — required after all tasks complete
+- **clavain:interserve** — Codex dispatch (interserve mode)
+986:## Task 1: Review gsvdotcom/Shadewright portfolio copy and Pangram feedback, outcome the user rejected generic copy and the extension/direct-input inconsistency was observed
+990:- extensions/chronicle/resources/2026-08-03T16-28-00-YuWh-10min-memory-summary.md (cwd=/Users/sma/projects and gsvdotcom, rollout_path=extensions/chronicle/resources/2026-08-03T16-28-00-YuWh-10min-memory-summary.md, updated_at=2026-08-03T16:28:00+00:00, thread_id=None, Kimi portfolio-review and Pangram context observed [chronicle memory])
+998:- extensions/chronicle/resources/2026-08-03T16-15-00-mAlw-10min-memory-summary.md (cwd=/Users/sma/projects/gsvdotcom, rollout_path=extensions/chronicle/resources/2026-08-03T16-15-00-mAlw-10min-memory-summary.md, updated_at=2026-08-03T16:15:00+00:00, thread_id=None, Shadewright rewrite context observed [chronicle memory])
+999:- extensions/chronicle/resources/2026-08-03T16-11-00-jknJ-10min-memory-summary.md (cwd=/Users/sma/projects/gsvdotcom, rollout_path=extensions/chronicle/resources/2026-08-03T16-11-00-jknJ-10min-memory-summary.md, updated_at=2026-08-03T16:11:00+00:00, thread_id=None, canon-voice review and Pangram discrepancy observed [chronicle memory])
+1000:- extensions/chronicle/resources/2026-08-03T16-08-00-VhfM-10min-memory-summary.md (cwd=/Users/sma/projects/gsvdotcom, rollout_path=extensions/chronicle/resources/2026-08-03T16-08-00-VhfM-10min-memory-summary.md, updated_at=2026-08-03T16:08:00+00:00, thread_id=None, rejected generic Shadewright prose observed [chronicle memory])
+1004:- `gsvdotcom/VOICE.md`, `docs/canon/copy-voice.md`, `pieces/gsv-portfolio.md`, `shadewright`, Kimi TUI, Pangram Chrome extension, direct input, downloadable scan/report
+1134:# Task Group: /Users/sma/projects and workflow/desktop August 3 gsvdotcom, Auraken, Latro, mobile-terminal, and game-design routing
+1136:scope: Route the newest observed gsvdotcom content work, Auraken/person-map and surprise-graph context, mobile-terminal setup, and After Them/Unc Rancher, Jawnomicon, and Ravenous design; screen observation is not live completion or permission to deploy.
+1137:applies_to: cwd=/Users/sma/projects, /Users/sma/projects/gsvdotcom, /Users/sma/projects/after-them, /Users/sma/projects/uncrancher, and workflow/desktop; reuse_rule=reuse named artifacts and explicit boundaries, but recheck Git, content visibility, service state, Tailscale policy, tests, playtests, and approvals before acting [chronicle memory]
+1150:## Task 2: Draft, review, and push gsvdotcom project/plugin entries, outcome 18 content files at `raw_draft`/public visibility boundaries were observed
+1154:- extensions/chronicle/resources/2026-08-03T03-26-00-yVAX-10min-memory-summary.md (cwd=/Users/sma/projects/gsvdotcom, rollout_path=extensions/chronicle/resources/2026-08-03T03-26-00-yVAX-10min-memory-summary.md, updated_at=2026-08-03T03:26:00+00:00, thread_id=None, draft content commit and visibility boundary observed [chronicle memory])
+1155:- extensions/chronicle/resources/2026-08-03T03-16-00-Hajt-10min-memory-summary.md (cwd=/Users/sma/projects/gsvdotcom, rollout_path=extensions/chronicle/resources/2026-08-03T03-16-00-Hajt-10min-memory-summary.md, updated_at=2026-08-03T03:16:00+00:00, thread_id=None, schema and copy-reference context observed [chronicle memory])
+1159:- gsvdotcom, `src/content/projects/`, `src/content/plugins/`, `src/content.config.ts`, `src/lib/schemas.ts`, `VOICE.md`, `COPY_GUIDE.md`, `raw_draft`, `b3d0ce5`, interscrub, interscout
+1196:- In gsvdotcom, project entries can remain invisible as `raw_draft` until admin approval, while plugin entries do not have that pipeline gate and become public on deploy. The observed 18-file commit needs a current content/visibility review, especially `interscrub` (empty shell), `interscout` (deprecated), and unresolved FLUXrig / skywend-spiderthem entries. [Task 2] [chronicle memory]
+1204:- Symptom: draft content is called public/complete because it was committed or pushed. Fix: distinguish gsvdotcom project `raw_draft` approval from plugin deploy visibility, then recheck the live admin/deploy state. [Task 2] [chronicle memory]
+2187:# Task Group: /Users/sma/projects/gsvdotcom catalog research and cross-project integration
+2190:applies_to: cwd=/Users/sma/projects/gsvdotcom with live generalsystemsventures.com checks; reuse_rule=reuse for catalog interpretation and integration planning, but re-check live project counts/routes before presenting them as current
+2200:- General Systems Ventures, gsvdotcom, `GSV-CATALOG.md`, `registry.json`, `llms.txt`, Zahro, AgMoDB, Lowbeer, Ongtology, Auxology, Unc Rancher, `DerivedRecordReceipt`, AgentMUD, Skaffen, Stakeholders, Phosphene, Interlacer, GSV-G1
+
+exec
+/bin/zsh -lc 'bd prime' in /Users/sma/projects/Sylveste/interverse/intervox
+exec
+/bin/zsh -lc 'git status --short --branch' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+## main...origin/main
+ M scripts/resolve-register.sh
+?? .clavain/orchestrate-runs/59e4dcf5/task-10/
+?? .clavain/orchestrate-runs/59e4dcf5/task-2/dispatch.log
+?? .clavain/orchestrate-runs/59e4dcf5/task-2/meta.json
+?? .clavain/orchestrate-runs/59e4dcf5/task-2/output.md
+?? .clavain/orchestrate-runs/59e4dcf5/task-2/output.md.verdict
+?? .clavain/orchestrate-runs/59e4dcf5/task-2/output.md.verdict.pre-error
+?? .clavain/orchestrate-runs/59e4dcf5/task-4/
+?? .clavain/orchestrate-runs/59e4dcf5/task-5/
+?? .clavain/orchestrate-runs/59e4dcf5/task-6/
+?? .clavain/orchestrate-runs/59e4dcf5/task-9/
+?? scripts/voice-check.sh
+?? tests/test_resolve_register.sh
+?? tests/test_voice_check.sh
+
+exec
+/bin/zsh -lc "sed -n '1,280p' docs/plans/2026-08-08-house-style-cross-agent.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 9ms:
+---
+artifact_type: plan
+bead: none
+stage: design
+---
+# Cross-Agent House Style (Layered) Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use clavain:executing-plans to implement this plan task-by-task.
+
+**Bead:** none (intervox tracker write-blocked, schema v23→v53; see brainstorm Open Questions)
+**Brainstorm:** `docs/brainstorms/2026-08-08-house-style-cross-agent-brainstorm.md` (all forks ruled)
+**Goal:** Every agent runtime (Claude Code, Codex, Kimi) checks prose on declared voice-carrying paths against one canon: Vale GSV rules at any length + intervox stylometric verify for long-form, advisory at edit time, blocking at commit time.
+
+**Architecture:** intervox is the published umbrella plugin. A `.voicepaths` file at a repo root declares which files carry voice and which register/style applies. `scripts/voice-check.sh` orchestrates both layers; plugin hooks run it (advisory on PostToolUse Edit/Write, gate on PreToolUse `git commit`); Codex/Kimi run the same script per AGENTS.md. Canon = `gsvdotcom/docs/canon/copy-voice.md`; the Vale style and the fingerprint are dated derivations.
+
+**Tech Stack:** bash + Python 3.11 stdlib (engine), Vale (optional, brew), pytest, Astro repos as adopters.
+
+**Cross-repo note:** Tasks touch five repos (intervox, dotfiles, gsvdotcom, interbrowse, jawnomicon) plus `~/.config` and `~/.codex`. Commit in the repo each task names, `git commit -F <msgfile> -- <paths>`, never `-m`. jawnomicon is sibling-session-owned: check `git -C ~/projects/jawnomicon log --oneline -3` for a foreign HEAD before task-10 and rebase-pull first.
+
+**Interactive tasks:** task-8 requires mk via AskUserQuestion (decide-against-material ruling). Do NOT delegate task-8 to a subagent or Codex; run it in the main session.
+
+---
+
+## Must-Haves
+
+**Truths:**
+- An agent editing a declared voice file sees an advisory report card naming specific flags (edit time, non-blocking).
+- `git commit` touching declared voice files is blocked when Vale reports error-level findings or intervox verify hard-rejects; the block message names file, rule, and fix hint.
+- A commit touching only undeclared files is never delayed or blocked by voice machinery.
+- Codex/Kimi sessions get the identical verdicts by running `voice-check.sh` per AGENTS.md — no Claude-only dependency.
+- `docs/canon/copy-voice.md` is the single canon; COPY_GUIDE.md and VOICE.md are pointers; both machine layers cite it with a derivation date.
+
+**Artifacts:**
+- `intervox/engine/voicepaths.py` exports `load(root)`, `match(root, path)`, CLI `python3 voicepaths.py match <root> <path>...`
+- `intervox/scripts/voice-check.sh` (advisory + `--gate` modes)
+- `intervox/hooks/hooks.json`, `intervox/hooks/voice-advisory.sh`, `intervox/hooks/voice-commit-gate.sh`
+- `intervox/skills/housecheck/SKILL.md`
+- `gsvdotcom/vale/styles/GSV/*.yml` + `gsvdotcom/.vale.ini`; `gsvdotcom/.voicepaths`; `jawnomicon/.voicepaths`
+- Consolidated `gsvdotcom/docs/canon/copy-voice.md` with `## Ruling (mk, 2026-08-…)` vocabulary section
+
+**Key Links:**
+- hooks → `voice-check.sh` → `voicepaths.py` + `resolve-register.sh` → `~/.config/intervox/fingerprints/<register>.json` (so task-1/2 repairs precede task-4+)
+- Vale layer resolves `.vale.ini` at the **adopter repo** root, not the plugin
+- `verify` exit 2 (hard fail) is the only stylometric block while the gsv-site corpus is under the 20k floor — exit 1 "revise" passes the gate (rules-heavy mode per brainstorm)
+
+---
+
+### Task 1: Repair the voice-profile symlink chain
+
+**Files:** `~/.config/intervox/voice-profile.md`, `~/.config/intervox/fingerprints/voice-profile.md`, `~/.config/intervoice/voice-profile.md` (machine-local symlinks; no repo commit)
+
+**Step 1:** Audit before touching (dotfiles rule: readlink first):
+```bash
+for l in ~/.config/intervox/voice-profile.md ~/.config/intervox/fingerprints/voice-profile.md ~/.config/intervoice/voice-profile.md; do
+  echo "$l -> $(readlink "$l" 2>/dev/null || echo MISSING)"; [ -e "$l" ] && echo "  resolves OK" || echo "  BROKEN"
+done
+ls -la /Users/sma/projects/dotfiles/common/projects/voice-profile.md
+```
+**Step 2:** Retarget every broken link to the live file:
+```bash
+ln -sfn /Users/sma/projects/dotfiles/common/projects/voice-profile.md ~/.config/intervox/voice-profile.md
+```
+Apply the same retarget to any other audited link that pointed at `dotfiles/projects/…`; leave healthy links alone.
+**Step 3:** Confirm the resolver works: `bash ~/projects/Sylveste/interverse/intervox/scripts/resolve-register.sh --list` → exit 0, lists Registers 1–4.
+**Step 4:** Record zklw follow-up: append one line to the plan's execution log noting "zklw needs the same symlink audit" (do not ssh-fix zklw in this task).
+
+<verify>
+- run: `bash ~/projects/Sylveste/interverse/intervox/scripts/resolve-register.sh --list`
+  expect: exit 0
+</verify>
+
+### Task 2: `gsv-site` register in resolve-register.sh
+
+**Files:** Modify: `intervox/scripts/resolve-register.sh`; Test: `intervox/tests/test_resolve_register.sh` (create)
+
+**Step 1:** Read the script's register-normalization function. Add a `gsv-site` branch: accepts `gsv-site`, `gsv`, `site` (case/hyphen tolerant). Since the profile has no `## Register: gsv-site` section yet, the branch resolves the *fingerprint register name* (`gsv-site`) and prints Foundation + `## Register 3: External` as the prose delta, with a one-line header comment `<!-- register: gsv-site (prose delta: External; canon: gsvdotcom docs/canon/copy-voice.md) -->`.
+**Step 2:** Extend `--infer`: if the target path's repo root (walk up to `.git`) contains `.voicepaths` with a `register:` line, that register wins over the existing path heuristics.
+**Step 3:** Write `tests/test_resolve_register.sh`: bash test that (a) `resolve-register.sh gsv-site` exits 0 and stdout contains `register: gsv-site`; (b) `--infer` on a temp dir containing `.voicepaths` with `register: gsv-site` returns the same; (c) unknown register still exits 3. Run it; fix until green.
+**Step 4:** Commit (intervox repo): `feat: gsv-site register resolution + .voicepaths-aware inference`
+
+<verify>
+- run: `bash ~/projects/Sylveste/interverse/intervox/scripts/resolve-register.sh gsv-site`
+  expect: exit 0
+- run: `bash ~/projects/Sylveste/interverse/intervox/tests/test_resolve_register.sh`
+  expect: exit 0
+</verify>
+
+### Task 3: `voicepaths.py` — declared-paths module
+
+**Files:** Create: `intervox/engine/voicepaths.py`; Test: `intervox/tests/test_voicepaths.py`
+
+`.voicepaths` format (repo root, `#` comments):
+```
+# .voicepaths — declared voice-carrying paths
+register: gsv-site
+style: GSV
+src/content/**/*.md
+src/pages/**/*.astro
+```
+
+**Step 1:** Write failing tests: parse (register/style/globs), `match` positive (`src/content/a/b.md`), negative (`src/lib/x.ts`), `**` spans directories, no-`.voicepaths` → no matches, CLI `match <root> <paths...>` prints only matching paths and exits 0 (exit 1 when none match).
+**Step 2:** `pytest tests/test_voicepaths.py -v` → FAIL (module missing).
+**Step 3:** Implement (stdlib only):
+```python
+"""voicepaths: parse a repo's .voicepaths declaration and match files against it."""
+from __future__ import annotations
+import re, sys
+from pathlib import Path
+
+def _glob_to_re(glob: str) -> re.Pattern:
+    out, i = [], 0
+    while i < len(glob):
+        c = glob[i]
+        if glob[i:i+3] == "**/":
+            out.append("(?:.+/)?"); i += 3
+        elif glob[i:i+2] == "**":
+            out.append(".*"); i += 2
+        elif c == "*":
+            out.append("[^/]*"); i += 1
+        elif c == "?":
+            out.append("[^/]"); i += 1
+        else:
+            out.append(re.escape(c)); i += 1
+    return re.compile("^" + "".join(out) + "$")
+
+def load(root: str | Path) -> dict:
+    p = Path(root) / ".voicepaths"
+    cfg = {"register": None, "style": None, "globs": [], "patterns": []}
+    if not p.is_file():
+        return cfg
+    for raw in p.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if ":" in line and not any(ch in line.split(":", 1)[0] for ch in "*/?."):
+            key, val = (s.strip() for s in line.split(":", 1))
+            if key in ("register", "style"):
+                cfg[key] = val
+                continue
+        cfg["globs"].append(line)
+        cfg["patterns"].append(_glob_to_re(line))
+    return cfg
+
+def match(root: str | Path, path: str | Path) -> bool:
+    cfg = load(root)
+    try:
+        rel = Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
+    except ValueError:
+        return False
+    return any(p.match(rel) for p in cfg["patterns"])
+
+def main(argv: list[str]) -> int:
+    if len(argv) < 3 or argv[0] != "match":
+        print("usage: voicepaths.py match <root> <path>...", file=sys.stderr)
+        return 2
+    root, hits = argv[1], []
+    for f in argv[2:]:
+        if match(root, f):
+            hits.append(f); print(f)
+    return 0 if hits else 1
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
+```
+**Step 4:** `pytest tests/test_voicepaths.py -v` → PASS. Full suite: `pytest` → all green (52 existing + new).
+**Step 5:** Commit: `feat: voicepaths declaration module (.voicepaths parser + matcher)`
+
+<verify>
+- run: `cd ~/projects/Sylveste/interverse/intervox && python3 -m pytest tests/test_voicepaths.py -q`
+  expect: exit 0
+</verify>
+
+### Task 4: `voice-check.sh` — layered orchestrator
+
+**Files:** Create: `intervox/scripts/voice-check.sh`, `intervox/tests/test_voice_check.sh`; reuse fixtures `tests/fixtures/clean-draft.md`, `tests/fixtures/sloppy-draft.md`
+
+Contract: `voice-check.sh [--gate] [--root <repo-root>] <file>...`
+- Filters args through `voicepaths.py match` (no `.voicepaths` or no matches → exit 0, print `voice-check: no declared voice files touched`).
+- **Layer 1 (Vale):** if `command -v vale` and `<root>/.vale.ini` exists → `vale --output=line <files>`. Error-level findings: advisory mode prints them; gate mode marks FAIL.
+- **Layer 2 (intervox):** baseline = `${XDG_CONFIG_HOME:-$HOME/.config}/intervox/fingerprints/<register>.json` (register from `.voicepaths`, fallback `all.json`). Advisory: `engine/intervox lint --draft <f> --baseline <b> --format table`. Gate: `engine/intervox verify --draft <f> --baseline <b>`; **only exit 2 marks FAIL** (exit 1 "revise" passes — rules-heavy mode while the corpus is thin; print the revise hints anyway).
+- Exit: advisory always 0; `--gate` exits 2 on any FAIL, else 0. Vale absent → print one line `voice-check: vale not installed — rules layer skipped (brew install vale)` and continue.
+- Env escape hatch: `VOICEGATE=skip` → print `voice-check: gate skipped by VOICEGATE=skip` and exit 0 (gate mode only).
+
+**Steps:** (1) write `tests/test_voice_check.sh` — temp repo with `.voicepaths` declaring `*.md`; assert: sloppy fixture in gate mode exits 2 (sloppy-draft must trip a hard-fail feature; if it doesn't, extend the fixture with chat-artifact lines like "Certainly! Here's the updated copy:" rather than weakening the assertion); clean fixture gate exits 0; undeclared file exits 0; `VOICEGATE=skip` exits 0. (2) run → FAIL. (3) implement per contract above (bash, `set -euo pipefail`, no external deps beyond optional vale). (4) run tests + full pytest → green. (5) Commit: `feat: voice-check layered orchestrator (vale + stylometric verify)`.
+
+<verify>
+- run: `bash ~/projects/Sylveste/interverse/intervox/tests/test_voice_check.sh`
+  expect: exit 0
+</verify>
+
+### Task 5: Plugin hooks (advisory edit + commit gate)
+
+**Files:** Create: `intervox/hooks/hooks.json`, `intervox/hooks/voice-advisory.sh`, `intervox/hooks/voice-commit-gate.sh`, `intervox/tests/test_hooks.sh`; Modify: `intervox/.claude-plugin/plugin.json` (add `"hooks": "./hooks/hooks.json"`, bump `"version": "0.3.0"`), `intervox/kimi.plugin.json` (version bump only — kimi consumes the skill, not hooks)
+
+`hooks/hooks.json` (mirror clavain's shape):
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/voice-advisory.sh", "timeout": 10 }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/voice-commit-gate.sh", "timeout": 20 }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`voice-advisory.sh`: read stdin JSON (python3 one-liner), extract `tool_input.file_path`; find repo root via `git -C <dir> rev-parse --show-toplevel` (not a repo → exit 0); `voicepaths.py match` (no match → exit 0); run `voice-check.sh --root <root> <file>` capturing the report; if findings exist emit `{"decision":"block","reason":"voice-check advisory (non-blocking):\n<report>\nFix now or before commit — the commit gate enforces."}` (the clavain agents-md-refresh advisory pattern) else exit 0 silently. Never exit nonzero on internal errors — advisory must not break editing (`trap 'exit 0' ERR`).
+
+`voice-commit-gate.sh`: read stdin JSON; `tool_input.command` must match `git commit` (else exit 0); repo root from the command's working dir; staged files: `git diff --cached --name-only`; filter via `voicepaths.py match` (none → exit 0); run `voice-check.sh --gate --root <root> <staged...>`; on exit 2 emit `{"decision":"block","reason":"HOUSE-STYLE GATE: <report>\nFix the flagged copy, or re-run with VOICEGATE=skip prefixed to the commit for a documented exception."}`; else exit 0. `VOICEGATE=skip` inside the command string also passes (the escape hatch is visible in the transcript by design).
+
+**Steps:** (1) `tests/test_hooks.sh`: pipe fixture PostToolUse/PreToolUse JSON through each hook against a temp repo (declared sloppy file → advisory emits `"decision"`, gate emits block; undeclared → both silent exit 0; malformed JSON → exit 0). (2) implement. (3) tests green. (4) Commit: `feat: advisory edit hook + commit gate (voice-carrying paths only)`.
+
+<verify>
+- run: `bash ~/projects/Sylveste/interverse/intervox/tests/test_hooks.sh`
+  expect: exit 0
+- run: `python3 -c "import json; d=json.load(open('/Users/sma/projects/Sylveste/interverse/intervox/.claude-plugin/plugin.json')); assert d['version']=='0.3.0' and d['hooks']"`
+  expect: exit 0
+</verify>
+
+### Task 6: `housecheck` skill
+
+**Files:** Create: `intervox/skills/housecheck/SKILL.md`
+
+Content (complete): frontmatter (`name: housecheck`, description "Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file", `allowed-tools: Bash, Read`); body instructs: resolve target files (arg or `git diff --name-only` default), run `${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh` (advisory) or `--gate` when the user says "gate"/"verify", render the report grouped by layer, and for each finding show the sentence + one concrete rewrite. Cite canon: "Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule." Both manifests already glob `"skills": "./skills/"`, so no manifest edit. Commit: `feat: housecheck skill (layered report card)`.
+
+<verify>
+- run: `test -s ~/projects/Sylveste/interverse/intervox/skills/housecheck/SKILL.md`
+  expect: exit 0
+</verify>
+
+### Task 7: Vale GSV style → gsvdotcom (canonical home)
+
+**Files:** Create: `gsvdotcom/vale/styles/GSV/{Buzzwords,ThroatClearing,Overdefining,AIGenericisms}.yml` (copy from `interbrowse/vale/styles/GSV/`), `gsvdotcom/.vale.ini`; Modify: `interbrowse/vale/styles/GSV/*.yml` (header comment), `interbrowse/skills/register-lint/SKILL.md` (source note)
+
+**Step 1:** Copy the four rule files verbatim into gsvdotcom; update each header comment to `# Canonical copy. Derived from docs/canon/copy-voice.md (2026-08-08 derivation; supersedes the 2026-07-07 COPY_GUIDE derivation).`
+**Step 2:** `gsvdotcom/.vale.ini`:
+```ini
+StylesPath = vale/styles
+MinAlertLevel = suggestion
+
+[*.{md,mdx,astro}]
+BasedOnStyles = GSV
+```
+**Step 3:** interbrowse: add to each rule header `# Vendored fallback — canonical copy: gsvdotcom vale/styles/GSV (derived from docs/canon/copy-voice.md).` and the same one-liner under the SKILL.md "bundled style" paragraph.
+**Step 4:** If `command -v vale`: `cd ~/projects/gsvdotcom && vale README.md >/dev/null; echo $?` — any exit is fine (findings expected); the check is that Vale parses the config. Vale absent: note it and continue.
+**Step 5:** Commit both repos separately: gsvdotcom `style: adopt canonical Vale GSV style + .vale.ini`; interbrowse `docs: mark bundled GSV style as vendored fallback`.
+
+<verify>
+- run: `ls ~/projects/gsvdotcom/vale/styles/GSV/ | wc -l | grep -q 4 && test -s ~/projects/gsvdotcom/.vale.ini && echo ok`
+  expect: contains "ok"
+</verify>
+
+### Task 8: Canon consolidation — INTERACTIVE (mk rules against real samples)
+
+**Files:** Modify: `gsvdotcom/docs/canon/copy-voice.md`, `gsvdotcom/COPY_GUIDE.md`, `gsvdotcom/VOICE.md`; possibly `gsvdotcom/vale/styles/GSV/Buzzwords.yml`
+
+**Run in the main session only.** mk ruled (2026-08-08): decide the vocabulary line against real samples, not in the abstract.
+
+**Step 1:** Harvest material: grep shipped prose (`gsvdotcom/src/content/**/*.md*`, jawnomicon `site/src` chrome strings) for the contested terms (comparative advantage, coordination mechanism, dispersed judgment, topology, emergence, substrate, legibility, leverage, ecosystem, synergy). Collect 10–15 real sentences with file:line. If a term never appears in shipped prose, say so — absence is evidence.
+**Step 2:** Present the samples to mk via AskUserQuestion (batched by term-group, recommendation first, per interview rules) and record the ruling in mk's actual selections.
+**Step 3:** Write the merged `docs/canon/copy-voice.md`: keep the "Document, don't pitch" core; fold in VOICE.md's constraints; add `## Ruling (mk, 2026-08-08): the vocabulary line` recording the ruling and the sample citations; add a derivations footer naming the Vale style and gsv-site fingerprint as dated derivations.
+**Step 4:** Reduce `COPY_GUIDE.md` and `VOICE.md` each to a 3-line pointer stub at `docs/canon/copy-voice.md` (keep the files — inbound links survive).
+**Step 5:** If the ruling moved the buzz line, update `Buzzwords.yml` tokens to match and bump its derivation date.
+**Step 6:** Commit (gsvdotcom): `canon: consolidate copy-voice as single house-style source (mk vocabulary ruling inside)`.
+
+<verify>
+- run: `grep -c "Ruling (mk, 2026-08" ~/projects/gsvdotcom/docs/canon/copy-voice.md`
+  expect: contains "1"
+
+exec
+/bin/zsh -lc 'if [[ -f docs/plans/2026-08-08-house-style-cross-agent.exec.yaml ]]; then echo MANIFEST_PRESENT; else echo NO_MANIFEST; fi
+if [[ -f .claude/clodex-toggle.flag ]]; then echo INTERSERVE_ACTIVE; else echo DIRECT_MODE; fi' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 6ms:
+MANIFEST_PRESENT
+DIRECT_MODE
+
+ succeeded in 484ms:
+[bd prime] If this output is truncated by your host, read the full persisted hook output before continuing; it may contain project memories and session rules not visible in the preview.
+
+# Beads Workflow Context
+
+> **Context Recovery**: Run `bd prime` after compaction, clear, or new session
+> Hooks auto-call this in Claude Code and Codex when a beads workspace is resolved
+
+# 🚨 SESSION CLOSE PROTOCOL 🚨
+
+**CRITICAL**: Before saying "done" or "complete", you MUST run this checklist:
+
+```
+[ ] 1. bd close <id1> <id2> ...   (close completed issues)
+[ ] 2. run quality gates        (tests, linters, builds when relevant)
+[ ] 3. git status               (check what changed)
+[ ] 4. follow active profile    (conservative: report handoff; team-maintainer: commit/sync/push if enabled)
+```
+
+**Policy:** Conservative is the default. Commit, sync, or push only when the active user, orchestrator, or repository profile grants that authority.
+
+## Core Rules
+- **Default**: Use beads for ALL task tracking (`bd create`, `bd ready`, `bd close`)
+- **Prohibited**: Do NOT use TodoWrite, TaskCreate, or markdown files for task tracking
+- **Workflow**: Create beads issue BEFORE writing code, mark in_progress when starting
+- **Memory**: Use `bd remember "insight"` for persistent knowledge across sessions. Do NOT use MEMORY.md files — they fragment across accounts. Search with `bd memories <keyword>`.
+- Persistence you don't need beats lost context
+- Default: do not commit, push, or run dolt remote sync without explicit authority. Team-maintainer behavior is opt-in and still subordinate to user/orchestrator instructions.
+- Git workflow: conservative by default; commit/push only with explicit user/orchestrator or team-maintainer authority
+- Session management: check `bd ready` for available work
+
+## Essential Commands
+
+### Finding Work
+- `bd ready` - Show issues ready to work (no blockers)
+- `bd list --status=open` - All open issues
+- `bd list --status=in_progress` - Your active work
+- `bd show <id>` - Detailed issue view with dependencies
+
+### Creating & Updating
+- `bd create --title="Summary of this issue" --description="Why this issue exists and what needs to be done" --type=task|bug|feature --priority=2` - New issue
+  - Priority: 0-4 or P0-P4 (0=critical, 2=medium, 4=backlog). NOT "high"/"medium"/"low"
+- `bd create ... --parent=<id>` - Hierarchical child (task under epic, subtask under task; inherits parent labels)
+- `bd update <id> --claim` - Claim work
+- `bd update <id> --assignee=username` - Assign to someone
+- `bd update <id> --title/--description/--notes/--design` - Update fields inline
+- `bd close <id>` - Mark complete
+- `bd close <id1> <id2> ...` - Close multiple issues at once (more efficient)
+- `bd close <id> --reason="explanation"` - Close with reason
+- **Tip**: When creating multiple issues/tasks/epics, use parallel subagents for efficiency
+- **WARNING**: Do NOT use `bd edit` - it opens $EDITOR (vim/nano) which blocks agents
+
+### Dependencies & Blocking
+- `bd dep add <issue> <depends-on>` - Add dependency (issue depends on depends-on)
+- `bd blocked` - Show all blocked issues
+- `bd show <id>` - See what's blocking/blocked by this issue
+
+### Sync & Collaboration
+- `bd dolt push` - Push beads to Dolt remote
+- `bd dolt pull` - Pull beads from Dolt remote
+- `bd search <query>` - Search issues by keyword
+
+### Project Health
+- `bd stats` - Project statistics (open/closed/blocked counts)
+- `bd doctor` - Check for issues (sync problems, missing hooks)
+- `bd doctor --check=conventions` - Check for convention drift (lint, stale, orphans)
+
+### Quality Tools
+- `bd create --validate` - Check description has required sections
+- `bd create --acceptance="criteria"` - Set acceptance criteria (checked by --validate)
+- `bd create --design="decisions"` - Record design decisions
+- `bd create --notes="context"` - Add supplementary notes
+- `bd config set validation.on-create warn` - Auto-validate on every create
+- `bd lint` - Check existing issues for missing sections
+
+### Lifecycle & Hygiene
+- `bd defer <id> --until="date"` - Defer work to a future date
+- `bd supersede <id> --with=<new-id>` - Mark issue as superseded
+- `bd close <id> --suggest-next` - Show newly unblocked issues after closing
+- `bd stale` - Find issues with no recent activity
+- `bd orphans` - Find issues with broken dependencies
+- `bd preflight` - Pre-PR checks (lint, stale, orphans)
+- `bd human <id>` - Flag for human decision (list/respond/dismiss)
+
+### Structured Workflows
+- `bd formula list` - See available workflow templates
+- `bd mol pour <name>` - Start structured workflow from formula
+
+## Common Workflows
+
+**Starting work:**
+```bash
+bd ready           # Find available work
+bd show <id>       # Review issue details
+bd update <id> --claim  # Claim it
+```
+
+**Completing work:**
+```bash
+bd close <id1> <id2> ...    # Close all completed issues at once
+git status                  # Check changed files
+# Conservative/minimal/default: report status and proposed commands; wait for approval
+# Team-maintainer opt-in only, unless current instructions forbid it:
+# git add . && git commit -m "..."
+# bd dolt push
+# git push
+```
+
+**Creating dependent work:**
+```bash
+# Run bd create commands in parallel (use subagents for many items)
+bd create --title="Implement feature X" --description="Why this issue exists and what needs to be done" --type=feature
+bd create --title="Write tests for X" --description="Why this issue exists and what needs to be done" --type=task
+bd dep add beads-yyy beads-xxx  # Tests depend on Feature (Feature blocks tests)
+```
+
+> **Note**: AGENTS.md and CLAUDE.md are independent files (not symlinked and not sharing an inode). Mirror substantive edits across both, or symlink one to the other.
+
+codex
+The plan’s whole-project manifest exists, but this session is already the orchestrator’s bounded adoption task, with Tasks 2 and 4 supplied as completed dependencies. I’m treating that as the approved task slice rather than relaunching the full cross-repo manifest. The current intervox checkout also has pre-existing Task 2/4 and orchestration artifacts; I’ll leave all of those untouched.
+exec
+/bin/zsh -lc "sed -n '970,1010p' /Users/sma/.codex/memories/MEMORY.md" in /Users/sma/projects/Sylveste/interverse/intervox
+exec
+/bin/zsh -lc 'bd search "gsvdotcom adoption" --json' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+
+- X, Twitter, `@gensysven`, General Systems Ventures LLC, automatic suspension, appeal, manual review
+
+## Reusable knowledge
+
+- Keep an appeal brief and factual: suspension shortly after creation before meaningful activity, request manual review, and offer identity/business verification through an official secure channel. Do not proactively attach formation documents, identification numbers, or other sensitive records. [Task 1]
+
+## Failures and how to do differently
+
+- Symptom: a drafted appeal is reported as an account result. Fix: status remains unverified until an official platform response or current account state is observed. [Task 1]
+
+# Task Group: /Users/sma/projects August 3 Chronicle routing: portfolio voice, Shadewright release, game-design slices, and Shadow Work
+
+scope: Route the newest observed portfolio/copy review, Pangram feedback, Shadewright npm release handoff, After Them/Unc Rancher and Ravenous design, Jawnomicon adjudication, Shadow Work planning, and Interlacer A/B review; all screen-derived state needs a live recheck before acting or reporting completion.
+applies_to: cwd=/Users/sma/projects and named child checkouts; reuse_rule=use this as time-bounded routing and preserve explicit user rulings, but inspect current checkout, tracker, served artifact, registry, authorization, and runtime before any action or status claim [chronicle memory]
+
+## Task 1: Review gsvdotcom/Shadewright portfolio copy and Pangram feedback, outcome the user rejected generic copy and the extension/direct-input inconsistency was observed
+
+### rollout_summary_files
+
+- extensions/chronicle/resources/2026-08-03T16-28-00-YuWh-10min-memory-summary.md (cwd=/Users/sma/projects and gsvdotcom, rollout_path=extensions/chronicle/resources/2026-08-03T16-28-00-YuWh-10min-memory-summary.md, updated_at=2026-08-03T16:28:00+00:00, thread_id=None, Kimi portfolio-review and Pangram context observed [chronicle memory])
+- extensions/chronicle/resources/2026-08-03T16-27-00-mSfq-10min-memory-summary.md (cwd=/Users/sma/projects, rollout_path=extensions/chronicle/resources/2026-08-03T16-27-00-mSfq-10min-memory-summary.md, updated_at=2026-08-03T16:27:00+00:00, thread_id=None, gsv-portfolio review context observed [chronicle memory])
+- extensions/chronicle/resources/2026-08-03T16-25-00-piax-10min-memory-summary.md (cwd=/Users/sma/projects, rollout_path=extensions/chronicle/resources/2026-08-03T16-25-00-piax-10min-memory-summary.md, updated_at=2026-08-03T16:25:00+00:00, thread_id=None, portfolio review and browser research observed [chronicle memory])
+- extensions/chronicle/resources/2026-08-03T16-23-00-alke-10min-memory-summary.md (cwd=/Users/sma/projects, rollout_path=extensions/chronicle/resources/2026-08-03T16-23-00-alke-10min-memory-summary.md, updated_at=2026-08-03T16:23:00+00:00, thread_id=None, Kimi TUI portfolio context observed [chronicle memory])
+- extensions/chronicle/resources/2026-08-03T16-21-00-ZmEC-10min-memory-summary.md (cwd=/Users/sma/projects, rollout_path=extensions/chronicle/resources/2026-08-03T16-21-00-ZmEC-10min-memory-summary.md, updated_at=2026-08-03T16:21:00+00:00, thread_id=None, Pangram extension feedback observed [chronicle memory])
+- extensions/chronicle/resources/2026-08-03T16-19-00-giTQ-10min-memory-summary.md (cwd=workflow/desktop, rollout_path=extensions/chronicle/resources/2026-08-03T16-19-00-giTQ-10min-memory-summary.md, updated_at=2026-08-03T16:19:00+00:00, thread_id=None, Pangram report request and job-page browsing observed [chronicle memory])
+- extensions/chronicle/resources/2026-08-03T16-18-00-kFOo-10min-memory-summary.md (cwd=workflow/desktop, rollout_path=extensions/chronicle/resources/2026-08-03T16-18-00-kFOo-10min-memory-summary.md, updated_at=2026-08-03T16:18:00+00:00, thread_id=None, Pangram 4.0 reference observed [chronicle memory])
+- extensions/chronicle/resources/2026-08-03T16-17-00-Fyrk-10min-memory-summary.md (cwd=workflow/desktop, rollout_path=extensions/chronicle/resources/2026-08-03T16-17-00-Fyrk-10min-memory-summary.md, updated_at=2026-08-03T16:17:00+00:00, thread_id=None, reference-image browsing observed [chronicle memory])
+- extensions/chronicle/resources/2026-08-03T16-15-00-mAlw-10min-memory-summary.md (cwd=/Users/sma/projects/gsvdotcom, rollout_path=extensions/chronicle/resources/2026-08-03T16-15-00-mAlw-10min-memory-summary.md, updated_at=2026-08-03T16:15:00+00:00, thread_id=None, Shadewright rewrite context observed [chronicle memory])
+- extensions/chronicle/resources/2026-08-03T16-11-00-jknJ-10min-memory-summary.md (cwd=/Users/sma/projects/gsvdotcom, rollout_path=extensions/chronicle/resources/2026-08-03T16-11-00-jknJ-10min-memory-summary.md, updated_at=2026-08-03T16:11:00+00:00, thread_id=None, canon-voice review and Pangram discrepancy observed [chronicle memory])
+- extensions/chronicle/resources/2026-08-03T16-08-00-VhfM-10min-memory-summary.md (cwd=/Users/sma/projects/gsvdotcom, rollout_path=extensions/chronicle/resources/2026-08-03T16-08-00-VhfM-10min-memory-summary.md, updated_at=2026-08-03T16:08:00+00:00, thread_id=None, rejected generic Shadewright prose observed [chronicle memory])
+
+### keywords
+
+- `gsvdotcom/VOICE.md`, `docs/canon/copy-voice.md`, `pieces/gsv-portfolio.md`, `shadewright`, Kimi TUI, Pangram Chrome extension, direct input, downloadable scan/report
+
+## Task 2: Observe social/reference and photo-post workflow, outcome browser reading, a photo edit, and public posts were observed; no project state changed
+
+### rollout_summary_files
+
+- extensions/chronicle/resources/2026-08-03T17-49-00-yAzs-10min-memory-summary.md (cwd=workflow/desktop, rollout_path=extensions/chronicle/resources/2026-08-03T17-49-00-yAzs-10min-memory-summary.md, updated_at=2026-08-03T17:49:00+00:00, thread_id=None, X posting/replies observed [chronicle memory])
+
+exec
+/bin/zsh -lc "sed -n '/"'^### Task 9:/,/''^### Task 10:/p'"' docs/plans/2026-08-08-house-style-cross-agent.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+### Task 9: gsvdotcom adoption
+
+**Files:** Create: `gsvdotcom/.voicepaths`; Modify: `gsvdotcom/AGENTS.md`, `gsvdotcom/CLAUDE.md`
+
+`.voicepaths` (mk ruled 2026-08-08: machine-facing surfaces — the roadmap
+collection and llm_context frontmatter — are out of voice scope; declare
+voice-carrying collections explicitly, no roadmap):
+```
+# Voice-carrying paths — see docs/canon/copy-voice.md
+# Machine-facing surfaces (src/content/roadmap/, llm_context frontmatter)
+# are out of voice scope per mk's 2026-08-08 ruling.
+register: gsv-site
+style: GSV
+src/content/concepts/**/*.md
+src/content/experiments/**/*.md
+src/content/plays/**/*.md
+src/content/plugins/**/*.md
+src/content/projects/**/*.md
+src/content/concepts/**/*.mdx
+src/content/experiments/**/*.mdx
+src/content/plays/**/*.mdx
+src/content/plugins/**/*.mdx
+src/content/projects/**/*.mdx
+src/pages/**/*.astro
+docs/canon/*.md
+README.md
+```
+`AGENTS.md` — append (verbatim):
+```markdown
+## House style (all agents)
+
+Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
+Before committing changes to those paths, run:
+
+    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
+
+Exit 2 means fix the copy before committing. Claude Code sessions get this
+automatically via the intervox plugin hooks; Codex/Kimi sessions run it
+manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+```
+`CLAUDE.md`: replace the `_Add your project-specific conventions here_` placeholder with a one-line pointer to that AGENTS.md section. Commit: `chore: declare voice-carrying paths + house-style gate wiring`.
+
+<verify>
+- run: `grep -q "voice-check.sh" ~/projects/gsvdotcom/AGENTS.md && test -s ~/projects/gsvdotcom/.voicepaths && echo ok`
+  expect: contains "ok"
+</verify>
+
+### Task 10: jawnomicon adoption (rules-only until a fingerprint exists)
+
+ succeeded in 532ms:
+Warning: refusing to auto-apply 30 pending schema migrations to a remote-backed database (v23 -> v53): migrating clones independently forks the schema (#4259)
+  Read-only command: continuing on schema v23 without migrating.
+  Writes are blocked until the schema is reconciled.  This is a
+  coordination decision, not an auto-fix - do NOT run a migration unless
+  you are the single designated migrator (only ONE clone may migrate a
+  shared remote, else the schema forks; #4259):
+    • designated migrator (only ONE machine): BD_ALLOW_REMOTE_MIGRATE=1 bd migrate && bd dolt push
+    • every other clone (another already migrated): bd bootstrap
+[]
+
+codex
+Beads confirms the plan’s documented tracker condition: schema migration is pending and writes are blocked, so this task remains untracked rather than risking a shared-schema fork. The Task 9 instructions are internally complete; I found no design gap. I’m now checking only the three named gsvdotcom files and that repo’s working state before editing.
+exec
+/bin/zsh -lc "if [[ -f /Users/sma/projects/gsvdotcom/.voicepaths ]]; then sed -n '1,220p' /Users/sma/projects/gsvdotcom/.voicepaths; else echo MISSING; fi" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+MISSING
+
+exec
+/bin/zsh -lc "sed -n '1,260p' /Users/sma/projects/gsvdotcom/AGENTS.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+# Agent Instructions
+
+This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
+
+## Quick Reference
+
+```bash
+bd ready              # Find available work
+bd show <id>          # View issue details
+bd update <id> --claim  # Claim work atomically
+bd close <id>         # Complete work
+bd dolt push          # Push beads data to remote
+```
+
+## Non-Interactive Shell Commands
+
+**ALWAYS use non-interactive flags** with file operations to avoid hanging on confirmation prompts.
+
+Shell commands like `cp`, `mv`, and `rm` may be aliased to include `-i` (interactive) mode on some systems, causing the agent to hang indefinitely waiting for y/n input.
+
+**Use these forms instead:**
+```bash
+# Force overwrite without prompting
+cp -f source dest           # NOT: cp source dest
+mv -f source dest           # NOT: mv source dest
+rm -f file                  # NOT: rm file
+
+# For recursive operations
+rm -rf directory            # NOT: rm -r directory
+cp -rf source dest          # NOT: cp -r source dest
+```
+
+**Other commands that may prompt:**
+- `scp` - use `-o BatchMode=yes` for non-interactive
+- `ssh` - use `-o BatchMode=yes` to fail instead of prompting
+- `apt-get` - use `-y` flag
+- `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
+
+<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
+## Issue Tracking
+
+This project uses **bd (beads)**. `bd prime` carries the workflow and session-close protocol —
+the beads hooks inject it at session start, so this block is only the pointer.
+
+```bash
+bd ready                     # unblocked work
+bd show <id>                 # detail
+bd create "Title" --type=task --priority=2
+bd close <id>                # complete
+```
+
+Track work in beads rather than TodoWrite/TaskCreate, and create the bead before the code.
+<!-- END BEADS INTEGRATION -->
+
+exec
+/bin/zsh -lc "sed -n '1,240p' /Users/sma/projects/gsvdotcom/CLAUDE.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+# Project Instructions for AI Agents
+
+This file provides instructions and context for AI coding agents working on this project.
+
+<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
+## Issue Tracking
+
+This project uses **bd (beads)**. `bd prime` carries the workflow and session-close protocol —
+the beads hooks inject it at session start, so this block is only the pointer.
+
+```bash
+bd ready                     # unblocked work
+bd show <id>                 # detail
+bd create "Title" --type=task --priority=2
+bd close <id>                # complete
+```
+
+Track work in beads rather than TodoWrite/TaskCreate, and create the bead before the code.
+<!-- END BEADS INTEGRATION -->
+
+
+## Build & Test
+
+_Add your build and test commands here_
+
+```bash
+# Example:
+# npm install
+# npm test
+```
+
+## Architecture Overview
+
+_Add a brief overview of your project architecture_
+
+## Conventions & Patterns
+
+_Add your project-specific conventions here_
+
+exec
+/bin/zsh -lc 'git -C /Users/sma/projects/gsvdotcom status --short --branch' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+## main...origin/main [ahead 1]
+ M .beads/hooks/pre-commit
+ M src/content/projects/jawnsmith.md
+ M src/content/projects/shadewright.md
+?? .beads/hooks/pre-commit.superseded-by-inline-beads-block-20260727-094526
+?? .claude/worktrees/
+
+codex
+The gsvdotcom checkout is on `main`, one commit ahead, with unrelated edits in Beads hooks and two project entries plus an untracked worktree directory. I’ll preserve those exactly and limit changes to `.voicepaths`, `AGENTS.md`, and the placeholder line in `CLAUDE.md`.
+  → Create the plan-specified gsvdotcom .voicepaths declaration
+  • Append the verbatim house-style section to AGENTS.md and replace the CLAUDE.md conventions placeholder
+  • Run Task 9 verification and focused content checks
+  • Apply landing-a-change checks and report the bounded diff
+apply patch
+patch: completed
+/Users/sma/projects/gsvdotcom/.voicepaths
+/Users/sma/projects/gsvdotcom/AGENTS.md
+/Users/sma/projects/gsvdotcom/CLAUDE.md
+diff --git a//Users/sma/projects/gsvdotcom/.voicepaths b//Users/sma/projects/gsvdotcom/.voicepaths
+new file mode 100644
+index 0000000000000000000000000000000000000000..42bc6a8b2f8f09df13711934e80c6edf6b2def2e
+--- /dev/null
++++ b//Users/sma/projects/gsvdotcom/.voicepaths
+@@ -0,0 +1,18 @@
++# Voice-carrying paths — see docs/canon/copy-voice.md
++# Machine-facing surfaces (src/content/roadmap/, llm_context frontmatter)
++# are out of voice scope per mk's 2026-08-08 ruling.
++register: gsv-site
++style: GSV
++src/content/concepts/**/*.md
++src/content/experiments/**/*.md
++src/content/plays/**/*.md
++src/content/plugins/**/*.md
++src/content/projects/**/*.md
++src/content/concepts/**/*.mdx
++src/content/experiments/**/*.mdx
++src/content/plays/**/*.mdx
++src/content/plugins/**/*.mdx
++src/content/projects/**/*.mdx
++src/pages/**/*.astro
++docs/canon/*.md
++README.md
+diff --git a//Users/sma/projects/gsvdotcom/AGENTS.md b//Users/sma/projects/gsvdotcom/AGENTS.md
+index baff5352a47a91601013aaa5083862f42a412cc4..177b3eea80a96039e0f89f17573960f80bbf7d70
+--- a//Users/sma/projects/gsvdotcom/AGENTS.md
++++ b//Users/sma/projects/gsvdotcom/AGENTS.md
+@@ -51,3 +51,14 @@
+ 
+ Track work in beads rather than TodoWrite/TaskCreate, and create the bead before the code.
+ <!-- END BEADS INTEGRATION -->
++
++## House style (all agents)
++
++Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
++Before committing changes to those paths, run:
++
++    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
++
++Exit 2 means fix the copy before committing. Claude Code sessions get this
++automatically via the intervox plugin hooks; Codex/Kimi sessions run it
++manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+diff --git a//Users/sma/projects/gsvdotcom/CLAUDE.md b//Users/sma/projects/gsvdotcom/CLAUDE.md
+index 610908bdf1ea25daf171b56fe6b551c09e2a7456..67343b03aef1129e389707d593935e021376fa2e
+--- a//Users/sma/projects/gsvdotcom/CLAUDE.md
++++ b//Users/sma/projects/gsvdotcom/CLAUDE.md
+@@ -35,4 +35,4 @@
+ 
+ ## Conventions & Patterns
+ 
+-_Add your project-specific conventions here_
++See `AGENTS.md` → “House style (all agents)” for the shared prose gate.
+
+diff --git a//Users/sma/projects/gsvdotcom/.voicepaths b//Users/sma/projects/gsvdotcom/.voicepaths
+new file mode 100644
+index 0000000000000000000000000000000000000000..42bc6a8b2f8f09df13711934e80c6edf6b2def2e
+--- /dev/null
++++ b//Users/sma/projects/gsvdotcom/.voicepaths
+@@ -0,0 +1,18 @@
++# Voice-carrying paths — see docs/canon/copy-voice.md
++# Machine-facing surfaces (src/content/roadmap/, llm_context frontmatter)
++# are out of voice scope per mk's 2026-08-08 ruling.
++register: gsv-site
++style: GSV
++src/content/concepts/**/*.md
++src/content/experiments/**/*.md
++src/content/plays/**/*.md
++src/content/plugins/**/*.md
++src/content/projects/**/*.md
++src/content/concepts/**/*.mdx
++src/content/experiments/**/*.mdx
++src/content/plays/**/*.mdx
++src/content/plugins/**/*.mdx
++src/content/projects/**/*.mdx
++src/pages/**/*.astro
++docs/canon/*.md
++README.md
+diff --git a//Users/sma/projects/gsvdotcom/AGENTS.md b//Users/sma/projects/gsvdotcom/AGENTS.md
+index baff5352a47a91601013aaa5083862f42a412cc4..177b3eea80a96039e0f89f17573960f80bbf7d70
+--- a//Users/sma/projects/gsvdotcom/AGENTS.md
++++ b//Users/sma/projects/gsvdotcom/AGENTS.md
+@@ -51,3 +51,14 @@
+ 
+ Track work in beads rather than TodoWrite/TaskCreate, and create the bead before the code.
+ <!-- END BEADS INTEGRATION -->
++
++## House style (all agents)
++
++Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
++Before committing changes to those paths, run:
++
++    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
++
++Exit 2 means fix the copy before committing. Claude Code sessions get this
++automatically via the intervox plugin hooks; Codex/Kimi sessions run it
++manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+diff --git a//Users/sma/projects/gsvdotcom/CLAUDE.md b//Users/sma/projects/gsvdotcom/CLAUDE.md
+index 610908bdf1ea25daf171b56fe6b551c09e2a7456..67343b03aef1129e389707d593935e021376fa2e
+--- a//Users/sma/projects/gsvdotcom/CLAUDE.md
++++ b//Users/sma/projects/gsvdotcom/CLAUDE.md
+@@ -35,4 +35,4 @@
+ 
+ ## Conventions & Patterns
+ 
+-_Add your project-specific conventions here_
++See `AGENTS.md` → “House style (all agents)” for the shared prose gate.
+
+The three scoped edits are applied; moving to verification.
+  ✓ Create the plan-specified gsvdotcom .voicepaths declaration
+  ✓ Append the verbatim house-style section to AGENTS.md and replace the CLAUDE.md conventions placeholder
+  → Run Task 9 verification and focused content checks
+  • Apply landing-a-change checks and report the bounded diff
+diff --git a//Users/sma/projects/gsvdotcom/.voicepaths b//Users/sma/projects/gsvdotcom/.voicepaths
+new file mode 100644
+index 0000000000000000000000000000000000000000..42bc6a8b2f8f09df13711934e80c6edf6b2def2e
+--- /dev/null
++++ b//Users/sma/projects/gsvdotcom/.voicepaths
+@@ -0,0 +1,18 @@
++# Voice-carrying paths — see docs/canon/copy-voice.md
++# Machine-facing surfaces (src/content/roadmap/, llm_context frontmatter)
++# are out of voice scope per mk's 2026-08-08 ruling.
++register: gsv-site
++style: GSV
++src/content/concepts/**/*.md
++src/content/experiments/**/*.md
++src/content/plays/**/*.md
++src/content/plugins/**/*.md
++src/content/projects/**/*.md
++src/content/concepts/**/*.mdx
++src/content/experiments/**/*.mdx
++src/content/plays/**/*.mdx
++src/content/plugins/**/*.mdx
++src/content/projects/**/*.mdx
++src/pages/**/*.astro
++docs/canon/*.md
++README.md
+diff --git a//Users/sma/projects/gsvdotcom/AGENTS.md b//Users/sma/projects/gsvdotcom/AGENTS.md
+index baff5352a47a91601013aaa5083862f42a412cc4..177b3eea80a96039e0f89f17573960f80bbf7d70
+--- a//Users/sma/projects/gsvdotcom/AGENTS.md
++++ b//Users/sma/projects/gsvdotcom/AGENTS.md
+@@ -51,3 +51,14 @@
+ 
+ Track work in beads rather than TodoWrite/TaskCreate, and create the bead before the code.
+ <!-- END BEADS INTEGRATION -->
++
++## House style (all agents)
++
++Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
++Before committing changes to those paths, run:
++
++    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
++
++Exit 2 means fix the copy before committing. Claude Code sessions get this
++automatically via the intervox plugin hooks; Codex/Kimi sessions run it
++manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+diff --git a//Users/sma/projects/gsvdotcom/CLAUDE.md b//Users/sma/projects/gsvdotcom/CLAUDE.md
+index 610908bdf1ea25daf171b56fe6b551c09e2a7456..67343b03aef1129e389707d593935e021376fa2e
+--- a//Users/sma/projects/gsvdotcom/CLAUDE.md
++++ b//Users/sma/projects/gsvdotcom/CLAUDE.md
+@@ -35,4 +35,4 @@
+ 
+ ## Conventions & Patterns
+ 
+-_Add your project-specific conventions here_
++See `AGENTS.md` → “House style (all agents)” for the shared prose gate.
+
+exec
+/bin/zsh -lc 'grep -q "voice-check.sh" /Users/sma/projects/gsvdotcom/AGENTS.md && test -s /Users/sma/projects/gsvdotcom/.voicepaths && echo ok' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+ok
+
+exec
+/bin/zsh -lc 'if [[ -f engine/voicepaths.py ]]; then python3 engine/voicepaths.py match /Users/sma/projects/gsvdotcom /Users/sma/projects/gsvdotcom/src/content/projects/example.md /Users/sma/projects/gsvdotcom/src/content/roadmap/example.md; else echo VOICEPATHS_MODULE_MISSING; fi' in /Users/sma/projects/Sylveste/interverse/intervox
+exec
+/bin/zsh -lc "sed -n '1,220p' /Users/sma/projects/gsvdotcom/.voicepaths && tail -n 18 /Users/sma/projects/gsvdotcom/AGENTS.md && tail -n 8 /Users/sma/projects/gsvdotcom/CLAUDE.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+# Voice-carrying paths — see docs/canon/copy-voice.md
+# Machine-facing surfaces (src/content/roadmap/, llm_context frontmatter)
+# are out of voice scope per mk's 2026-08-08 ruling.
+register: gsv-site
+style: GSV
+src/content/concepts/**/*.md
+src/content/experiments/**/*.md
+src/content/plays/**/*.md
+src/content/plugins/**/*.md
+src/content/projects/**/*.md
+src/content/concepts/**/*.mdx
+src/content/experiments/**/*.mdx
+src/content/plays/**/*.mdx
+src/content/plugins/**/*.mdx
+src/content/projects/**/*.mdx
+src/pages/**/*.astro
+docs/canon/*.md
+README.md
+bd show <id>                 # detail
+bd create "Title" --type=task --priority=2
+bd close <id>                # complete
+```
+
+Track work in beads rather than TodoWrite/TaskCreate, and create the bead before the code.
+<!-- END BEADS INTEGRATION -->
+
+## House style (all agents)
+
+Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
+Before committing changes to those paths, run:
+
+    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
+
+Exit 2 means fix the copy before committing. Claude Code sessions get this
+automatically via the intervox plugin hooks; Codex/Kimi sessions run it
+manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+
+## Architecture Overview
+
+_Add a brief overview of your project architecture_
+
+## Conventions & Patterns
+
+See `AGENTS.md` → “House style (all agents)” for the shared prose gate.
+
+ succeeded in 12ms:
+/Users/sma/projects/gsvdotcom/src/content/projects/example.md
+
+exec
+/bin/zsh -lc 'git -C /Users/sma/projects/gsvdotcom diff -- .voicepaths AGENTS.md CLAUDE.md' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+diff --git a/AGENTS.md b/AGENTS.md
+index baff535..177b3ee 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -51,3 +51,14 @@ bd close <id>                # complete
+ 
+ Track work in beads rather than TodoWrite/TaskCreate, and create the bead before the code.
+ <!-- END BEADS INTEGRATION -->
++
++## House style (all agents)
++
++Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
++Before committing changes to those paths, run:
++
++    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
++
++Exit 2 means fix the copy before committing. Claude Code sessions get this
++automatically via the intervox plugin hooks; Codex/Kimi sessions run it
++manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 610908b..67343b0 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -35,4 +35,4 @@ _Add a brief overview of your project architecture_
+ 
+ ## Conventions & Patterns
+ 
+-_Add your project-specific conventions here_
++See `AGENTS.md` → “House style (all agents)” for the shared prose gate.
+
+diff --git a//Users/sma/projects/gsvdotcom/.voicepaths b//Users/sma/projects/gsvdotcom/.voicepaths
+new file mode 100644
+index 0000000000000000000000000000000000000000..42bc6a8b2f8f09df13711934e80c6edf6b2def2e
+--- /dev/null
++++ b//Users/sma/projects/gsvdotcom/.voicepaths
+@@ -0,0 +1,18 @@
++# Voice-carrying paths — see docs/canon/copy-voice.md
++# Machine-facing surfaces (src/content/roadmap/, llm_context frontmatter)
++# are out of voice scope per mk's 2026-08-08 ruling.
++register: gsv-site
++style: GSV
++src/content/concepts/**/*.md
++src/content/experiments/**/*.md
++src/content/plays/**/*.md
++src/content/plugins/**/*.md
++src/content/projects/**/*.md
++src/content/concepts/**/*.mdx
++src/content/experiments/**/*.mdx
++src/content/plays/**/*.mdx
++src/content/plugins/**/*.mdx
++src/content/projects/**/*.mdx
++src/pages/**/*.astro
++docs/canon/*.md
++README.md
+diff --git a//Users/sma/projects/gsvdotcom/AGENTS.md b//Users/sma/projects/gsvdotcom/AGENTS.md
+index baff5352a47a91601013aaa5083862f42a412cc4..177b3eea80a96039e0f89f17573960f80bbf7d70
+--- a//Users/sma/projects/gsvdotcom/AGENTS.md
++++ b//Users/sma/projects/gsvdotcom/AGENTS.md
+@@ -51,3 +51,14 @@
+ 
+ Track work in beads rather than TodoWrite/TaskCreate, and create the bead before the code.
+ <!-- END BEADS INTEGRATION -->
++
++## House style (all agents)
++
++Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
++Before committing changes to those paths, run:
++
++    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
++
++Exit 2 means fix the copy before committing. Claude Code sessions get this
++automatically via the intervox plugin hooks; Codex/Kimi sessions run it
++manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+diff --git a//Users/sma/projects/gsvdotcom/CLAUDE.md b//Users/sma/projects/gsvdotcom/CLAUDE.md
+index 610908bdf1ea25daf171b56fe6b551c09e2a7456..67343b03aef1129e389707d593935e021376fa2e
+--- a//Users/sma/projects/gsvdotcom/CLAUDE.md
++++ b//Users/sma/projects/gsvdotcom/CLAUDE.md
+@@ -35,4 +35,4 @@
+ 
+ ## Conventions & Patterns
+ 
+-_Add your project-specific conventions here_
++See `AGENTS.md` → “House style (all agents)” for the shared prose gate.
+
+codex
+Task 9’s required check passes, and the matcher includes a declared project path while excluding the roadmap path as intended. The edits match the plan. I’m now using the landing-a-change skill, together with verification-before-completion, to perform the final scoped status/diff checks without committing or touching the repo’s unrelated work.
+exec
+/bin/zsh -lc "sed -n '1,280p' /Users/sma/projects/Sylveste/os/Clavain/skills/landing-a-change/SKILL.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+---
+name: landing-a-change
+description: Use when implementation is complete and tests pass — verify, document, and land on trunk.
+---
+
+<!-- compact: SKILL-compact.md — if it exists in this directory, load it instead of following the full instructions below. The compact version contains the same verify → review → document → commit → confirm process. -->
+
+# Landing a Change
+
+Verify → Review evidence → Document → Commit → Confirm.
+
+**Announce:** "I'm using the landing-a-change skill to complete this work."
+
+## Step 1: Verify Tests
+
+**Artifact-cached skip:** If inside a sprint (`CLAVAIN_BEAD_ID` set), check whether tests already passed at current HEAD:
+
+```bash
+BEAD_ID="${CLAVAIN_BEAD_ID:-}"
+if [[ -n "$BEAD_ID" ]]; then
+    test_sha=$(clavain-cli get-artifact "$BEAD_ID" "test-pass-sha" 2>/dev/null) || test_sha=""
+    current_sha=$(git rev-parse HEAD)
+    if [[ "$test_sha" == "$current_sha" ]]; then
+        echo "Tests verified at $test_sha (current HEAD). Skipping re-run."
+        # Skip to Step 2
+    fi
+fi
+```
+
+If HEAD moved since the last recorded test pass, or no test-pass-sha artifact exists, or not in a sprint: run the full test suite (`go test ./...` / `npm test` / `pytest` / `cargo test`). If tests fail, stop and fix. Do not proceed.
+
+## Step 2: Verify Plan Compliance
+
+- Were all plan checkboxes checked?
+- Any unresolved TODO comments?
+- Implementation matches agreed scope?
+
+If a plan existed, invoke `verification-before-completion` skill. Otherwise proceed.
+
+## Step 3: Evidence Checklist
+
+- [ ] Tests pass
+- [ ] Plan checkpoints complete (if plan exists)
+- [ ] No unresolved TODOs in changed files
+- [ ] No debug artifacts (`console.log`, `fmt.Println`, etc.)
+- [ ] Changes in logical commits with descriptive messages
+- [ ] Deploy verification plan exists (if deploy-relevant)
+
+If deploy-relevant, consider invoking `fd-safety`.
+
+## Step 4: Present Options (AskUserQuestion)
+
+```
+question: "Implementation verified. How would you like to land this?"
+options:
+  - Commit and push
+  - Commit locally
+  - Changelog first (runs /clavain:changelog)
+  - Review first (show git diff, return to this step)
+```
+
+## Step 5: Execute
+
+**Commit and push / Commit locally:**
+```bash
+git add <specific files>      # NOT git add .
+git commit -m "feat(scope): description
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+git push                      # only for "Commit and push"
+```
+
+`Commit locally` leaves associated beads open. A close is only eligible after
+the implementation commit is visible on the remote.
+
+**Changelog first:** Run `/clavain:changelog`, then commit.
+
+**Review first:** Show `git diff --stat && git diff`, return to Step 4.
+
+## Step 5.5: Post-Push Canary (rsj.1.2)
+
+After push succeeds and inside a sprint (`CLAVAIN_BEAD_ID` set), run a lightweight canary check on the merged state:
+
+```bash
+if [[ -n "${CLAVAIN_BEAD_ID:-}" ]] && [[ "${CLAVAIN_SKIP_CANARY:-}" != "true" ]]; then
+    source "${CLAUDE_PLUGIN_ROOT}/hooks/lib-sprint.sh" 2>/dev/null || true
+    if ! sprint_canary_check "$CLAVAIN_BEAD_ID"; then
+        echo "⚠ Post-merge canary FAILED. Sprint NOT recorded as successful."
+        echo "  Fix the issue and re-run, or set CLAVAIN_SKIP_CANARY=true to override."
+        # Do NOT close the bead or record success
+    fi
+fi
+```
+
+If canary fails: warn user, emit `quality_failure` event to Interspect, do NOT record sprint as successful. If canary passes: normal flow continues.
+
+## Step 5.6: Close After Push
+
+Only after the push and post-push canary succeed, close each selected bead
+through the canonical gate:
+
+```bash
+for bead_id in <issue-ids>; do
+  "${CLAUDE_PLUGIN_ROOT}/scripts/gates/bead-close.sh" "$bead_id" "Landed in pushed commit $(git rev-parse --short HEAD)"
+done
+bd dolt push
+git push
+```
+
+The wrapper verifies any installed-runtime evidence requirement before changing
+tracker state. If it rejects a bead, leave that bead open and report the gate.
+
+## Step 6: Capture Learnings (Optional)
+
+Run `/clavain:compound` or note insights in project memory files.
+
+## Red Flags
+
+- Never push without verified tests
+- Never close a bead before its implementation commit is pushed
+- Never `git add .` — stage specific files
+- Never auto-push without user selecting Option 1
+- Never skip the evidence checklist
+
+exec
+/bin/zsh -lc "sed -n '1,280p' /Users/sma/.codex/intertest/skills/verification-before-completion/SKILL.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+---
+name: verification-before-completion
+description: Use when about to claim work is complete, fixed, or passing, or before committing/creating PRs — requires running verification commands and confirming output before any success claims; evidence before assertions.
+---
+
+# Verification Before Completion
+
+## Overview
+
+Claiming work is complete without verification is dishonesty, not efficiency.
+
+**Core principle:** Evidence before claims, always.
+
+**Violating the letter of this rule is violating the spirit of this rule.**
+
+## The Iron Law
+
+```
+NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
+```
+
+If you haven't run the verification command in this message, you cannot claim it passes.
+
+## The Gate Function
+
+```
+BEFORE claiming any status or expressing satisfaction:
+
+1. IDENTIFY: What command proves this claim?
+2. RUN: Execute the FULL command (fresh, complete)
+3. READ: Full output, check exit code, count failures
+4. VERIFY: Does output confirm the claim?
+   - If NO: State actual status with evidence
+   - If YES: State claim WITH evidence
+5. ONLY THEN: Make the claim
+
+Skip any step = lying, not verifying
+```
+
+## Common Failures
+
+| Claim | Requires | Not Sufficient |
+|-------|----------|----------------|
+| Tests pass | Test command output: 0 failures | Previous run, "should pass" |
+| Linter clean | Linter output: 0 errors | Partial check, extrapolation |
+| Build succeeds | Build command: exit 0 | Linter passing, logs look good |
+| Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
+| Regression test works | Red-green cycle verified | Test passes once |
+| Agent completed | VCS diff shows changes | Agent reports "success" |
+| Requirements met | Line-by-line checklist | Tests passing |
+
+## Red Flags - STOP
+
+- Using "should", "probably", "seems to"
+- Expressing satisfaction before verification ("Great!", "Perfect!", "Done!", etc.)
+- About to commit/push/PR without verification
+- Trusting agent success reports
+- Relying on partial verification
+- Thinking "just this once"
+- Tired and wanting work over
+- **ANY wording implying success without having run verification**
+
+## Rationalization Prevention
+
+| Excuse | Reality |
+|--------|---------|
+| "Should work now" | RUN the verification |
+| "I'm confident" | Confidence ≠ evidence |
+| "Just this once" | No exceptions |
+| "Linter passed" | Linter ≠ compiler |
+| "Agent said success" | Verify independently |
+| "I'm tired" | Exhaustion ≠ excuse |
+| "Partial check is enough" | Partial proves nothing |
+| "Different words so rule doesn't apply" | Spirit over letter |
+
+## Key Patterns
+
+**Tests:**
+```
+✅ [Run test command] [See: 34/34 pass] "All tests pass"
+❌ "Should pass now" / "Looks correct"
+```
+
+**Regression tests (TDD Red-Green):**
+```
+✅ Write → Run (pass) → Revert fix → Run (MUST FAIL) → Restore → Run (pass)
+❌ "I've written a regression test" (without red-green verification)
+```
+
+**Build:**
+```
+✅ [Run build] [See: exit 0] "Build passes"
+❌ "Linter passed" (linter doesn't check compilation)
+```
+
+**Requirements:**
+```
+✅ Re-read plan → Create checklist → Verify each → Report gaps or completion
+❌ "Tests pass, phase complete"
+```
+
+**Agent delegation:**
+```
+✅ Agent reports success → Check VCS diff → Verify changes → Report actual state
+❌ Trust agent report
+```
+
+## Why This Matters
+
+From 24 failure memories:
+- your human partner said "I don't believe you" - trust broken
+- Undefined functions shipped - would crash
+- Missing requirements shipped - incomplete features
+- Time wasted on false completion → redirect → rework
+- Violates: "Honesty is a core value. If you lie, you'll be replaced."
+
+## When To Apply
+
+**ALWAYS before:**
+- ANY variation of success/completion claims
+- ANY expression of satisfaction
+- ANY positive statement about work state
+- Committing, PR creation, task completion
+- Moving to next task
+- Delegating to agents
+
+**Rule applies to:**
+- Exact phrases
+- Paraphrases and synonyms
+- Implications of success
+- ANY communication suggesting completion/correctness
+
+## The Bottom Line
+
+**No shortcuts for verification.**
+
+Run the command. Read the output. THEN claim the result.
+
+This is non-negotiable.
+
+diff --git a//Users/sma/projects/gsvdotcom/.voicepaths b//Users/sma/projects/gsvdotcom/.voicepaths
+new file mode 100644
+index 0000000000000000000000000000000000000000..42bc6a8b2f8f09df13711934e80c6edf6b2def2e
+--- /dev/null
++++ b//Users/sma/projects/gsvdotcom/.voicepaths
+@@ -0,0 +1,18 @@
++# Voice-carrying paths — see docs/canon/copy-voice.md
++# Machine-facing surfaces (src/content/roadmap/, llm_context frontmatter)
++# are out of voice scope per mk's 2026-08-08 ruling.
++register: gsv-site
++style: GSV
++src/content/concepts/**/*.md
++src/content/experiments/**/*.md
++src/content/plays/**/*.md
++src/content/plugins/**/*.md
++src/content/projects/**/*.md
++src/content/concepts/**/*.mdx
++src/content/experiments/**/*.mdx
++src/content/plays/**/*.mdx
++src/content/plugins/**/*.mdx
++src/content/projects/**/*.mdx
++src/pages/**/*.astro
++docs/canon/*.md
++README.md
+diff --git a//Users/sma/projects/gsvdotcom/AGENTS.md b//Users/sma/projects/gsvdotcom/AGENTS.md
+index baff5352a47a91601013aaa5083862f42a412cc4..177b3eea80a96039e0f89f17573960f80bbf7d70
+--- a//Users/sma/projects/gsvdotcom/AGENTS.md
++++ b//Users/sma/projects/gsvdotcom/AGENTS.md
+@@ -51,3 +51,14 @@
+ 
+ Track work in beads rather than TodoWrite/TaskCreate, and create the bead before the code.
+ <!-- END BEADS INTEGRATION -->
++
++## House style (all agents)
++
++Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
++Before committing changes to those paths, run:
++
++    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
++
++Exit 2 means fix the copy before committing. Claude Code sessions get this
++automatically via the intervox plugin hooks; Codex/Kimi sessions run it
++manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+diff --git a//Users/sma/projects/gsvdotcom/CLAUDE.md b//Users/sma/projects/gsvdotcom/CLAUDE.md
+index 610908bdf1ea25daf171b56fe6b551c09e2a7456..67343b03aef1129e389707d593935e021376fa2e
+--- a//Users/sma/projects/gsvdotcom/CLAUDE.md
++++ b//Users/sma/projects/gsvdotcom/CLAUDE.md
+@@ -35,4 +35,4 @@
+ 
+ ## Conventions & Patterns
+ 
+-_Add your project-specific conventions here_
++See `AGENTS.md` → “House style (all agents)” for the shared prose gate.
+
+exec
+/bin/zsh -lc "rg -n \"TODO|FIXME|HACK|console\\.log|debugger\" /Users/sma/projects/gsvdotcom/.voicepaths /Users/sma/projects/gsvdotcom/AGENTS.md /Users/sma/projects/gsvdotcom/CLAUDE.md || true" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+exec
+/bin/zsh -lc "sed -n '1,220p' /Users/sma/projects/gsvdotcom/package.json" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+{
+  "name": "intersite",
+  "type": "module",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "node scripts/generate-og.mjs && astro build",
+    "gen:og": "node scripts/generate-og.mjs",
+    "start": "node dist/server/entry.mjs",
+    "preview": "astro preview",
+    "test": "node --test",
+    "gen:registry": "node scripts/generate-registry.mjs"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^13.7.0",
+    "@astrojs/mdx": "^5.0.2",
+    "@astrojs/node": "^10.1.4",
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.1",
+    "@astrojs/vercel": "^10.0.4",
+    "@clerk/astro": "^3.4.13",
+    "@octokit/rest": "^22.0.1",
+    "@tailwindcss/vite": "^4.2.2",
+    "astro": "^6.4.8",
+    "gray-matter": "^4.0.3",
+    "tailwindcss": "^4.2.2",
+    "yaml": "^2.9.0"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/node": "^26.0.0",
+    "satori": "^0.28.0",
+    "typescript": "^6.0.3",
+    "wawoff2": "^2.0.1",
+    "wrangler": "^4.110.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "defu@<6.1.5": ">=6.1.5",
+      "esbuild@<0.28.1": ">=0.28.1",
+      "yaml@>=2.0.0 <2.8.3": ">=2.8.3",
+      "brace-expansion@>=5.0.0 <5.0.6": ">=5.0.6",
+      "tar@>=7.0.0 <7.5.16": ">=7.5.16",
+      "js-yaml@<3.15.0": ">=3.15.0",
+      "path-to-regexp@>=6.0.0 <6.3.0": ">=6.3.0 <7"
+    }
+  }
+}
+
+exec
+/bin/zsh -lc 'git -C /Users/sma/projects/gsvdotcom diff --check -- AGENTS.md CLAUDE.md && git -C /Users/sma/projects/gsvdotcom status --short -- .voicepaths AGENTS.md CLAUDE.md' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+ M AGENTS.md
+ M CLAUDE.md
+?? .voicepaths
+
+diff --git a//Users/sma/projects/gsvdotcom/.voicepaths b//Users/sma/projects/gsvdotcom/.voicepaths
+new file mode 100644
+index 0000000000000000000000000000000000000000..42bc6a8b2f8f09df13711934e80c6edf6b2def2e
+--- /dev/null
++++ b//Users/sma/projects/gsvdotcom/.voicepaths
+@@ -0,0 +1,18 @@
++# Voice-carrying paths — see docs/canon/copy-voice.md
++# Machine-facing surfaces (src/content/roadmap/, llm_context frontmatter)
++# are out of voice scope per mk's 2026-08-08 ruling.
++register: gsv-site
++style: GSV
++src/content/concepts/**/*.md
++src/content/experiments/**/*.md
++src/content/plays/**/*.md
++src/content/plugins/**/*.md
++src/content/projects/**/*.md
++src/content/concepts/**/*.mdx
++src/content/experiments/**/*.mdx
++src/content/plays/**/*.mdx
++src/content/plugins/**/*.mdx
++src/content/projects/**/*.mdx
++src/pages/**/*.astro
++docs/canon/*.md
++README.md
+diff --git a//Users/sma/projects/gsvdotcom/AGENTS.md b//Users/sma/projects/gsvdotcom/AGENTS.md
+index baff5352a47a91601013aaa5083862f42a412cc4..177b3eea80a96039e0f89f17573960f80bbf7d70
+--- a//Users/sma/projects/gsvdotcom/AGENTS.md
++++ b//Users/sma/projects/gsvdotcom/AGENTS.md
+@@ -51,3 +51,14 @@
+ 
+ Track work in beads rather than TodoWrite/TaskCreate, and create the bead before the code.
+ <!-- END BEADS INTEGRATION -->
++
++## House style (all agents)
++
++Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
++Before committing changes to those paths, run:
++
++    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
++
++Exit 2 means fix the copy before committing. Claude Code sessions get this
++automatically via the intervox plugin hooks; Codex/Kimi sessions run it
++manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+diff --git a//Users/sma/projects/gsvdotcom/CLAUDE.md b//Users/sma/projects/gsvdotcom/CLAUDE.md
+index 610908bdf1ea25daf171b56fe6b551c09e2a7456..67343b03aef1129e389707d593935e021376fa2e
+--- a//Users/sma/projects/gsvdotcom/CLAUDE.md
++++ b//Users/sma/projects/gsvdotcom/CLAUDE.md
+@@ -35,4 +35,4 @@
+ 
+ ## Conventions & Patterns
+ 
+-_Add your project-specific conventions here_
++See `AGENTS.md` → “House style (all agents)” for the shared prose gate.
+
+codex
+The repo defines `pnpm test` as its full test suite. I’m running that now, followed by a fresh Task 9 acceptance check and final scoped status. No deploy validation is needed for these local agent/config files.
+exec
+/bin/zsh -lc 'pnpm test' in /Users/sma/projects/gsvdotcom
+ succeeded in 1392ms:
+
+> intersite@0.1.0 test /Users/sma/projects/gsvdotcom
+> node --test
+
+TAP version 13
+# Subtest: unconfigured allowlist without hatch: unauthenticated → sign-in, authenticated → 403
+ok 1 - unconfigured allowlist without hatch: unauthenticated → sign-in, authenticated → 403
+  ---
+  duration_ms: 1.372625
+  type: 'test'
+  ...
+# Subtest: unconfigured allowlist WITH hatch: open (bootstrap only)
+ok 2 - unconfigured allowlist WITH hatch: open (bootstrap only)
+  ---
+  duration_ms: 0.17275
+  type: 'test'
+  ...
+# Subtest: hatch is inert once any allowlist is configured
+ok 3 - hatch is inert once any allowlist is configured
+  ---
+  duration_ms: 0.147458
+  type: 'test'
+  ...
+# Subtest: hatch requires the exact string "true"
+ok 4 - hatch requires the exact string "true"
+  ---
+  duration_ms: 8.433625
+  type: 'test'
+  ...
+# Subtest: middleware: the unconditional fail-open early-return is gone
+ok 5 - middleware: the unconditional fail-open early-return is gone
+  ---
+  duration_ms: 46.520042
+  type: 'test'
+  ...
+# Subtest: middleware: gate order is hatch → auth → allowlist, and reads are fail-closed
+ok 6 - middleware: gate order is hatch → auth → allowlist, and reads are fail-closed
+  ---
+  duration_ms: 2.084625
+  type: 'test'
+  ...
+# Subtest: authz: isAllowlisted with requireAllowlist:true rejects on empty lists (source pin)
+ok 7 - authz: isAllowlisted with requireAllowlist:true rejects on empty lists (source pin)
+  ---
+  duration_ms: 2.685667
+  type: 'test'
+  ...
+# Subtest: escape hatch is documented in .secrets.env.template
+ok 8 - escape hatch is documented in .secrets.env.template
+  ---
+  duration_ms: 3.040458
+  type: 'test'
+  ...
+# Subtest: nav is minimal: no counts, no index links (registry is the index)
+ok 9 - nav is minimal: no counts, no index links (registry is the index)
+  ---
+  duration_ms: 43.033333
+  type: 'test'
+  ...
+# Subtest: nav links are conditional plain words
+ok 10 - nav links are conditional plain words
+  ---
+  duration_ms: 2.728583
+  type: 'test'
+  ...
+# Subtest: /projects/ index 301s home; detail pages keep their routes
+ok 11 - /projects/ index 301s home; detail pages keep their routes
+  ---
+  duration_ms: 3.761667
+  type: 'test'
+  ...
+# Subtest: raw interchart embed is hosted as a static page under public/interchart/embed
+ok 12 - raw interchart embed is hosted as a static page under public/interchart/embed
+  ---
+  duration_ms: 9.232791
+  type: 'test'
+  ...
+# Subtest: Astro interchart wrapper keeps the graph embedded without extra chrome
+ok 13 - Astro interchart wrapper keeps the graph embedded without extra chrome
+  ---
+  duration_ms: 4.534833
+  type: 'test'
+  ...
+# Subtest: SLUG_RE rejects every path-traversal / non-kebab input
+ok 14 - SLUG_RE rejects every path-traversal / non-kebab input
+  ---
+  duration_ms: 1.368291
+  type: 'test'
+  ...
+# Subtest: SLUG_RE accepts legitimate kebab slugs
+ok 15 - SLUG_RE accepts legitimate kebab slugs
+  ---
+  duration_ms: 0.190833
+  type: 'test'
+  ...
+# Subtest: contentPath() validates collection+slug BEFORE building the path (cannot be bypassed)
+ok 16 - contentPath() validates collection+slug BEFORE building the path (cannot be bypassed)
+  ---
+  duration_ms: 35.688709
+  type: 'test'
+  ...
+# Subtest: loadEntry / entryExists / commitUpdate all route through contentPath()
+ok 17 - loadEntry / entryExists / commitUpdate all route through contentPath()
+  ---
+  duration_ms: 15.288584
+  type: 'test'
+  ...
+# Subtest: only approve.ts may construct the published+stamped pair
+ok 18 - only approve.ts may construct the published+stamped pair
+  ---
+  duration_ms: 13.773666
+  type: 'test'
+  ...
+# Subtest: approve.ts is the sole publisher and does construct the pair
+ok 19 - approve.ts is the sole publisher and does construct the pair
+  ---
+  duration_ms: 3.335625
+  type: 'test'
+  ...
+# Subtest: cms.ts hardcodes the production deploy repo (not gsvdotcom / not feat)
+ok 20 - cms.ts hardcodes the production deploy repo (not gsvdotcom / not feat)
+  ---
+  duration_ms: 4.32125
+  type: 'test'
+  ...
+# Subtest: layer table parses the full pace stack
+ok 21 - layer table parses the full pace stack
+  ---
+  duration_ms: 4.80775
+  type: 'test'
+  ...
+# Subtest: registry parses all hulls with unique locked designations
+ok 22 - registry parses all hulls with unique locked designations
+  ---
+  duration_ms: 5.618167
+  type: 'test'
+  ...
+# Subtest: displayed design numbers use unpadded MDS form
+ok 23 - displayed design numbers use unpadded MDS form
+  ---
+  duration_ms: 2.714875
+  type: 'test'
+  ...
+# Subtest: generation rejects a padded catalog designation
+ok 24 - generation rejects a padded catalog designation
+  ---
+  duration_ms: 1.707375
+  type: 'test'
+  ...
+# Subtest: spot checks: known hulls resolve correctly
+ok 25 - spot checks: known hulls resolve correctly
+  ---
+  duration_ms: 0.937875
+  type: 'test'
+  ...
+# Subtest: reserved build gaps and cross-refs are flagged, never named
+ok 26 - reserved build gaps and cross-refs are flagged, never named
+  ---
+  duration_ms: 1.6945
+  type: 'test'
+  ...
+# Subtest: a filled row mentioning "reserved" in a parenthetical stays filled
+ok 27 - a filled row mentioning "reserved" in a parenthetical stays filled
+  ---
+  duration_ms: 2.359041
+  type: 'test'
+  ...
+# Subtest: coarsePhase strips parentheticals — URLs and operational detail never leak
+ok 28 - coarsePhase strips parentheticals — URLs and operational detail never leak
+  ---
+  duration_ms: 1.560333
+  type: 'test'
+  ...
+# Subtest: slugify matches the content-collection naming convention
+ok 29 - slugify matches the content-collection naming convention
+  ---
+  duration_ms: 0.832125
+  type: 'test'
+  ...
+# Subtest: generate() output matches the committed registry.json
+ok 30 - generate() output matches the committed registry.json
+  ---
+  duration_ms: 16.061
+  type: 'test'
+  ...
+# Subtest: the registry is the homepage and /registry redirects home
+ok 31 - the registry is the homepage and /registry redirects home
+  ---
+  duration_ms: 8.260667
+  type: 'test'
+  ...
+# Subtest: homepage renders through the disclosure lib, never getCollection directly
+ok 32 - homepage renders through the disclosure lib, never getCollection directly
+  ---
+  duration_ms: 4.761375
+  type: 'test'
+  ...
+# Subtest: the shared RegistryList component keeps the disclosure discipline
+ok 33 - the shared RegistryList component keeps the disclosure discipline
+  ---
+  duration_ms: 4.970667
+  type: 'test'
+  ...
+# Subtest: v3 world glyphs: letters belong to layers — world fields never contain letters
+ok 34 - v3 world glyphs: letters belong to layers — world fields never contain letters
+  ---
+  duration_ms: 1.451708
+  type: 'test'
+  ...
+1..34
+# tests 34
+# suites 0
+# pass 34
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 733.167
+
+diff --git a//Users/sma/projects/gsvdotcom/.voicepaths b//Users/sma/projects/gsvdotcom/.voicepaths
+new file mode 100644
+index 0000000000000000000000000000000000000000..42bc6a8b2f8f09df13711934e80c6edf6b2def2e
+--- /dev/null
++++ b//Users/sma/projects/gsvdotcom/.voicepaths
+@@ -0,0 +1,18 @@
++# Voice-carrying paths — see docs/canon/copy-voice.md
++# Machine-facing surfaces (src/content/roadmap/, llm_context frontmatter)
++# are out of voice scope per mk's 2026-08-08 ruling.
++register: gsv-site
++style: GSV
++src/content/concepts/**/*.md
++src/content/experiments/**/*.md
++src/content/plays/**/*.md
++src/content/plugins/**/*.md
++src/content/projects/**/*.md
++src/content/concepts/**/*.mdx
++src/content/experiments/**/*.mdx
++src/content/plays/**/*.mdx
++src/content/plugins/**/*.mdx
++src/content/projects/**/*.mdx
++src/pages/**/*.astro
++docs/canon/*.md
++README.md
+diff --git a//Users/sma/projects/gsvdotcom/AGENTS.md b//Users/sma/projects/gsvdotcom/AGENTS.md
+index baff5352a47a91601013aaa5083862f42a412cc4..177b3eea80a96039e0f89f17573960f80bbf7d70
+--- a//Users/sma/projects/gsvdotcom/AGENTS.md
++++ b//Users/sma/projects/gsvdotcom/AGENTS.md
+@@ -51,3 +51,14 @@
+ 
+ Track work in beads rather than TodoWrite/TaskCreate, and create the bead before the code.
+ <!-- END BEADS INTEGRATION -->
++
++## House style (all agents)
++
++Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
++Before committing changes to those paths, run:
++
++    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
++
++Exit 2 means fix the copy before committing. Claude Code sessions get this
++automatically via the intervox plugin hooks; Codex/Kimi sessions run it
++manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+diff --git a//Users/sma/projects/gsvdotcom/CLAUDE.md b//Users/sma/projects/gsvdotcom/CLAUDE.md
+index 610908bdf1ea25daf171b56fe6b551c09e2a7456..67343b03aef1129e389707d593935e021376fa2e
+--- a//Users/sma/projects/gsvdotcom/CLAUDE.md
++++ b//Users/sma/projects/gsvdotcom/CLAUDE.md
+@@ -35,4 +35,4 @@
+ 
+ ## Conventions & Patterns
+ 
+-_Add your project-specific conventions here_
++See `AGENTS.md` → “House style (all agents)” for the shared prose gate.
+
+exec
+/bin/zsh -lc "grep -q \"voice-check.sh\" /Users/sma/projects/gsvdotcom/AGENTS.md && test -s /Users/sma/projects/gsvdotcom/.voicepaths && grep -q 'House style (all agents)' /Users/sma/projects/gsvdotcom/CLAUDE.md && git -C /Users/sma/projects/gsvdotcom diff --check -- AGENTS.md CLAUDE.md && echo ok
+git -C /Users/sma/projects/gsvdotcom status --short -- .voicepaths AGENTS.md CLAUDE.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+ok
+ M AGENTS.md
+ M CLAUDE.md
+?? .voicepaths
+
+diff --git a//Users/sma/projects/gsvdotcom/.voicepaths b//Users/sma/projects/gsvdotcom/.voicepaths
+new file mode 100644
+index 0000000000000000000000000000000000000000..42bc6a8b2f8f09df13711934e80c6edf6b2def2e
+--- /dev/null
++++ b//Users/sma/projects/gsvdotcom/.voicepaths
+@@ -0,0 +1,18 @@
++# Voice-carrying paths — see docs/canon/copy-voice.md
++# Machine-facing surfaces (src/content/roadmap/, llm_context frontmatter)
++# are out of voice scope per mk's 2026-08-08 ruling.
++register: gsv-site
++style: GSV
++src/content/concepts/**/*.md
++src/content/experiments/**/*.md
++src/content/plays/**/*.md
++src/content/plugins/**/*.md
++src/content/projects/**/*.md
++src/content/concepts/**/*.mdx
++src/content/experiments/**/*.mdx
++src/content/plays/**/*.mdx
++src/content/plugins/**/*.mdx
++src/content/projects/**/*.mdx
++src/pages/**/*.astro
++docs/canon/*.md
++README.md
+diff --git a//Users/sma/projects/gsvdotcom/AGENTS.md b//Users/sma/projects/gsvdotcom/AGENTS.md
+index baff5352a47a91601013aaa5083862f42a412cc4..177b3eea80a96039e0f89f17573960f80bbf7d70
+--- a//Users/sma/projects/gsvdotcom/AGENTS.md
++++ b//Users/sma/projects/gsvdotcom/AGENTS.md
+@@ -51,3 +51,14 @@
+ 
+ Track work in beads rather than TodoWrite/TaskCreate, and create the bead before the code.
+ <!-- END BEADS INTEGRATION -->
++
++## House style (all agents)
++
++Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
++Before committing changes to those paths, run:
++
++    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
++
++Exit 2 means fix the copy before committing. Claude Code sessions get this
++automatically via the intervox plugin hooks; Codex/Kimi sessions run it
++manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+diff --git a//Users/sma/projects/gsvdotcom/CLAUDE.md b//Users/sma/projects/gsvdotcom/CLAUDE.md
+index 610908bdf1ea25daf171b56fe6b551c09e2a7456..67343b03aef1129e389707d593935e021376fa2e
+--- a//Users/sma/projects/gsvdotcom/CLAUDE.md
++++ b//Users/sma/projects/gsvdotcom/CLAUDE.md
+@@ -35,4 +35,4 @@
+ 
+ ## Conventions & Patterns
+ 
+-_Add your project-specific conventions here_
++See `AGENTS.md` → “House style (all agents)” for the shared prose gate.
+
+The scoped adoption files pass the plan acceptance check, diff hygiene check, and the gsvdotcom full test suite.
+  ✓ Create the plan-specified gsvdotcom .voicepaths declaration
+  ✓ Append the verbatim house-style section to AGENTS.md and replace the CLAUDE.md conventions placeholder
+  ✓ Run Task 9 verification and focused content checks
+  ✓ Apply landing-a-change checks and report the bounded diff
+exec
+/bin/zsh -lc "nl -ba /Users/sma/.codex/memories/MEMORY.md | sed -n '980,1005p'" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+   980	
+   981	# Task Group: /Users/sma/projects August 3 Chronicle routing: portfolio voice, Shadewright release, game-design slices, and Shadow Work
+   982	
+   983	scope: Route the newest observed portfolio/copy review, Pangram feedback, Shadewright npm release handoff, After Them/Unc Rancher and Ravenous design, Jawnomicon adjudication, Shadow Work planning, and Interlacer A/B review; all screen-derived state needs a live recheck before acting or reporting completion.
+   984	applies_to: cwd=/Users/sma/projects and named child checkouts; reuse_rule=use this as time-bounded routing and preserve explicit user rulings, but inspect current checkout, tracker, served artifact, registry, authorization, and runtime before any action or status claim [chronicle memory]
+   985	
+   986	## Task 1: Review gsvdotcom/Shadewright portfolio copy and Pangram feedback, outcome the user rejected generic copy and the extension/direct-input inconsistency was observed
+   987	
+   988	### rollout_summary_files
+   989	
+   990	- extensions/chronicle/resources/2026-08-03T16-28-00-YuWh-10min-memory-summary.md (cwd=/Users/sma/projects and gsvdotcom, rollout_path=extensions/chronicle/resources/2026-08-03T16-28-00-YuWh-10min-memory-summary.md, updated_at=2026-08-03T16:28:00+00:00, thread_id=None, Kimi portfolio-review and Pangram context observed [chronicle memory])
+   991	- extensions/chronicle/resources/2026-08-03T16-27-00-mSfq-10min-memory-summary.md (cwd=/Users/sma/projects, rollout_path=extensions/chronicle/resources/2026-08-03T16-27-00-mSfq-10min-memory-summary.md, updated_at=2026-08-03T16:27:00+00:00, thread_id=None, gsv-portfolio review context observed [chronicle memory])
+   992	- extensions/chronicle/resources/2026-08-03T16-25-00-piax-10min-memory-summary.md (cwd=/Users/sma/projects, rollout_path=extensions/chronicle/resources/2026-08-03T16-25-00-piax-10min-memory-summary.md, updated_at=2026-08-03T16:25:00+00:00, thread_id=None, portfolio review and browser research observed [chronicle memory])
+   993	- extensions/chronicle/resources/2026-08-03T16-23-00-alke-10min-memory-summary.md (cwd=/Users/sma/projects, rollout_path=extensions/chronicle/resources/2026-08-03T16-23-00-alke-10min-memory-summary.md, updated_at=2026-08-03T16:23:00+00:00, thread_id=None, Kimi TUI portfolio context observed [chronicle memory])
+   994	- extensions/chronicle/resources/2026-08-03T16-21-00-ZmEC-10min-memory-summary.md (cwd=/Users/sma/projects, rollout_path=extensions/chronicle/resources/2026-08-03T16-21-00-ZmEC-10min-memory-summary.md, updated_at=2026-08-03T16:21:00+00:00, thread_id=None, Pangram extension feedback observed [chronicle memory])
+   995	- extensions/chronicle/resources/2026-08-03T16-19-00-giTQ-10min-memory-summary.md (cwd=workflow/desktop, rollout_path=extensions/chronicle/resources/2026-08-03T16-19-00-giTQ-10min-memory-summary.md, updated_at=2026-08-03T16:19:00+00:00, thread_id=None, Pangram report request and job-page browsing observed [chronicle memory])
+   996	- extensions/chronicle/resources/2026-08-03T16-18-00-kFOo-10min-memory-summary.md (cwd=workflow/desktop, rollout_path=extensions/chronicle/resources/2026-08-03T16-18-00-kFOo-10min-memory-summary.md, updated_at=2026-08-03T16:18:00+00:00, thread_id=None, Pangram 4.0 reference observed [chronicle memory])
+   997	- extensions/chronicle/resources/2026-08-03T16-17-00-Fyrk-10min-memory-summary.md (cwd=workflow/desktop, rollout_path=extensions/chronicle/resources/2026-08-03T16-17-00-Fyrk-10min-memory-summary.md, updated_at=2026-08-03T16:17:00+00:00, thread_id=None, reference-image browsing observed [chronicle memory])
+   998	- extensions/chronicle/resources/2026-08-03T16-15-00-mAlw-10min-memory-summary.md (cwd=/Users/sma/projects/gsvdotcom, rollout_path=extensions/chronicle/resources/2026-08-03T16-15-00-mAlw-10min-memory-summary.md, updated_at=2026-08-03T16:15:00+00:00, thread_id=None, Shadewright rewrite context observed [chronicle memory])
+   999	- extensions/chronicle/resources/2026-08-03T16-11-00-jknJ-10min-memory-summary.md (cwd=/Users/sma/projects/gsvdotcom, rollout_path=extensions/chronicle/resources/2026-08-03T16-11-00-jknJ-10min-memory-summary.md, updated_at=2026-08-03T16:11:00+00:00, thread_id=None, canon-voice review and Pangram discrepancy observed [chronicle memory])
+  1000	- extensions/chronicle/resources/2026-08-03T16-08-00-VhfM-10min-memory-summary.md (cwd=/Users/sma/projects/gsvdotcom, rollout_path=extensions/chronicle/resources/2026-08-03T16-08-00-VhfM-10min-memory-summary.md, updated_at=2026-08-03T16:08:00+00:00, thread_id=None, rejected generic Shadewright prose observed [chronicle memory])
+  1001	
+  1002	### keywords
+  1003	
+  1004	- `gsvdotcom/VOICE.md`, `docs/canon/copy-voice.md`, `pieces/gsv-portfolio.md`, `shadewright`, Kimi TUI, Pangram Chrome extension, direct input, downloadable scan/report
+  1005	
+
+diff --git a//Users/sma/projects/gsvdotcom/.voicepaths b//Users/sma/projects/gsvdotcom/.voicepaths
+new file mode 100644
+index 0000000000000000000000000000000000000000..42bc6a8b2f8f09df13711934e80c6edf6b2def2e
+--- /dev/null
++++ b//Users/sma/projects/gsvdotcom/.voicepaths
+@@ -0,0 +1,18 @@
++# Voice-carrying paths — see docs/canon/copy-voice.md
++# Machine-facing surfaces (src/content/roadmap/, llm_context frontmatter)
++# are out of voice scope per mk's 2026-08-08 ruling.
++register: gsv-site
++style: GSV
++src/content/concepts/**/*.md
++src/content/experiments/**/*.md
++src/content/plays/**/*.md
++src/content/plugins/**/*.md
++src/content/projects/**/*.md
++src/content/concepts/**/*.mdx
++src/content/experiments/**/*.mdx
++src/content/plays/**/*.mdx
++src/content/plugins/**/*.mdx
++src/content/projects/**/*.mdx
++src/pages/**/*.astro
++docs/canon/*.md
++README.md
+diff --git a//Users/sma/projects/gsvdotcom/AGENTS.md b//Users/sma/projects/gsvdotcom/AGENTS.md
+index baff5352a47a91601013aaa5083862f42a412cc4..177b3eea80a96039e0f89f17573960f80bbf7d70
+--- a//Users/sma/projects/gsvdotcom/AGENTS.md
++++ b//Users/sma/projects/gsvdotcom/AGENTS.md
+@@ -51,3 +51,14 @@
+ 
+ Track work in beads rather than TodoWrite/TaskCreate, and create the bead before the code.
+ <!-- END BEADS INTEGRATION -->
++
++## House style (all agents)
++
++Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
++Before committing changes to those paths, run:
++
++    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
++
++Exit 2 means fix the copy before committing. Claude Code sessions get this
++automatically via the intervox plugin hooks; Codex/Kimi sessions run it
++manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+diff --git a//Users/sma/projects/gsvdotcom/CLAUDE.md b//Users/sma/projects/gsvdotcom/CLAUDE.md
+index 610908bdf1ea25daf171b56fe6b551c09e2a7456..67343b03aef1129e389707d593935e021376fa2e
+--- a//Users/sma/projects/gsvdotcom/CLAUDE.md
++++ b//Users/sma/projects/gsvdotcom/CLAUDE.md
+@@ -35,4 +35,4 @@
+ 
+ ## Conventions & Patterns
+ 
+-_Add your project-specific conventions here_
++See `AGENTS.md` → “House style (all agents)” for the shared prose gate.
+
+codex
+Implemented gsvdotcom house-style adoption:
+
+- Added `.voicepaths` with explicit voice-bearing collections.
+- Added the house-style gate instructions to `AGENTS.md`.
+- Linked `CLAUDE.md` to the shared instructions.
+- `pnpm test`: 34/34 passed.
+- Task acceptance and diff checks passed.
+- Unrelated working-tree changes were untouched.
+
+VERDICT: NEEDS_ATTENTION [implementation verified; not committed or pushed pending landing choice]  
+FILES_CHANGED: [[.voicepaths](/Users/sma/projects/gsvdotcom/.voicepaths), [AGENTS.md](/Users/sma/projects/gsvdotcom/AGENTS.md), [CLAUDE.md](/Users/sma/projects/gsvdotcom/CLAUDE.md)]
+
+
+diff --git a//Users/sma/projects/gsvdotcom/.voicepaths b//Users/sma/projects/gsvdotcom/.voicepaths
+new file mode 100644
+index 0000000000000000000000000000000000000000..42bc6a8b2f8f09df13711934e80c6edf6b2def2e
+--- /dev/null
++++ b//Users/sma/projects/gsvdotcom/.voicepaths
+@@ -0,0 +1,18 @@
++# Voice-carrying paths — see docs/canon/copy-voice.md
++# Machine-facing surfaces (src/content/roadmap/, llm_context frontmatter)
++# are out of voice scope per mk's 2026-08-08 ruling.
++register: gsv-site
++style: GSV
++src/content/concepts/**/*.md
++src/content/experiments/**/*.md
++src/content/plays/**/*.md
++src/content/plugins/**/*.md
++src/content/projects/**/*.md
++src/content/concepts/**/*.mdx
++src/content/experiments/**/*.mdx
++src/content/plays/**/*.mdx
++src/content/plugins/**/*.mdx
++src/content/projects/**/*.mdx
++src/pages/**/*.astro
++docs/canon/*.md
++README.md
+diff --git a//Users/sma/projects/gsvdotcom/AGENTS.md b//Users/sma/projects/gsvdotcom/AGENTS.md
+index baff5352a47a91601013aaa5083862f42a412cc4..177b3eea80a96039e0f89f17573960f80bbf7d70
+--- a//Users/sma/projects/gsvdotcom/AGENTS.md
++++ b//Users/sma/projects/gsvdotcom/AGENTS.md
+@@ -51,3 +51,14 @@
+ 
+ Track work in beads rather than TodoWrite/TaskCreate, and create the bead before the code.
+ <!-- END BEADS INTEGRATION -->
++
++## House style (all agents)
++
++Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
++Before committing changes to those paths, run:
++
++    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
++
++Exit 2 means fix the copy before committing. Claude Code sessions get this
++automatically via the intervox plugin hooks; Codex/Kimi sessions run it
++manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+diff --git a//Users/sma/projects/gsvdotcom/CLAUDE.md b//Users/sma/projects/gsvdotcom/CLAUDE.md
+index 610908bdf1ea25daf171b56fe6b551c09e2a7456..67343b03aef1129e389707d593935e021376fa2e
+--- a//Users/sma/projects/gsvdotcom/CLAUDE.md
++++ b//Users/sma/projects/gsvdotcom/CLAUDE.md
+@@ -35,4 +35,4 @@
+ 
+ ## Conventions & Patterns
+ 
+-_Add your project-specific conventions here_
++See `AGENTS.md` → “House style (all agents)” for the shared prose gate.
+
+tokens used
+58,293
+Warning: dispatch surfaced codex warn — verdict overridden: No model output — zero turns, messages, and commands.

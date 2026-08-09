@@ -1,0 +1,24 @@
+{
+  "task": "task-5",
+  "title": "Plugin hooks (advisory + commit gate) + 0.3.0",
+  "tier": "deep",
+  "cmd": [
+    "bash",
+    "/Users/sma/.claude/plugins/cache/interagency-marketplace/clavain/0.6.295/scripts/dispatch.sh",
+    "--prompt-file",
+    "/Users/sma/projects/Sylveste/interverse/intervox/.clavain/orchestrate-runs/59e4dcf5/task-5/prompt.md",
+    "-C",
+    "/Users/sma/projects/Sylveste/interverse/intervox",
+    "-o",
+    "/Users/sma/projects/Sylveste/interverse/intervox/.clavain/orchestrate-runs/59e4dcf5/task-5/output.md",
+    "--tier",
+    "deep",
+    "-s",
+    "workspace-write"
+  ],
+  "returncode": 0,
+  "timed_out": false,
+  "duration_s": 438.5,
+  "status": "warn",
+  "note": null
+}
