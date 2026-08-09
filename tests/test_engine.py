@@ -577,5 +577,118 @@ It should be noted that the categorization employed throughout this discussion w
         self.assertEqual(drift["status"], "skipped")
 
 
+class TestSingleDraftCalibration(unittest.TestCase):
+    """The 2026-08-08 gsvdotcom dogfood fixes: a verifier must not reject the
+    corpus its own fingerprint was built from. Em-dash absolute threshold
+    yields to the author baseline, rhythm features gate on the 300w prose
+    floor, thin drafts skip entirely, and fingerprints carry per-file rhythm
+    medians as the single-draft comparator."""
+
+    # ~400 words of varied prose with a controlled number of em-dashes.
+    @staticmethod
+    def _long_draft(em_dashes: int) -> str:
+        sentences = []
+        fillers = [
+            "The archive keeps its own counsel about what it records.",
+            "A measurement is only as honest as its reference class.",
+            "Nothing here is decorative.",
+            "The pipeline reads each file once and writes a single verdict for it.",
+            "Some of the entries run long, wandering through provenance and doubt before they settle.",
+            "Short ones land hard.",
+            "Every claim traces back to a numbered source in the ledger, and the ledger is public.",
+            "We rebuilt the index twice before the numbers stopped moving.",
+            "It holds.",
+            "The second rebuild taught us more than the first, mostly about what we had assumed without noticing.",
+        ]
+        while sum(len(s.split()) for s in sentences) < 400:
+            sentences.extend(fillers)
+        text = " ".join(sentences)
+        for _ in range(em_dashes):
+            text = text.replace(". ", " — and the note beside it says so. ", 1)
+        return text
+
+    def _eval(self, text: str, baseline: dict) -> list[dict]:
+        draft_profile = ie.build_profile(text)
+        draft_internal = draft_profile.pop("_internal")
+        return ie.evaluate_lint(draft_profile, draft_internal, baseline)
+
+    @classmethod
+    def setUpClass(cls):
+        corpus = "\n\n".join((CORPUS_DIR / f"sample{i}.md").read_text() for i in (1, 2, 3))
+        cls.base = ie.build_profile(corpus)
+        cls.base.pop("_internal")
+
+    def test_em_dash_absolute_threshold_yields_to_high_baseline(self):
+        baseline = json.loads(json.dumps(self.base))
+        baseline["punct_per_1k"]["em_dash"] = 15.0
+        results = self._eval(self._long_draft(em_dashes=4), baseline)  # ~9/1k
+        r = next(x for x in results if x["id"] == 10)
+        self.assertGreater(r["draft_value"], 6.0)  # over the old absolute bar
+        self.assertEqual(r["status"], "ok")  # but at/below the author's own rate
+
+    def test_em_dash_flood_still_fails_low_baseline(self):
+        baseline = json.loads(json.dumps(self.base))
+        baseline["punct_per_1k"]["em_dash"] = 1.0
+        results = self._eval(self._long_draft(em_dashes=4), baseline)
+        r = next(x for x in results if x["id"] == 10)
+        self.assertEqual(r["status"], "fail")
+
+    def test_rhythm_features_skip_under_300_words(self):
+        short = "The tool reads files. It writes one verdict per file. Nothing else happens here today."
+        results = self._eval(short, self.base)
+        for fid in (11, 12, 14, 15):
+            r = next(x for x in results if x["id"] == fid)
+            self.assertEqual(r["status"], "skipped", f"feature {fid} should gate on the prose floor")
+
+    def test_scaffold_marker_fails_even_on_short_draft(self):
+        short = (
+            "The tool reads files and writes verdicts nobody disputes. "
+            "In conclusion, the design holds up well under close review by the whole team."
+        )
+        results = self._eval(short, self.base)
+        r = next(x for x in results if x["id"] == 15)
+        self.assertEqual(r["status"], "fail")
+
+    def test_burstiness_prefers_per_file_median(self):
+        baseline = json.loads(json.dumps(self.base))
+        baseline["sentence_rhythm"]["sd"] = 40.0  # pooled: absurdly high
+        baseline["_derived_per_file"] = {
+            "sentence_sd_median": 8.0,
+            "punct_interval_sd_median": 4.0,
+            "monotony_pct_median": 40.0,
+            "paragraph_cv_median": 0.5,
+        }
+        results = self._eval(self._long_draft(em_dashes=0), baseline)
+        r = next(x for x in results if x["id"] == 11)
+        self.assertEqual(r["baseline_value"], 8.0)  # per-file median, not pooled 40.0
+
+    def test_verify_skips_thin_prose(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            draft = Path(tmp) / "thin.md"
+            draft.write_text("---\ntitle: x\n---\n\nTen words of body prose is not enough here.\n")
+            baseline_path = Path(tmp) / "baseline.json"
+            r = run_cli("fingerprint", "--corpus", str(CORPUS_DIR), "--out", str(baseline_path))
+            self.assertEqual(r.returncode, 0)
+            v = run_cli("verify", "--draft", str(draft), "--baseline", str(baseline_path))
+            self.assertEqual(v.returncode, 0, v.stderr)
+            payload = json.loads(v.stdout)
+            self.assertEqual(payload["verdict"], "skip")
+
+    def test_fingerprint_emits_per_file_medians(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            baseline_path = Path(tmp) / "baseline.json"
+            r = run_cli("fingerprint", "--corpus", str(CORPUS_DIR), "--out", str(baseline_path))
+            self.assertEqual(r.returncode, 0)
+            fp = json.loads(baseline_path.read_text())
+            self.assertIn("_derived_per_file", fp)
+            for key in (
+                "sentence_sd_median",
+                "punct_interval_sd_median",
+                "monotony_pct_median",
+                "paragraph_cv_median",
+            ):
+                self.assertIn(key, fp["_derived_per_file"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
