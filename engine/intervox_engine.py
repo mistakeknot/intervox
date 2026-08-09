@@ -1010,7 +1010,6 @@ def evaluate_lint(draft_profile: dict, draft_internal: dict, baseline: dict) -> 
     results.append(_feature_result(15, "paragraph_uniformity", dv_cv, bv_cv, ratio, status, hint))
 
     # 16. connective_drift
-    prose_wc = draft_internal.get("prose_word_count", word_count)
     if prose_wc < 300:
         status = "skipped"
         hint = f"Connective drift: skipped ({prose_wc}w of flowing prose; structured content is excluded from distributional features)."
@@ -1117,6 +1116,43 @@ def compute_corpus_derived_extras(raw_text: str) -> dict:
     monotony_pct = near_equal / max(len(pairs), 1) * 100
     punct_sd = _punct_interval_sd(cleaned)
     return {"monotony_pct": monotony_pct, "punct_interval_sd": punct_sd}
+
+
+def compute_per_file_medians(paths: list[Path], lexicon: dict | None = None) -> dict:
+    """Median per-file rhythm statistics for a multi-file corpus.
+
+    Pooled corpus statistics (sentence SD, punct-interval SD, monotony %,
+    paragraph CV) include between-file variance, which overstates the rhythm
+    variation any single draft can show — verified against gsv-site, where
+    the pooled sentence SD (14.2w) sat above every individual corpus file's
+    internal SD, so verify rejected the corpus it was fingerprinted from.
+    The median of per-file values is the honest single-draft comparator;
+    verify features 11/12/14/15 prefer these keys when present and fall
+    back to the pooled keys for fingerprints that predate them.
+    """
+    sds: list[float] = []
+    punct_sds: list[float] = []
+    monotony: list[float] = []
+    cvs: list[float] = []
+    for p in paths:
+        text = p.read_text(encoding="utf-8", errors="replace")
+        profile = build_profile(text, lexicon)
+        internal = profile.pop("_internal")
+        if internal["sentence_count"] < 4:
+            continue  # a couple of sentences carries no rhythm signal
+        sds.append(profile["sentence_rhythm"]["sd"])
+        cvs.append(profile["paragraphs"]["cv"])
+        extras = compute_corpus_derived_extras(text)
+        monotony.append(extras["monotony_pct"])
+        punct_sds.append(extras["punct_interval_sd"])
+    if not sds:
+        return {}
+    return {
+        "sentence_sd_median": statistics.median(sds),
+        "punct_interval_sd_median": statistics.median(punct_sds),
+        "monotony_pct_median": statistics.median(monotony),
+        "paragraph_cv_median": statistics.median(cvs),
+    }
 
 
 # ---------------------------------------------------------------------------
