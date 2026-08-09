@@ -674,6 +674,27 @@ class TestSingleDraftCalibration(unittest.TestCase):
             payload = json.loads(v.stdout)
             self.assertEqual(payload["verdict"], "skip")
 
+    def test_slop_lexemes_skip_capitalized_proper_nouns(self):
+        # "Delve mode" is a named game system, not slop vocabulary — the
+        # mid-sentence capitalized form marks it as a name, and that immunity
+        # extends to sentence-initial occurrences of the same name.
+        text = (
+            "The colony consumes what the playable Delve mode supplies. "
+            "Delve mode is a top-down action layer. "
+            "Do not delve into the archive without a reason."
+        )
+        scores = ie.slop_scores(text)
+        n_tokens = len(ie.words_of(text))
+        # only the lowercase "delve" counts: 1 hit * TIER1_WEIGHT
+        expected = ie.TIER1_WEIGHT / n_tokens * 1000
+        self.assertAlmostEqual(scores["lexeme_hits_per_1k"], expected, places=6)
+
+    def test_connective_drift_skips_when_draft_uses_no_connectives(self):
+        draft_text = self._long_draft(em_dashes=0)  # no tracked connectives
+        results = self._eval(draft_text, self.base)
+        r = next(x for x in results if x["id"] == 16)
+        self.assertEqual(r["status"], "skipped")
+
     def test_fingerprint_emits_per_file_medians(self):
         with tempfile.TemporaryDirectory() as tmp:
             baseline_path = Path(tmp) / "baseline.json"
