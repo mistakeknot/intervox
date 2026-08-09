@@ -101,13 +101,20 @@ if command -v vale >/dev/null 2>&1; then
   if [[ -f "$root/.vale.ini" ]]; then
     set +e
     vale_output="$(cd "$root" && vale --output=line "${matched[@]}" 2>&1)"
+    vale_status=$?
     set -e
     if [[ -n "$vale_output" ]]; then
       echo "voice-check: Vale rules"
       printf '%s\n' "$vale_output"
-      if printf '%s\n' "$vale_output" | grep -Eiq ':[0-9]+:[0-9]+:error:'; then
-        failed=1
-      fi
+    fi
+    # Vale exits 1 when error-level alerts fire (the line output carries no
+    # severity field, so the exit code is the only reliable signal). Exit
+    # codes >=2 are Vale runtime errors — surface them but degrade politely
+    # rather than blocking, same posture as vale-not-installed.
+    if [[ $vale_status -eq 1 ]]; then
+      failed=1
+    elif [[ $vale_status -ge 2 ]]; then
+      echo "voice-check: vale runtime error (exit $vale_status) — rules layer skipped"
     fi
   fi
 else
