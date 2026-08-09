@@ -304,8 +304,24 @@ def slop_scores(text: str, lexicon: dict | None = None) -> dict:
     }
     tokens = words_of(text)
     n = max(len(tokens), 1)
-    lowered_tokens = [t.lower() for t in tokens]
-    tier1_hits = sum(1 for t in lowered_tokens if t in lex["tier1_lexemes"])
+    # Proper-noun guard: a lexeme that appears capitalized mid-sentence is a
+    # name — a game mode ("Delve mode"), a product, a place — not slop-register
+    # vocabulary. Skip every capitalized occurrence of such words (including
+    # sentence-initial ones, where the name may also open a sentence);
+    # lowercase occurrences still count.
+    proper_nouns = {
+        m.group(1).lower()
+        for m in re.finditer(r"[^.!?:\n]\s+([A-Z][a-z]+)\b", text)
+    }
+    tier1_hits = 0
+    for m in re.finditer(r"\b[A-Za-z][a-zA-Z]*\b", text):
+        token = m.group(0)
+        lowered = token.lower()
+        if lowered not in lex["tier1_lexemes"]:
+            continue
+        if token[0].isupper() and lowered in proper_nouns:
+            continue
+        tier1_hits += 1
     lexeme_weighted = tier1_hits * TIER1_WEIGHT
 
     tier2_re = re.compile("|".join(lex["tier2_phrases"]), re.IGNORECASE)
