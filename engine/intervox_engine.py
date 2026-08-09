@@ -902,15 +902,35 @@ def evaluate_lint(draft_profile: dict, draft_internal: dict, baseline: dict) -> 
     hint = f"Em-dash density: {dv_e:.1f}/1k words (baseline {bv_e:.1f}/1k) — swap some em-dashes for periods, commas, or parentheses."
     results.append(_feature_result(10, "em_dash_density", dv_e, bv_e, dv_e - bv_e, status, hint))
 
+    # Rhythm features (11, 12, 14, 15) are distributional statistics: on a
+    # short draft the sample is a handful of sentences and the numbers are
+    # noise, so they gate on the same 300-word prose floor features 16-19
+    # already use. Lexical tells (1-10) stay on at any length — a slop
+    # phrase is a slop phrase in a 40-word blurb.
+    prose_wc = draft_internal.get("prose_word_count", word_count)
+    rhythm_ready = prose_wc >= 300
+
+    # Per-file derived medians, when the fingerprint carries them, are the
+    # honest comparator for a single draft: pooled corpus statistics include
+    # between-file variance, so every individual file reads as "too uniform"
+    # against them (dogfood: gsv-site pooled sentence SD is 14.2w; no single
+    # blurb's internal SD gets near it).
+    per_file = baseline.get("_derived_per_file", {})
+
     # 11. burstiness (sentence-length SD ratio)
     dv_sd = draft_profile["sentence_rhythm"]["sd"]
-    bv_sd = baseline["sentence_rhythm"]["sd"]
-    ratio = dv_sd / bv_sd if bv_sd else 1.0
-    status = "fail" if ratio < 0.70 else ("warn" if ratio < 0.85 else "ok")
-    hint = (
-        f"Sentence rhythm too uniform: SD {dv_sd:.1f}w vs author {bv_sd:.1f}w "
-        f"(ratio {ratio:.2f}) — split one long sentence and add a short one in a couple of paragraphs."
-    )
+    bv_sd = per_file.get("sentence_sd_median") or baseline["sentence_rhythm"]["sd"]
+    if not rhythm_ready:
+        ratio = None
+        status = "skipped"
+        hint = f"Burstiness: skipped ({prose_wc}w of flowing prose; rhythm features need 300w)."
+    else:
+        ratio = dv_sd / bv_sd if bv_sd else 1.0
+        status = "fail" if ratio < 0.70 else ("warn" if ratio < 0.85 else "ok")
+        hint = (
+            f"Sentence rhythm too uniform: SD {dv_sd:.1f}w vs author {bv_sd:.1f}w "
+            f"(ratio {ratio:.2f}) — split one long sentence and add a short one in a couple of paragraphs."
+        )
     results.append(_feature_result(11, "burstiness", dv_sd, bv_sd, ratio, status, hint))
 
     # 12. monotony (adjacent near-equal-length sentence pairs)
