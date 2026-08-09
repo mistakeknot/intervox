@@ -1390,6 +1390,11 @@ def cmd_fingerprint(args: argparse.Namespace) -> int:
     profile["_derived_monotony_pct"] = extras["monotony_pct"]
     profile["_derived_punct_interval_sd"] = extras["punct_interval_sd"]
 
+    if args.corpus and len(files) > 1:
+        per_file = compute_per_file_medians(files, lexicon)
+        if per_file:
+            profile["_derived_per_file"] = per_file
+
     out_path = Path(args.out)
     out_path.write_text(json.dumps(profile, indent=2, sort_keys=False), encoding="utf-8")
     print(f"intervox: wrote fingerprint to {out_path} ({profile['meta']['words']} words, {profile['meta']['files']} files)")
