@@ -120,7 +120,7 @@ register="$(PYTHONPATH="$PROJECT_ROOT/engine" python3 -c \
 config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
 baseline="$config_home/intervox/fingerprints/$register.json"
 
-for file in "${matched[@]}"; do
+for file in "${verify_matched[@]}"; do
   if [[ $gate -eq 1 ]]; then
     echo "voice-check: intervox verify — $file"
     set +e
