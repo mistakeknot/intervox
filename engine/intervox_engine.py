@@ -1314,8 +1314,10 @@ def render_table(results: list[dict]) -> str:
 # Hard-fail features force reject regardless of composite score. slop_lexemes
 # is deliberately NOT here: a single lexical feature must not solo-reject a
 # draft that passes everything else (clusters convict, single tells don't) —
-# it still costs score like any fail. chat_artifacts and em-dash flood stay
-# hard because neither has a legitimate author-baseline explanation.
+# it still costs score like any fail. chat_artifacts has no legitimate
+# author-baseline explanation; em-dash flood stays hard but its fail
+# threshold is baseline-aware (feature 10) — an author whose register
+# genuinely runs em-dash-heavy only hard-fails well above their own rate.
 HARD_FAIL_IDS = {3, 10}  # chat_artifacts, em_dash_density
 
 
