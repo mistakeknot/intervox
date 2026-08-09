@@ -64,5 +64,28 @@ vale_status=$?
 set -e
 [[ $vale_status -eq 2 ]]
 [[ "$vale_output" == *'Artificial Vale failure'* ]]
+rm -f "$REPO/.vale.ini"
+
+# rules-only paths get Vale but never the stylometric layer: a sloppy draft
+# declared rules-only must pass the gate with no "intervox verify" line.
+LAYERED_REPO="$TMP_DIR/layered"
+mkdir -p "$LAYERED_REPO/docs"
+cp "$FIXTURES/sloppy-draft.md" "$LAYERED_REPO/docs/guide.md"
+cp "$FIXTURES/clean-draft.md" "$LAYERED_REPO/copy.md"
+printf '%s\n' '*.md' 'rules-only: docs/*.md' >"$LAYERED_REPO/.voicepaths"
+rules_only_output="$(XDG_CONFIG_HOME="$CONFIG" "$VOICE_CHECK" --gate --root "$LAYERED_REPO" "$LAYERED_REPO/docs/guide.md")"
+[[ "$rules_only_output" != *'intervox verify'* ]]
+
+# ...while a full-layer file in the same repo still gets verified.
+full_layer_output="$(XDG_CONFIG_HOME="$CONFIG" "$VOICE_CHECK" --gate --root "$LAYERED_REPO" "$LAYERED_REPO/copy.md")"
+[[ "$full_layer_output" == *'intervox verify'* ]]
+
+# Non-markdown files never reach the stylometric layer even at full layer.
+ASTRO_REPO="$TMP_DIR/astro"
+mkdir -p "$ASTRO_REPO"
+cp "$FIXTURES/sloppy-draft.md" "$ASTRO_REPO/page.astro"
+printf '%s\n' '*.astro' >"$ASTRO_REPO/.voicepaths"
+astro_output="$(XDG_CONFIG_HOME="$CONFIG" "$VOICE_CHECK" --gate --root "$ASTRO_REPO" "$ASTRO_REPO/page.astro")"
+[[ "$astro_output" != *'intervox verify'* ]]
 
 echo "voice-check tests passed"
