@@ -11,7 +11,8 @@
 #   resolve-register.sh --list                # list available register sections
 #
 # <register> accepts: "open source", "oss", "4", "register 4", "internal", "team",
-#                     "external" (case-insensitive, space/hyphen tolerant).
+#                     "external", "gsv-site", "gsv", "site" (case-insensitive,
+#                     space/hyphen tolerant).
 #
 # Profile location (first match wins):
 #   $INTERVOX_PROFILE
@@ -64,14 +65,23 @@ list_registers() {
   grep -nE '^## (Foundation|Register )' "$PROFILE" | sed 's/^/  /'
 }
 
+normalize_register_token() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -d ' -'
+}
+
+is_gsv_site_register() {
+  local token; token="$(normalize_register_token "$1")"
+  [[ "$token" == "gsvsite" || "$token" == "gsv" || "$token" == "site" ]]
+}
+
 canonical_register_heading() {
-  local token; token="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -d '-')"
-  token="${token// /}"
+  local token; token="$(normalize_register_token "$1")"
   local want_num=""
   case "$token" in
     *team*|*register1*|1)        want_num=1 ;;
     *internal*|*register2*|2)    want_num=2 ;;
     *external*|*register3*|3)    want_num=3 ;;
+    gsvsite|gsv|site)             want_num=3 ;;
     *opensource*|*oss*|*register4*|4) want_num=4 ;;
     *) want_num="" ;;
   esac
@@ -79,7 +89,49 @@ canonical_register_heading() {
   grep -E "^## Register ${want_num}:" "$PROFILE" | head -1 | sed 's/^## //; s/[ \t]*$//'
 }
 
+voicepaths_register() {
+  local dir parent register
+  if [[ -d "$1" ]]; then
+    dir="$1"
+  else
+    dir="$(dirname "$1")"
+  fi
+  while [[ ! -d "$dir" ]]; do
+    parent="$(dirname "$dir")"
+    [[ "$parent" != "$dir" ]] || return 1
+    dir="$parent"
+  done
+  dir="$(cd "$dir" && pwd -P)"
+
+  while :; do
+    if [[ -e "$dir/.git" ]]; then
+      [[ -f "$dir/.voicepaths" ]] || return 1
+      register="$(awk '
+        /^[[:space:]]*#/ { next }
+        tolower($0) ~ /^[[:space:]]*register[[:space:]]*:/ {
+          line = $0
+          sub(/^[[:space:]]*[^:]+:[[:space:]]*/, "", line)
+          sub(/[[:space:]]*#.*/, "", line)
+          sub(/[[:space:]]+$/, "", line)
+          if (length(line)) { print line; exit }
+        }
+      ' "$dir/.voicepaths")"
+      [[ -n "$register" ]] || return 1
+      printf '%s\n' "$register"
+      return 0
+    fi
+    parent="$(dirname "$dir")"
+    [[ "$parent" != "$dir" ]] || return 1
+    dir="$parent"
+  done
+}
+
 infer_register() {
+  local declared
+  if declared="$(voicepaths_register "$1")"; then
+    printf '%s\n' "$declared"
+    return
+  fi
   local p; p="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
   local base; base="$(basename "$p")"
   case "$base" in
@@ -124,6 +176,9 @@ main() {
   fi
   print_section "$foundation_heading"
   echo
+  if is_gsv_site_register "$reg"; then
+    echo '<!-- register: gsv-site (prose delta: External; canon: gsvdotcom docs/canon/copy-voice.md) -->'
+  fi
   print_section "$heading"
 }
 
