@@ -1,0 +1,1713 @@
+VERDICT: CLEAN
+FILES_CHANGED: [/Users/sma/.config/intervox/voice-profile.md, /Users/sma/.config/intervox/fingerprints/voice-profile.md, /Users/sma/.config/intervoice/voice-profile.md]
+EXECUTION_LOG: zklw needs the same symlink audit
+
+--- stderr ---
+Tier 'deep' resolved to model: gpt-5.6-sol
+Note: gawk not found — running without live statusline updates
+Reading additional input from stdin...
+OpenAI Codex v0.146.0
+--------
+workdir: /Users/sma/projects/Sylveste/interverse/intervox
+model: gpt-5.6-sol
+provider: openai
+approval: on-request
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019fe3d1-2e2b-76c1-96f6-8896a23c9cc6
+--------
+user
+## Task: Repair voice-profile symlink chain
+
+**Full plan:** docs/plans/2026-08-08-house-style-cross-agent.md
+Read the plan for detailed step-by-step instructions for this task.
+
+When done, report:
+VERDICT: CLEAN | NEEDS_ATTENTION [reason]
+FILES_CHANGED: [list]
+warning: Under-development features enabled: chronicle. Under-development features are incomplete and may behave unpredictably. To suppress this warning, set `suppress_unstable_features_warning = true` in /Users/sma/.codex/config.toml.
+hook: SessionStart
+hook: SessionStart Completed
+hook: UserPromptSubmit
+hook: UserPromptSubmit Completed
+codex
+I’m using the `executing-plans` workflow to follow the supplied plan exactly, plus the repo’s Beads workflow and completion-verification discipline. I’ll first read those instructions, prime the tracker, and inspect the live checkout before touching the symlink chain.
+exec
+/bin/zsh -lc 'cat /Users/sma/.codex/interphase/skills/beads-workflow/SKILL.md' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+---
+name: beads-workflow
+description: Use when tracking work across sessions with Beads issue tracking — guides the bd CLI workflow for creating, managing, and closing issues with dependencies
+---
+
+# Beads Workflow
+
+## Overview
+
+Beads (`bd`) is a git-native issue tracker for persistent task tracking across sessions. Issues stored as JSONL in `.beads/`, synced via git, with hash-based IDs that prevent merge conflicts. Use it for work that spans multiple sessions or has dependencies. For simple single-session tasks, use in-memory `TaskCreate` instead.
+
+**IMPORTANT:** The beads database lives at the **Interverse monorepo root** (`/root/projects/Interverse/.beads/`), not in individual submodules. Always run `bd` commands from `/root/projects/Interverse/`. Submodule `.beads/` directories are read-only historical archives — running `bd` inside a submodule will fail with "no beads database found".
+
+**Backend:** Dolt (version-controlled SQL with cell-level merge) is the default. `.beads/dolt/` contains the database (gitignored). `.beads/issues.jsonl` is the git-portable sync layer. If Dolt issues surface, rebuild from JSONL: `bd doctor --fix --source=jsonl`.
+
+## When to Use Beads vs TaskCreate
+
+| Use Beads (`bd`) when... | Use TaskCreate when... |
+|--------------------------|------------------------|
+| Work spans multiple sessions | Single session task |
+| Tasks have dependencies | Independent tasks |
+| Need persistent tracking | Temporary tracking is fine |
+| Collaborating across agents | Solo execution |
+| Want git-synced state | Ephemeral state is fine |
+
+## Essential Commands
+
+### Finding Work
+```bash
+bd ready                          # Show issues ready to work (no blockers)
+bd list --status=open             # All open issues
+bd list --status=in_progress      # Active work
+bd blocked                        # Show all blocked issues
+bd show <id>                      # Detailed view with dependencies
+```
+
+### Creating Issues
+```bash
+bd create --title="..." --type=task|bug|feature|epic|decision --priority=2
+```
+
+**Priority scale:** 0-4 or P0-P4 (0=critical, 2=medium, 4=backlog). NOT "high"/"medium"/"low".
+
+### Hierarchical Issues
+
+Use dot notation for epic → task → sub-task hierarchies:
+```bash
+bd create --title="Auth overhaul" --type=feature --priority=1
+# Creates bd-a3f8
+
+bd create --title="JWT middleware" --parent=bd-a3f8 --priority=2
+# Creates bd-a3f8.1
+
+bd create --title="Token refresh logic" --parent=bd-a3f8.1 --priority=2
+# Creates bd-a3f8.1.1
+```
+
+### Updating Issues
+```bash
+bd update <id> --claim                 # Atomically claim (fails if already claimed)
+bd update <id> --status=in_progress    # Soft claim (no collision detection — prefer --claim)
+bd update <id> --assignee=username     # Assign
+bd close <id>                          # Mark complete
+bd close <id1> <id2> ...              # Close multiple at once
+bd close <id> --reason="explanation"   # Close with reason
+```
+
+### Dependencies
+```bash
+bd dep add <issue> <depends-on>    # issue depends on depends-on
+bd blocked                         # Show all blocked issues
+```
+
+### Sync
+```bash
+bd sync                  # Compatibility sync step (0.50.x syncs, 0.51+ no-op)
+bd doctor                # Health/status check
+```
+
+## Workflow Modes
+
+### Stealth Mode
+Local-only tracking, nothing committed to the main repo:
+```bash
+bd init --stealth
+```
+
+Use for: experimental planning, personal task tracking, throwaway exploration.
+
+### Contributor Mode
+Routes planning to a separate repo, keeping experimental work out of PRs:
+```bash
+bd init --contributor
+```
+
+Planning state stored in `~/.beads-planning` instead of the project's `.beads/`.
+
+### Maintainer Mode
+Full read-write access. Auto-detected via SSH or authenticated HTTPS:
+```bash
+git config beads.role maintainer    # Force maintainer mode
+```
+
+## Beads Viewer
+
+`bv` provides AI-friendly analytics on your task graph:
+```bash
+bv                    # Open viewer with PageRank, critical path, parallel tracks
+```
+
+Surfaces: task recommendations, execution order, blocking chains, parallel execution opportunities. Use before dispatching parallel agents to identify independent work streams.
+
+## Memory Compaction
+
+Closed tasks are semantically summarized to preserve context while reducing token cost. Beads handles this automatically — old completed tasks are compacted so agents get the gist without reading full histories.
+
+## Daily Maintenance
+
+Beads databases grow over time. Keep them healthy:
+
+- **`bd doctor --fix --yes`** — runs daily via systemd timer; fixes common issues automatically
+- **`bd admin cleanup --older-than 30 --force`** — prunes closed issues older than 30 days (always recoverable from git history)
+- **`bd sync`** — compatibility sync step for mixed beads versions (0.50.x syncs, 0.51+ no-op)
+- **Manual upgrade**: Run `bd upgrade` periodically to get latest fixes (not automated — requires binary install)
+
+If you see "issues.jsonl too large" or agents failing to parse beads, run `bd admin cleanup --older-than 7 --force` for aggressive cleanup.
+
+The daily hygiene runs at 6:15 AM Pacific across all projects in `/root/projects/`. Check logs: `journalctl -u clavain-beads-hygiene.service --since today`
+
+## Session Close Protocol
+
+**CRITICAL**: Before saying "done" or "complete", run this checklist:
+
+```bash
+git status              # Check what changed
+git add <files>         # Stage code changes
+git commit -m "..."     # Commit code
+bd backup               # Flush state to JSONL (survives Dolt crashes)
+bash .beads/push.sh     # Push Dolt to remote
+git push                # Push to remote
+```
+
+**NEVER skip this.** `bd backup` writes fresh JSONL that recovery reads — without it, closes are lost on the next Dolt crash. Work is not done until pushed.
+
+**Close + sync shortcut:** `bash .beads/close-and-sync.sh <id> [--reason="..."]` — closes, backs up, and pushes in one step.
+
+## Common Workflows
+
+**Starting work:**
+```bash
+bd ready                              # Find available work
+bd show <id>                          # Review details
+bd update <id> --claim                # Atomically claim it
+```
+
+**Completing work:**
+```bash
+bd close <id1> <id2> ...    # Close completed issues
+bd backup                   # Flush to JSONL immediately
+bash .beads/push.sh         # Push to Dolt remote
+```
+
+**Or in one step:** `bash .beads/close-and-sync.sh <id1> <id2> ... [--reason="..."]`
+
+**Creating dependent work:**
+```bash
+bd create --title="Implement feature X" --type=feature --priority=2
+bd create --title="Write tests for X" --type=task --priority=2
+bd dep add <tests-id> <feature-id>    # Tests depend on feature
+```
+
+**After batch creation (reviews, audits, planning):**
+
+Whenever you create 5+ beads in a session — especially from reviews, audits, or brainstorming — run a consolidation pass before moving on:
+
+```bash
+bd list --status=open    # Review the full backlog
+```
+
+Look for:
+1. **Same-file edits** — Multiple beads that touch the same file can often merge into one with combined acceptance criteria
+2. **Parent-child absorption** — Small beads whose scope is entirely contained within a larger bead should become acceptance criteria on the parent, then close with `--reason="absorbed into <parent-id>"`
+3. **Duplicate intent** — Beads phrased differently but targeting the same outcome — close the weaker one
+4. **Missing dependencies** — Beads that implicitly depend on each other (e.g., a schema change that a downstream consumer needs) should have explicit `bd dep add`
+5. **Missing descriptions** — Every bead should have a description with concrete acceptance criteria, not just a title
+
+```bash
+# Absorb child into parent
+bd update <parent-id> --description="...add child's criteria..."
+bd close <child-id> --force --reason="absorbed into <parent-id>"
+
+# Add missing dependency
+bd dep add <downstream-id> <upstream-id>
+```
+
+This typically reduces batch-created backlogs by 30-40% and prevents fragmented work.
+
+## Integration
+
+**Pairs with:**
+- `file-todos` — Beads for cross-session, file-todos for within-session
+- `landing-a-change` — Session close protocol ensures beads are synced
+- `triage` command — Categorize and prioritize beads issues
+- `dispatching-parallel-agents` — Use `bv` to identify independent work streams before dispatching
+
+exec
+/bin/zsh -lc 'cat /Users/sma/.codex/intertest/skills/verification-before-completion/SKILL.md' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+---
+name: verification-before-completion
+description: Use when about to claim work is complete, fixed, or passing, or before committing/creating PRs — requires running verification commands and confirming output before any success claims; evidence before assertions.
+---
+
+# Verification Before Completion
+
+## Overview
+
+Claiming work is complete without verification is dishonesty, not efficiency.
+
+**Core principle:** Evidence before claims, always.
+
+**Violating the letter of this rule is violating the spirit of this rule.**
+
+## The Iron Law
+
+```
+NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
+```
+
+If you haven't run the verification command in this message, you cannot claim it passes.
+
+## The Gate Function
+
+```
+BEFORE claiming any status or expressing satisfaction:
+
+1. IDENTIFY: What command proves this claim?
+2. RUN: Execute the FULL command (fresh, complete)
+3. READ: Full output, check exit code, count failures
+4. VERIFY: Does output confirm the claim?
+   - If NO: State actual status with evidence
+   - If YES: State claim WITH evidence
+5. ONLY THEN: Make the claim
+
+Skip any step = lying, not verifying
+```
+
+## Common Failures
+
+| Claim | Requires | Not Sufficient |
+|-------|----------|----------------|
+| Tests pass | Test command output: 0 failures | Previous run, "should pass" |
+| Linter clean | Linter output: 0 errors | Partial check, extrapolation |
+| Build succeeds | Build command: exit 0 | Linter passing, logs look good |
+| Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
+| Regression test works | Red-green cycle verified | Test passes once |
+| Agent completed | VCS diff shows changes | Agent reports "success" |
+| Requirements met | Line-by-line checklist | Tests passing |
+
+## Red Flags - STOP
+
+- Using "should", "probably", "seems to"
+- Expressing satisfaction before verification ("Great!", "Perfect!", "Done!", etc.)
+- About to commit/push/PR without verification
+- Trusting agent success reports
+- Relying on partial verification
+- Thinking "just this once"
+- Tired and wanting work over
+- **ANY wording implying success without having run verification**
+
+## Rationalization Prevention
+
+| Excuse | Reality |
+|--------|---------|
+| "Should work now" | RUN the verification |
+| "I'm confident" | Confidence ≠ evidence |
+| "Just this once" | No exceptions |
+| "Linter passed" | Linter ≠ compiler |
+| "Agent said success" | Verify independently |
+| "I'm tired" | Exhaustion ≠ excuse |
+| "Partial check is enough" | Partial proves nothing |
+| "Different words so rule doesn't apply" | Spirit over letter |
+
+## Key Patterns
+
+**Tests:**
+```
+✅ [Run test command] [See: 34/34 pass] "All tests pass"
+❌ "Should pass now" / "Looks correct"
+```
+
+**Regression tests (TDD Red-Green):**
+```
+✅ Write → Run (pass) → Revert fix → Run (MUST FAIL) → Restore → Run (pass)
+❌ "I've written a regression test" (without red-green verification)
+```
+
+**Build:**
+```
+✅ [Run build] [See: exit 0] "Build passes"
+❌ "Linter passed" (linter doesn't check compilation)
+```
+
+**Requirements:**
+```
+✅ Re-read plan → Create checklist → Verify each → Report gaps or completion
+❌ "Tests pass, phase complete"
+```
+
+**Agent delegation:**
+```
+✅ Agent reports success → Check VCS diff → Verify changes → Report actual state
+❌ Trust agent report
+```
+
+## Why This Matters
+
+From 24 failure memories:
+- your human partner said "I don't believe you" - trust broken
+- Undefined functions shipped - would crash
+- Missing requirements shipped - incomplete features
+- Time wasted on false completion → redirect → rework
+- Violates: "Honesty is a core value. If you lie, you'll be replaced."
+
+## When To Apply
+
+**ALWAYS before:**
+- ANY variation of success/completion claims
+- ANY expression of satisfaction
+- ANY positive statement about work state
+- Committing, PR creation, task completion
+- Moving to next task
+- Delegating to agents
+
+**Rule applies to:**
+- Exact phrases
+- Paraphrases and synonyms
+- Implications of success
+- ANY communication suggesting completion/correctness
+
+## The Bottom Line
+
+**No shortcuts for verification.**
+
+Run the command. Read the output. THEN claim the result.
+
+This is non-negotiable.
+
+exec
+/bin/zsh -lc 'cat /Users/sma/projects/Sylveste/os/Clavain/skills/executing-plans/SKILL.md' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+---
+name: executing-plans
+description: Execute a written implementation plan in a separate session with review checkpoints.
+---
+
+<!-- compact: SKILL-compact.md — if it exists in this directory, load it instead of following the full instructions below. The compact version contains the same batch execution and interserve dispatch protocol. -->
+
+# Executing Plans
+
+Load plan, review critically, execute tasks in batches, report for review between batches. Batch execution with checkpoints for architect review.
+
+**Announce at start:** "I'm using the executing-plans skill to implement this plan."
+
+## Step 1: Load and Review Plan
+
+1. Read plan file
+2. Review critically — raise questions/concerns with human partner before starting
+3. If no concerns: create TodoWrite and proceed
+
+## Step 2: Check Execution Mode
+
+Check for `.exec.yaml` manifest (replace plan's `.md` extension). If found → Step 2C (priority).
+
+Check interserve flag: `[ -f "$(pwd)/.claude/clodex-toggle.flag" ] && echo INTERSERVE_ACTIVE || echo DIRECT_MODE`
+
+Fallback chain:
+- Manifest exists → **2C: Orchestrated**
+- Flag exists, no manifest → **2A: Codex Dispatch**
+- Neither → **2B: Direct**
+
+## Step 2A: Codex Dispatch (interserve mode)
+
+Dispatch tasks to Codex agents for parallelization.
+
+1. **Classify tasks:** Independent (parallel → Codex) | Sequential (ordered dispatch) | Exploratory (Claude subagent)
+2. **Batch:** Independent tasks in same batch run in parallel; max 5 agents/batch
+3. **Per batch** via `clavain:interserve`:
+   - Write prompt files to `/tmp/codex-task-<name>.md` (goal, files, build/test commands, verdict suffix)
+   - Dispatch independent tasks in parallel Bash calls; wait for completion
+   - Read `.verdict` file first (7 lines) — STATUS `pass` → trust and move on; `warn`/`fail` → read full output
+   - No `.verdict` → fall back to full output
+4. **Between batches:** Report pass/fail/issues; wait for feedback
+5. **On failure:** Offer retry with tighter prompt, fall back to 2B, or skip
+
+## Step 2B: Direct Execution (default)
+
+Default: first 3 tasks per batch. Per task: mark in_progress → follow steps exactly → run verifications → mark completed.
+
+## Step 2C: Orchestrated Execution (manifest exists)
+
+1. **Locate orchestrator:**
+   ```bash
+   ORCHESTRATE=$(find ~/.claude/plugins/cache -path '*/clavain/*/scripts/orchestrate.py' 2>/dev/null | head -1)
+   [ -z "$ORCHESTRATE" ] && ORCHESTRATE=$(find ~/projects -name orchestrate.py -path '*/clavain/scripts/*' 2>/dev/null | head -1)
+   ```
+2. **Validate:** `python3 "$ORCHESTRATE" --validate "$MANIFEST"` — on failure, report errors, fall back to 2A/2B
+3. **Dry-run:** `python3 "$ORCHESTRATE" --dry-run "$MANIFEST"` — present wave breakdown (parallelism, cross-stage deps, tasks missing files)
+4. **Ask for approval** (AskUserQuestion): Approve | Edit mode | Skip to manual
+5. **Execute:** `python3 "$ORCHESTRATE" "$MANIFEST" --plan "$PLAN_PATH" --project-dir "$(pwd)"` with `timeout: 600000`
+6. **Read summary:** `pass` → trust; `warn` → read output, assess; `fail`/`error` → offer retry/manual/skip; `skipped` → report dep failure
+7. **On partial failure:** Offer re-run orchestrator (skips finished tasks) | execute failed tasks via 2B | skip
+
+## Step 2D: Post-Task Verification
+
+After each task (any mode): parse `<verify>...</verify>` block for `run:`/`expect:` pairs.
+- `expect: exit 0` — must exit 0; `expect: contains "string"` — output must include string
+- Pass → log "Verify passed for Task N"; failure → treat as Rule 1 auto-fix (3-attempt limit, then log and continue)
+- No verify block → skip silently
+
+**Vetting signal write** — when all per-task verifications pass for a plan that is part of a tracked bead, persist vetting state so the auto-proceed authz gate can evaluate at ship time (see `docs/canon/policy-merge.md`):
+```bash
+if [[ -n "${CLAVAIN_BEAD_ID:-}" ]]; then
+  bd set-state "$CLAVAIN_BEAD_ID" vetted_at="$(date +%s)"            --reason "executing-plans task verified" 2>/dev/null || true
+  bd set-state "$CLAVAIN_BEAD_ID" vetted_sha="$(git rev-parse HEAD)" --reason "executing-plans task verified" 2>/dev/null || true
+  bd set-state "$CLAVAIN_BEAD_ID" tests_passed="true"                --reason "executing-plans task verified" 2>/dev/null || true
+  bd set-state "$CLAVAIN_BEAD_ID" sprint_or_work_flow="true"         --reason "executing-plans task verified" 2>/dev/null || true
+fi
+```
+
+## Step 3: Report
+
+Per batch: what was implemented | verify results (pass/fail) | deviations (Rules 1-3) | deferred items | "Ready for feedback."
+
+## Step 4: Continue
+
+Apply feedback → next batch → repeat until complete.
+
+## Step 4B: Must-Have Validation
+
+After all tasks, check for `## Must-Haves` in plan header:
+- **Truths:** verify observable (run commands/URLs, check code paths)
+- **Artifacts:** verify file exists with listed exports (grep/read)
+- **Key Links:** verify connection in source (grep import + function call)
+
+Report results:
+```
+Must-Have Validation:
+  Truths: 3/3 verified
+  Artifacts: 2/2 exist with exports
+  Key Links: 1/2 — Registration endpoint missing validate_email call
+```
+
+Failures are advisory — user decides. No `Must-Haves` section → skip silently.
+
+## Step 5: Complete Development
+
+Announce: "I'm using the landing-a-change skill to complete this work." → **clavain:landing-a-change** (required).
+
+## Deviation Rules
+
+Track all deviations for batch report.
+
+- **Rule 1 — Auto-fix bugs:** Wrong queries, type errors, logic errors → fix inline, verify, continue. No permission.
+- **Rule 2 — Auto-add critical functionality:** Missing error handling, no input validation, no auth on protected routes, missing DB indexes → add, verify, continue. No permission.
+- **Rule 3 — Auto-fix blockers:** Missing dependency, broken imports, build config errors → fix, verify, continue. No permission.
+- **Rule 4 — Ask about architectural changes:** New DB table, switching libraries, breaking API changes, new service layer → STOP, report finding + proposed change + alternatives. User decision required.
+
+**Priority:** Rule 4 → STOP | Rules 1-3 → fix automatically | Unsure → treat as Rule 4.
+
+**Scope:** Only auto-fix issues caused by the current task's changes. Pre-existing warnings/failures in unrelated files → log to `deferred-items.md`, do NOT fix.
+
+**Fix attempt limit:** 3 attempts per task. After 3, document in "Deferred Issues" and continue.
+
+**Analysis paralysis guard:** 5+ consecutive Read/Grep/Glob without Edit/Write/Bash → STOP. State why in one sentence, then write code or report "blocked" with specific missing info.
+
+## Stop Conditions
+
+Stop immediately and ask when: mid-batch blocker | critical plan gaps | unclear instruction | repeated verification failure. Never start on main/master without explicit user consent.
+
+## Integration
+
+- **clavain:writing-plans** — creates the plan this skill executes
+- **clavain:landing-a-change** — required after all tasks complete
+- **clavain:interserve** — Codex dispatch (interserve mode)
+
+exec
+/bin/zsh -lc 'rg -n -i "intervox|voice-profile|house-style|symlink" /Users/sma/.codex/memories/MEMORY.md' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+533:- `cass-index`, `coding-agent-search`, `job-outcomes`, `state-lane-status`, zklw, stale agent-search, symlink-vs-copy, systemd disable
+928:- extensions/chronicle/resources/2026-08-04T01-24-00-PSLM-10min-memory-summary.md (cwd=/Users/sma/projects/dotfiles, rollout_path=extensions/chronicle/resources/2026-08-04T01-24-00-PSLM-10min-memory-summary.md, updated_at=2026-08-04T01:24:00+00:00, thread_id=None, symlink-copy guard and hook-tree context observed [chronicle memory])
+932:- dotfiles, `rig-hook-duplication.py`, `sync-dotfiles.sh`, symlinked hooks, `NO_COLOR`, tmux, zklw, `0ac4a0b`, `3919f44`, destructive-git guard
+948:- Hook sync must skip symlinks before regular file-copy logic, otherwise copying a target back into the repo can overwrite the wrong hook tree. `rig-hook-duplication.py` showed Mac `macos/` and zklw `common/` hooks as intentionally different. [Task 2] [chronicle memory]
+955:- Symptom: a dotfiles sync silently changes the wrong cross-machine hook tree. Fix: detect symlinks before copying and run the duplication checker on both machines. [Task 2] [chronicle memory]
+
+exec
+/bin/zsh -lc "git status --short --branch && sed -n '1,260p' docs/plans/2026-08-08-house-style-cross-agent.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+## main...origin/main
+?? .clavain/
+---
+artifact_type: plan
+bead: none
+stage: design
+---
+# Cross-Agent House Style (Layered) Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use clavain:executing-plans to implement this plan task-by-task.
+
+**Bead:** none (intervox tracker write-blocked, schema v23→v53; see brainstorm Open Questions)
+**Brainstorm:** `docs/brainstorms/2026-08-08-house-style-cross-agent-brainstorm.md` (all forks ruled)
+**Goal:** Every agent runtime (Claude Code, Codex, Kimi) checks prose on declared voice-carrying paths against one canon: Vale GSV rules at any length + intervox stylometric verify for long-form, advisory at edit time, blocking at commit time.
+
+**Architecture:** intervox is the published umbrella plugin. A `.voicepaths` file at a repo root declares which files carry voice and which register/style applies. `scripts/voice-check.sh` orchestrates both layers; plugin hooks run it (advisory on PostToolUse Edit/Write, gate on PreToolUse `git commit`); Codex/Kimi run the same script per AGENTS.md. Canon = `gsvdotcom/docs/canon/copy-voice.md`; the Vale style and the fingerprint are dated derivations.
+
+**Tech Stack:** bash + Python 3.11 stdlib (engine), Vale (optional, brew), pytest, Astro repos as adopters.
+
+**Cross-repo note:** Tasks touch five repos (intervox, dotfiles, gsvdotcom, interbrowse, jawnomicon) plus `~/.config` and `~/.codex`. Commit in the repo each task names, `git commit -F <msgfile> -- <paths>`, never `-m`. jawnomicon is sibling-session-owned: check `git -C ~/projects/jawnomicon log --oneline -3` for a foreign HEAD before task-10 and rebase-pull first.
+
+**Interactive tasks:** task-8 requires mk via AskUserQuestion (decide-against-material ruling). Do NOT delegate task-8 to a subagent or Codex; run it in the main session.
+
+---
+
+## Must-Haves
+
+**Truths:**
+- An agent editing a declared voice file sees an advisory report card naming specific flags (edit time, non-blocking).
+- `git commit` touching declared voice files is blocked when Vale reports error-level findings or intervox verify hard-rejects; the block message names file, rule, and fix hint.
+- A commit touching only undeclared files is never delayed or blocked by voice machinery.
+- Codex/Kimi sessions get the identical verdicts by running `voice-check.sh` per AGENTS.md — no Claude-only dependency.
+- `docs/canon/copy-voice.md` is the single canon; COPY_GUIDE.md and VOICE.md are pointers; both machine layers cite it with a derivation date.
+
+**Artifacts:**
+- `intervox/engine/voicepaths.py` exports `load(root)`, `match(root, path)`, CLI `python3 voicepaths.py match <root> <path>...`
+- `intervox/scripts/voice-check.sh` (advisory + `--gate` modes)
+- `intervox/hooks/hooks.json`, `intervox/hooks/voice-advisory.sh`, `intervox/hooks/voice-commit-gate.sh`
+- `intervox/skills/housecheck/SKILL.md`
+- `gsvdotcom/vale/styles/GSV/*.yml` + `gsvdotcom/.vale.ini`; `gsvdotcom/.voicepaths`; `jawnomicon/.voicepaths`
+- Consolidated `gsvdotcom/docs/canon/copy-voice.md` with `## Ruling (mk, 2026-08-…)` vocabulary section
+
+**Key Links:**
+- hooks → `voice-check.sh` → `voicepaths.py` + `resolve-register.sh` → `~/.config/intervox/fingerprints/<register>.json` (so task-1/2 repairs precede task-4+)
+- Vale layer resolves `.vale.ini` at the **adopter repo** root, not the plugin
+- `verify` exit 2 (hard fail) is the only stylometric block while the gsv-site corpus is under the 20k floor — exit 1 "revise" passes the gate (rules-heavy mode per brainstorm)
+
+---
+
+### Task 1: Repair the voice-profile symlink chain
+
+**Files:** `~/.config/intervox/voice-profile.md`, `~/.config/intervox/fingerprints/voice-profile.md`, `~/.config/intervoice/voice-profile.md` (machine-local symlinks; no repo commit)
+
+**Step 1:** Audit before touching (dotfiles rule: readlink first):
+```bash
+for l in ~/.config/intervox/voice-profile.md ~/.config/intervox/fingerprints/voice-profile.md ~/.config/intervoice/voice-profile.md; do
+  echo "$l -> $(readlink "$l" 2>/dev/null || echo MISSING)"; [ -e "$l" ] && echo "  resolves OK" || echo "  BROKEN"
+done
+ls -la /Users/sma/projects/dotfiles/common/projects/voice-profile.md
+```
+**Step 2:** Retarget every broken link to the live file:
+```bash
+ln -sfn /Users/sma/projects/dotfiles/common/projects/voice-profile.md ~/.config/intervox/voice-profile.md
+```
+Apply the same retarget to any other audited link that pointed at `dotfiles/projects/…`; leave healthy links alone.
+**Step 3:** Confirm the resolver works: `bash ~/projects/Sylveste/interverse/intervox/scripts/resolve-register.sh --list` → exit 0, lists Registers 1–4.
+**Step 4:** Record zklw follow-up: append one line to the plan's execution log noting "zklw needs the same symlink audit" (do not ssh-fix zklw in this task).
+
+<verify>
+- run: `bash ~/projects/Sylveste/interverse/intervox/scripts/resolve-register.sh --list`
+  expect: exit 0
+</verify>
+
+### Task 2: `gsv-site` register in resolve-register.sh
+
+**Files:** Modify: `intervox/scripts/resolve-register.sh`; Test: `intervox/tests/test_resolve_register.sh` (create)
+
+**Step 1:** Read the script's register-normalization function. Add a `gsv-site` branch: accepts `gsv-site`, `gsv`, `site` (case/hyphen tolerant). Since the profile has no `## Register: gsv-site` section yet, the branch resolves the *fingerprint register name* (`gsv-site`) and prints Foundation + `## Register 3: External` as the prose delta, with a one-line header comment `<!-- register: gsv-site (prose delta: External; canon: gsvdotcom docs/canon/copy-voice.md) -->`.
+**Step 2:** Extend `--infer`: if the target path's repo root (walk up to `.git`) contains `.voicepaths` with a `register:` line, that register wins over the existing path heuristics.
+**Step 3:** Write `tests/test_resolve_register.sh`: bash test that (a) `resolve-register.sh gsv-site` exits 0 and stdout contains `register: gsv-site`; (b) `--infer` on a temp dir containing `.voicepaths` with `register: gsv-site` returns the same; (c) unknown register still exits 3. Run it; fix until green.
+**Step 4:** Commit (intervox repo): `feat: gsv-site register resolution + .voicepaths-aware inference`
+
+<verify>
+- run: `bash ~/projects/Sylveste/interverse/intervox/scripts/resolve-register.sh gsv-site`
+  expect: exit 0
+- run: `bash ~/projects/Sylveste/interverse/intervox/tests/test_resolve_register.sh`
+  expect: exit 0
+</verify>
+
+### Task 3: `voicepaths.py` — declared-paths module
+
+**Files:** Create: `intervox/engine/voicepaths.py`; Test: `intervox/tests/test_voicepaths.py`
+
+`.voicepaths` format (repo root, `#` comments):
+```
+# .voicepaths — declared voice-carrying paths
+register: gsv-site
+style: GSV
+src/content/**/*.md
+src/pages/**/*.astro
+```
+
+**Step 1:** Write failing tests: parse (register/style/globs), `match` positive (`src/content/a/b.md`), negative (`src/lib/x.ts`), `**` spans directories, no-`.voicepaths` → no matches, CLI `match <root> <paths...>` prints only matching paths and exits 0 (exit 1 when none match).
+**Step 2:** `pytest tests/test_voicepaths.py -v` → FAIL (module missing).
+**Step 3:** Implement (stdlib only):
+```python
+"""voicepaths: parse a repo's .voicepaths declaration and match files against it."""
+from __future__ import annotations
+import re, sys
+from pathlib import Path
+
+def _glob_to_re(glob: str) -> re.Pattern:
+    out, i = [], 0
+    while i < len(glob):
+        c = glob[i]
+        if glob[i:i+3] == "**/":
+            out.append("(?:.+/)?"); i += 3
+        elif glob[i:i+2] == "**":
+            out.append(".*"); i += 2
+        elif c == "*":
+            out.append("[^/]*"); i += 1
+        elif c == "?":
+            out.append("[^/]"); i += 1
+        else:
+            out.append(re.escape(c)); i += 1
+    return re.compile("^" + "".join(out) + "$")
+
+def load(root: str | Path) -> dict:
+    p = Path(root) / ".voicepaths"
+    cfg = {"register": None, "style": None, "globs": [], "patterns": []}
+    if not p.is_file():
+        return cfg
+    for raw in p.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if ":" in line and not any(ch in line.split(":", 1)[0] for ch in "*/?."):
+            key, val = (s.strip() for s in line.split(":", 1))
+            if key in ("register", "style"):
+                cfg[key] = val
+                continue
+        cfg["globs"].append(line)
+        cfg["patterns"].append(_glob_to_re(line))
+    return cfg
+
+def match(root: str | Path, path: str | Path) -> bool:
+    cfg = load(root)
+    try:
+        rel = Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
+    except ValueError:
+        return False
+    return any(p.match(rel) for p in cfg["patterns"])
+
+def main(argv: list[str]) -> int:
+    if len(argv) < 3 or argv[0] != "match":
+        print("usage: voicepaths.py match <root> <path>...", file=sys.stderr)
+        return 2
+    root, hits = argv[1], []
+    for f in argv[2:]:
+        if match(root, f):
+            hits.append(f); print(f)
+    return 0 if hits else 1
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
+```
+**Step 4:** `pytest tests/test_voicepaths.py -v` → PASS. Full suite: `pytest` → all green (52 existing + new).
+**Step 5:** Commit: `feat: voicepaths declaration module (.voicepaths parser + matcher)`
+
+<verify>
+- run: `cd ~/projects/Sylveste/interverse/intervox && python3 -m pytest tests/test_voicepaths.py -q`
+  expect: exit 0
+</verify>
+
+### Task 4: `voice-check.sh` — layered orchestrator
+
+**Files:** Create: `intervox/scripts/voice-check.sh`, `intervox/tests/test_voice_check.sh`; reuse fixtures `tests/fixtures/clean-draft.md`, `tests/fixtures/sloppy-draft.md`
+
+Contract: `voice-check.sh [--gate] [--root <repo-root>] <file>...`
+- Filters args through `voicepaths.py match` (no `.voicepaths` or no matches → exit 0, print `voice-check: no declared voice files touched`).
+- **Layer 1 (Vale):** if `command -v vale` and `<root>/.vale.ini` exists → `vale --output=line <files>`. Error-level findings: advisory mode prints them; gate mode marks FAIL.
+- **Layer 2 (intervox):** baseline = `${XDG_CONFIG_HOME:-$HOME/.config}/intervox/fingerprints/<register>.json` (register from `.voicepaths`, fallback `all.json`). Advisory: `engine/intervox lint --draft <f> --baseline <b> --format table`. Gate: `engine/intervox verify --draft <f> --baseline <b>`; **only exit 2 marks FAIL** (exit 1 "revise" passes — rules-heavy mode while the corpus is thin; print the revise hints anyway).
+- Exit: advisory always 0; `--gate` exits 2 on any FAIL, else 0. Vale absent → print one line `voice-check: vale not installed — rules layer skipped (brew install vale)` and continue.
+- Env escape hatch: `VOICEGATE=skip` → print `voice-check: gate skipped by VOICEGATE=skip` and exit 0 (gate mode only).
+
+**Steps:** (1) write `tests/test_voice_check.sh` — temp repo with `.voicepaths` declaring `*.md`; assert: sloppy fixture in gate mode exits 2 (sloppy-draft must trip a hard-fail feature; if it doesn't, extend the fixture with chat-artifact lines like "Certainly! Here's the updated copy:" rather than weakening the assertion); clean fixture gate exits 0; undeclared file exits 0; `VOICEGATE=skip` exits 0. (2) run → FAIL. (3) implement per contract above (bash, `set -euo pipefail`, no external deps beyond optional vale). (4) run tests + full pytest → green. (5) Commit: `feat: voice-check layered orchestrator (vale + stylometric verify)`.
+
+<verify>
+- run: `bash ~/projects/Sylveste/interverse/intervox/tests/test_voice_check.sh`
+  expect: exit 0
+</verify>
+
+### Task 5: Plugin hooks (advisory edit + commit gate)
+
+**Files:** Create: `intervox/hooks/hooks.json`, `intervox/hooks/voice-advisory.sh`, `intervox/hooks/voice-commit-gate.sh`, `intervox/tests/test_hooks.sh`; Modify: `intervox/.claude-plugin/plugin.json` (add `"hooks": "./hooks/hooks.json"`, bump `"version": "0.3.0"`), `intervox/kimi.plugin.json` (version bump only — kimi consumes the skill, not hooks)
+
+`hooks/hooks.json` (mirror clavain's shape):
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/voice-advisory.sh", "timeout": 10 }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/voice-commit-gate.sh", "timeout": 20 }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`voice-advisory.sh`: read stdin JSON (python3 one-liner), extract `tool_input.file_path`; find repo root via `git -C <dir> rev-parse --show-toplevel` (not a repo → exit 0); `voicepaths.py match` (no match → exit 0); run `voice-check.sh --root <root> <file>` capturing the report; if findings exist emit `{"decision":"block","reason":"voice-check advisory (non-blocking):\n<report>\nFix now or before commit — the commit gate enforces."}` (the clavain agents-md-refresh advisory pattern) else exit 0 silently. Never exit nonzero on internal errors — advisory must not break editing (`trap 'exit 0' ERR`).
+
+`voice-commit-gate.sh`: read stdin JSON; `tool_input.command` must match `git commit` (else exit 0); repo root from the command's working dir; staged files: `git diff --cached --name-only`; filter via `voicepaths.py match` (none → exit 0); run `voice-check.sh --gate --root <root> <staged...>`; on exit 2 emit `{"decision":"block","reason":"HOUSE-STYLE GATE: <report>\nFix the flagged copy, or re-run with VOICEGATE=skip prefixed to the commit for a documented exception."}`; else exit 0. `VOICEGATE=skip` inside the command string also passes (the escape hatch is visible in the transcript by design).
+
+**Steps:** (1) `tests/test_hooks.sh`: pipe fixture PostToolUse/PreToolUse JSON through each hook against a temp repo (declared sloppy file → advisory emits `"decision"`, gate emits block; undeclared → both silent exit 0; malformed JSON → exit 0). (2) implement. (3) tests green. (4) Commit: `feat: advisory edit hook + commit gate (voice-carrying paths only)`.
+
+<verify>
+- run: `bash ~/projects/Sylveste/interverse/intervox/tests/test_hooks.sh`
+  expect: exit 0
+- run: `python3 -c "import json; d=json.load(open('/Users/sma/projects/Sylveste/interverse/intervox/.claude-plugin/plugin.json')); assert d['version']=='0.3.0' and d['hooks']"`
+  expect: exit 0
+</verify>
+
+### Task 6: `housecheck` skill
+
+**Files:** Create: `intervox/skills/housecheck/SKILL.md`
+
+Content (complete): frontmatter (`name: housecheck`, description "Run the layered house-style check — Vale GSV rules + stylometric verify — on files or a directory; report card per file", `allowed-tools: Bash, Read`); body instructs: resolve target files (arg or `git diff --name-only` default), run `${CLAUDE_PLUGIN_ROOT}/scripts/voice-check.sh` (advisory) or `--gate` when the user says "gate"/"verify", render the report grouped by layer, and for each finding show the sentence + one concrete rewrite. Cite canon: "Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule." Both manifests already glob `"skills": "./skills/"`, so no manifest edit. Commit: `feat: housecheck skill (layered report card)`.
+
+<verify>
+- run: `test -s ~/projects/Sylveste/interverse/intervox/skills/housecheck/SKILL.md`
+  expect: exit 0
+</verify>
+
+### Task 7: Vale GSV style → gsvdotcom (canonical home)
+
+**Files:** Create: `gsvdotcom/vale/styles/GSV/{Buzzwords,ThroatClearing,Overdefining,AIGenericisms}.yml` (copy from `interbrowse/vale/styles/GSV/`), `gsvdotcom/.vale.ini`; Modify: `interbrowse/vale/styles/GSV/*.yml` (header comment), `interbrowse/skills/register-lint/SKILL.md` (source note)
+
+**Step 1:** Copy the four rule files verbatim into gsvdotcom; update each header comment to `# Canonical copy. Derived from docs/canon/copy-voice.md (2026-08-08 derivation; supersedes the 2026-07-07 COPY_GUIDE derivation).`
+**Step 2:** `gsvdotcom/.vale.ini`:
+```ini
+StylesPath = vale/styles
+MinAlertLevel = suggestion
+
+[*.{md,mdx,astro}]
+BasedOnStyles = GSV
+```
+**Step 3:** interbrowse: add to each rule header `# Vendored fallback — canonical copy: gsvdotcom vale/styles/GSV (derived from docs/canon/copy-voice.md).` and the same one-liner under the SKILL.md "bundled style" paragraph.
+**Step 4:** If `command -v vale`: `cd ~/projects/gsvdotcom && vale README.md >/dev/null; echo $?` — any exit is fine (findings expected); the check is that Vale parses the config. Vale absent: note it and continue.
+**Step 5:** Commit both repos separately: gsvdotcom `style: adopt canonical Vale GSV style + .vale.ini`; interbrowse `docs: mark bundled GSV style as vendored fallback`.
+
+<verify>
+
+exec
+/bin/zsh -lc 'bd prime' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 694ms:
+[bd prime] If this output is truncated by your host, read the full persisted hook output before continuing; it may contain project memories and session rules not visible in the preview.
+
+# Beads Workflow Context
+
+> **Context Recovery**: Run `bd prime` after compaction, clear, or new session
+> Hooks auto-call this in Claude Code and Codex when a beads workspace is resolved
+
+# 🚨 SESSION CLOSE PROTOCOL 🚨
+
+**CRITICAL**: Before saying "done" or "complete", you MUST run this checklist:
+
+```
+[ ] 1. bd close <id1> <id2> ...   (close completed issues)
+[ ] 2. run quality gates        (tests, linters, builds when relevant)
+[ ] 3. git status               (check what changed)
+[ ] 4. follow active profile    (conservative: report handoff; team-maintainer: commit/sync/push if enabled)
+```
+
+**Policy:** Conservative is the default. Commit, sync, or push only when the active user, orchestrator, or repository profile grants that authority.
+
+## Core Rules
+- **Default**: Use beads for ALL task tracking (`bd create`, `bd ready`, `bd close`)
+- **Prohibited**: Do NOT use TodoWrite, TaskCreate, or markdown files for task tracking
+- **Workflow**: Create beads issue BEFORE writing code, mark in_progress when starting
+- **Memory**: Use `bd remember "insight"` for persistent knowledge across sessions. Do NOT use MEMORY.md files — they fragment across accounts. Search with `bd memories <keyword>`.
+- Persistence you don't need beats lost context
+- Default: do not commit, push, or run dolt remote sync without explicit authority. Team-maintainer behavior is opt-in and still subordinate to user/orchestrator instructions.
+- Git workflow: conservative by default; commit/push only with explicit user/orchestrator or team-maintainer authority
+- Session management: check `bd ready` for available work
+
+## Essential Commands
+
+### Finding Work
+- `bd ready` - Show issues ready to work (no blockers)
+- `bd list --status=open` - All open issues
+- `bd list --status=in_progress` - Your active work
+- `bd show <id>` - Detailed issue view with dependencies
+
+### Creating & Updating
+- `bd create --title="Summary of this issue" --description="Why this issue exists and what needs to be done" --type=task|bug|feature --priority=2` - New issue
+  - Priority: 0-4 or P0-P4 (0=critical, 2=medium, 4=backlog). NOT "high"/"medium"/"low"
+- `bd create ... --parent=<id>` - Hierarchical child (task under epic, subtask under task; inherits parent labels)
+- `bd update <id> --claim` - Claim work
+- `bd update <id> --assignee=username` - Assign to someone
+- `bd update <id> --title/--description/--notes/--design` - Update fields inline
+- `bd close <id>` - Mark complete
+- `bd close <id1> <id2> ...` - Close multiple issues at once (more efficient)
+- `bd close <id> --reason="explanation"` - Close with reason
+- **Tip**: When creating multiple issues/tasks/epics, use parallel subagents for efficiency
+- **WARNING**: Do NOT use `bd edit` - it opens $EDITOR (vim/nano) which blocks agents
+
+### Dependencies & Blocking
+- `bd dep add <issue> <depends-on>` - Add dependency (issue depends on depends-on)
+- `bd blocked` - Show all blocked issues
+- `bd show <id>` - See what's blocking/blocked by this issue
+
+### Sync & Collaboration
+- `bd dolt push` - Push beads to Dolt remote
+- `bd dolt pull` - Pull beads from Dolt remote
+- `bd search <query>` - Search issues by keyword
+
+### Project Health
+- `bd stats` - Project statistics (open/closed/blocked counts)
+- `bd doctor` - Check for issues (sync problems, missing hooks)
+- `bd doctor --check=conventions` - Check for convention drift (lint, stale, orphans)
+
+### Quality Tools
+- `bd create --validate` - Check description has required sections
+- `bd create --acceptance="criteria"` - Set acceptance criteria (checked by --validate)
+- `bd create --design="decisions"` - Record design decisions
+- `bd create --notes="context"` - Add supplementary notes
+- `bd config set validation.on-create warn` - Auto-validate on every create
+- `bd lint` - Check existing issues for missing sections
+
+### Lifecycle & Hygiene
+- `bd defer <id> --until="date"` - Defer work to a future date
+- `bd supersede <id> --with=<new-id>` - Mark issue as superseded
+- `bd close <id> --suggest-next` - Show newly unblocked issues after closing
+- `bd stale` - Find issues with no recent activity
+- `bd orphans` - Find issues with broken dependencies
+- `bd preflight` - Pre-PR checks (lint, stale, orphans)
+- `bd human <id>` - Flag for human decision (list/respond/dismiss)
+
+### Structured Workflows
+- `bd formula list` - See available workflow templates
+- `bd mol pour <name>` - Start structured workflow from formula
+
+## Common Workflows
+
+**Starting work:**
+```bash
+bd ready           # Find available work
+bd show <id>       # Review issue details
+bd update <id> --claim  # Claim it
+```
+
+**Completing work:**
+```bash
+bd close <id1> <id2> ...    # Close all completed issues at once
+git status                  # Check changed files
+# Conservative/minimal/default: report status and proposed commands; wait for approval
+# Team-maintainer opt-in only, unless current instructions forbid it:
+# git add . && git commit -m "..."
+# bd dolt push
+# git push
+```
+
+**Creating dependent work:**
+```bash
+# Run bd create commands in parallel (use subagents for many items)
+bd create --title="Implement feature X" --description="Why this issue exists and what needs to be done" --type=feature
+bd create --title="Write tests for X" --description="Why this issue exists and what needs to be done" --type=task
+bd dep add beads-yyy beads-xxx  # Tests depend on Feature (Feature blocks tests)
+```
+
+> **Note**: AGENTS.md and CLAUDE.md are independent files (not symlinked and not sharing an inode). Mirror substantive edits across both, or symlink one to the other.
+
+codex
+The plan’s Task 1 is bounded and internally actionable. Its tracker header explicitly records that no bead can be created, so I’m honoring that exception. Before editing, I’m checking the execution mode and reading the remainder of the plan to locate the exact execution-log target; I’ll also keep the unrelated untracked `.clavain/` untouched.
+exec
+/bin/zsh -lc 'if [ -f /Users/sma/projects/Sylveste/os/Clavain/skills/executing-plans/SKILL-compact.md ]; then cat /Users/sma/projects/Sylveste/os/Clavain/skills/executing-plans/SKILL-compact.md; else echo NO_COMPACT; fi' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+# Executing Plans (compact)
+
+Load plan, review critically, execute in batches, report between batches.
+
+## Process
+
+### Step 1: Load and Review
+
+Read plan. Raise concerns with user before starting. If no concerns, create TodoWrite.
+
+### Step 2: Check Mode
+
+```bash
+[ -f "$(pwd)/.claude/clodex-toggle.flag" ] && echo "INTERSERVE" || echo "DIRECT"
+```
+
+**INTERSERVE →** Classify tasks (independent → Codex parallel, sequential → ordered, exploratory → Claude subagent). Group into batches (max 5). Use `clavain:interserve` to dispatch. Read `.verdict` sidecar first. Between batches: report and wait for feedback.
+
+**ORCHESTRATED →** If `.exec.yaml` manifest exists alongside plan, use `orchestrate.py --dry-run` first. Present wave breakdown (total waves, parallelism, stage grouping) and get approval before dispatching. Takes priority over other modes.
+
+**DIRECT →** Execute first 3 tasks per batch. Per task: mark in_progress → follow plan steps exactly → run verifications → mark completed.
+
+### Step 2D: Post-Task Verification
+
+After each task, check for `<verify>` block. Parse `- run:` / `expect:` pairs, run commands, check `exit 0` or `contains "string"`. Failure → deviation Rule 1 (auto-fix, retry, 3-attempt limit). No verify block → skip silently.
+
+### Step 3: Report
+
+After each batch: show what was implemented, verification output (pass/fail from `<verify>` blocks). Say "Ready for feedback."
+
+### Step 4: Continue
+
+Apply feedback, execute next batch, repeat.
+
+### Step 4B: Must-Have Validation
+
+After all tasks complete, check for `## Must-Haves` in plan header. Validate: **Truths** (check code paths exist), **Artifacts** (files exist with exports), **Key Links** (grep for imports and calls). Report results but don't block completion. No Must-Haves section → skip silently.
+
+### Step 5: Complete
+
+Use `clavain:landing-a-change` for final verification and commit.
+
+## Deviation Rules
+
+During execution you WILL find unplanned work. Apply automatically:
+
+- **R1 Auto-fix bugs** (wrong queries, type errors, null pointers) — fix inline, no permission needed
+- **R2 Auto-add critical functionality** (missing validation, auth, error handling) — add it, no permission needed
+- **R3 Auto-fix blockers** (missing deps, broken imports) — fix it, no permission needed
+- **R4 Ask about architectural changes** (new DB tables, framework switches, breaking APIs) — STOP, user decision required
+
+**Priority:** R4 (stop) > R1-R3 (auto-fix) > unsure (treat as R4).
+
+**Scope:** Only fix issues caused by the current task. Pre-existing issues → deferred-items. 3 fix attempts per task max, then defer.
+
+**Stuck guard:** 5+ reads without writes = stuck. Write code or declare blocked.
+
+## When to Stop
+
+Hit a blocker, plan has critical gaps, instruction unclear, verification fails repeatedly. **Ask, don't guess.**
+
+---
+
+*For detailed interserve dispatch protocol or Codex failure handling, read SKILL.md.*
+
+exec
+/bin/zsh -lc "wc -l docs/plans/2026-08-08-house-style-cross-agent.md && sed -n '240,520p' docs/plans/2026-08-08-house-style-cross-agent.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+     408 docs/plans/2026-08-08-house-style-cross-agent.md
+  expect: exit 0
+</verify>
+
+### Task 7: Vale GSV style → gsvdotcom (canonical home)
+
+**Files:** Create: `gsvdotcom/vale/styles/GSV/{Buzzwords,ThroatClearing,Overdefining,AIGenericisms}.yml` (copy from `interbrowse/vale/styles/GSV/`), `gsvdotcom/.vale.ini`; Modify: `interbrowse/vale/styles/GSV/*.yml` (header comment), `interbrowse/skills/register-lint/SKILL.md` (source note)
+
+**Step 1:** Copy the four rule files verbatim into gsvdotcom; update each header comment to `# Canonical copy. Derived from docs/canon/copy-voice.md (2026-08-08 derivation; supersedes the 2026-07-07 COPY_GUIDE derivation).`
+**Step 2:** `gsvdotcom/.vale.ini`:
+```ini
+StylesPath = vale/styles
+MinAlertLevel = suggestion
+
+[*.{md,mdx,astro}]
+BasedOnStyles = GSV
+```
+**Step 3:** interbrowse: add to each rule header `# Vendored fallback — canonical copy: gsvdotcom vale/styles/GSV (derived from docs/canon/copy-voice.md).` and the same one-liner under the SKILL.md "bundled style" paragraph.
+**Step 4:** If `command -v vale`: `cd ~/projects/gsvdotcom && vale README.md >/dev/null; echo $?` — any exit is fine (findings expected); the check is that Vale parses the config. Vale absent: note it and continue.
+**Step 5:** Commit both repos separately: gsvdotcom `style: adopt canonical Vale GSV style + .vale.ini`; interbrowse `docs: mark bundled GSV style as vendored fallback`.
+
+<verify>
+- run: `ls ~/projects/gsvdotcom/vale/styles/GSV/ | wc -l | grep -q 4 && test -s ~/projects/gsvdotcom/.vale.ini && echo ok`
+  expect: contains "ok"
+</verify>
+
+### Task 8: Canon consolidation — INTERACTIVE (mk rules against real samples)
+
+**Files:** Modify: `gsvdotcom/docs/canon/copy-voice.md`, `gsvdotcom/COPY_GUIDE.md`, `gsvdotcom/VOICE.md`; possibly `gsvdotcom/vale/styles/GSV/Buzzwords.yml`
+
+**Run in the main session only.** mk ruled (2026-08-08): decide the vocabulary line against real samples, not in the abstract.
+
+**Step 1:** Harvest material: grep shipped prose (`gsvdotcom/src/content/**/*.md*`, jawnomicon `site/src` chrome strings) for the contested terms (comparative advantage, coordination mechanism, dispersed judgment, topology, emergence, substrate, legibility, leverage, ecosystem, synergy). Collect 10–15 real sentences with file:line. If a term never appears in shipped prose, say so — absence is evidence.
+**Step 2:** Present the samples to mk via AskUserQuestion (batched by term-group, recommendation first, per interview rules) and record the ruling in mk's actual selections.
+**Step 3:** Write the merged `docs/canon/copy-voice.md`: keep the "Document, don't pitch" core; fold in VOICE.md's constraints; add `## Ruling (mk, 2026-08-08): the vocabulary line` recording the ruling and the sample citations; add a derivations footer naming the Vale style and gsv-site fingerprint as dated derivations.
+**Step 4:** Reduce `COPY_GUIDE.md` and `VOICE.md` each to a 3-line pointer stub at `docs/canon/copy-voice.md` (keep the files — inbound links survive).
+**Step 5:** If the ruling moved the buzz line, update `Buzzwords.yml` tokens to match and bump its derivation date.
+**Step 6:** Commit (gsvdotcom): `canon: consolidate copy-voice as single house-style source (mk vocabulary ruling inside)`.
+
+<verify>
+- run: `grep -c "Ruling (mk, 2026-08" ~/projects/gsvdotcom/docs/canon/copy-voice.md`
+  expect: contains "1"
+- run: `wc -l < ~/projects/gsvdotcom/COPY_GUIDE.md | tr -d ' '`
+  expect: contains "3"
+</verify>
+
+### Task 9: gsvdotcom adoption
+
+**Files:** Create: `gsvdotcom/.voicepaths`; Modify: `gsvdotcom/AGENTS.md`, `gsvdotcom/CLAUDE.md`
+
+`.voicepaths`:
+```
+# Voice-carrying paths — see docs/canon/copy-voice.md
+register: gsv-site
+style: GSV
+src/content/**/*.md
+src/content/**/*.mdx
+src/pages/**/*.astro
+docs/canon/*.md
+README.md
+```
+`AGENTS.md` — append (verbatim):
+```markdown
+## House style (all agents)
+
+Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
+Before committing changes to those paths, run:
+
+    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
+
+Exit 2 means fix the copy before committing. Claude Code sessions get this
+automatically via the intervox plugin hooks; Codex/Kimi sessions run it
+manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+```
+`CLAUDE.md`: replace the `_Add your project-specific conventions here_` placeholder with a one-line pointer to that AGENTS.md section. Commit: `chore: declare voice-carrying paths + house-style gate wiring`.
+
+<verify>
+- run: `grep -q "voice-check.sh" ~/projects/gsvdotcom/AGENTS.md && test -s ~/projects/gsvdotcom/.voicepaths && echo ok`
+  expect: contains "ok"
+</verify>
+
+### Task 10: jawnomicon adoption (rules-only until a fingerprint exists)
+
+**Files:** Create: `jawnomicon/.voicepaths`; Modify: `jawnomicon/AGENTS.md`
+
+Pre-step: `git -C ~/projects/jawnomicon log --oneline -3` — if HEAD moved beyond `5dfdb86`, `git pull --rebase` first (sibling-owned repo).
+`.voicepaths`: register `gsv-site` is WRONG for jawnomicon's voice — omit `register:` (stylometric layer then uses `all.json`, mk's own baseline) and set `style: GSV` only if jawnomicon gets a `.vale.ini` (it does: copy gsvdotcom's `.vale.ini` — the four LLMese rules are brand-neutral except Buzzwords; include a `# Buzzwords derives from gsvdotcom canon; revisit if it over-fires here` comment). Globs: `site/src/pages/**/*.astro`, `site/src/layouts/**/*.astro`, `README.md`.
+AGENTS.md: same House-style section as task-9 with the jawnomicon paths. Commit (jawnomicon repo): `chore: declare voice-carrying paths (site chrome) + house-style gate`.
+
+<verify>
+- run: `test -s ~/projects/jawnomicon/.voicepaths && grep -q "voice-check.sh" ~/projects/jawnomicon/AGENTS.md && echo ok`
+  expect: contains "ok"
+</verify>
+
+### Task 11: Codex global wiring
+
+**Files:** Modify: `~/.codex/AGENTS.md` (readlink first — if it is a symlink into dotfiles, edit the target in the dotfiles repo and commit there)
+
+Append a `## House style` section: same content as task-9's but generic — "any repo with a `.voicepaths` file: run voice-check.sh --gate before committing declared files; canon lives at the path the repo's AGENTS.md names." Commit in whichever repo owns the file (dotfiles) or note "machine-local file, no repo" in the execution log.
+
+<verify>
+- run: `grep -q "voicepaths" ~/.codex/AGENTS.md && echo ok`
+  expect: contains "ok"
+</verify>
+
+### Task 12: Rebuild the gsv-site fingerprint from real prose
+
+**Files:** `~/.config/intervox/corpus/gsv-site/` (replace synthetic samples), `~/.config/intervox/fingerprints/gsv-site.json` (regenerate)
+
+**Step 1:** Remove the 8 synthetic `sample-2026071*-concept-*` files (they are fabricated baseline — worse than thin).
+**Step 2:** Ingest real shipped prose with provenance frontmatter per corpus convention: gsvdotcom `src/content/**/*.md*` body text (strip frontmatter), the post-consolidation `docs/canon/*.md`, and gsvdotcom page prose. Use the existing `/intervox ingest` skill flow (contamination screening included). Do NOT ingest jawnomicon copy (different voice).
+**Step 3:** `engine/intervox fingerprint` for register gsv-site; print total word count. Record honestly in the fingerprint meta and execution log: if < 20,000 words, note "gate stays rules-heavy (verify exit 1 passes)" — this is expected; do not pad the corpus to hit the floor.
+**Step 4:** No repo commit (config lives outside git); log the word count.
+
+<verify>
+- run: `python3 -c "import json,glob; d=json.load(open(glob.glob('/Users/sma/.config/intervox/fingerprints/gsv-site.json')[0])); print('wc', d.get('meta',{}).get('word_count') or d.get('meta',{}))"`
+  expect: contains "wc"
+- run: `ls /Users/sma/.config/intervox/corpus/gsv-site/ | grep -c "sample-2026071" || true`
+  expect: contains "0"
+</verify>
+
+### Task 13: Publish intervox 0.3.0
+
+**Files:** intervox repo (push), `Sylveste/core/marketplace/.claude-plugin/marketplace.json` (version sync)
+
+**Step 1:** Full intervox suite green: `python3 -m pytest -q` + the three bash test files.
+**Step 2:** Push intervox to `origin` (github.com/mistakeknot/intervox) — `git pull --rebase && git push`, verify `## main...origin/main` clean.
+**Step 3:** Version sync via `/interpub:release` (it syncs plugin.json ↔ marketplace.json). If the release skill is unavailable in-session, edit the marketplace entry's `"version"` to `0.3.0` by hand, commit in the Sylveste repo (protected main — land via the repo's normal flow; check branch rules before pushing).
+**Step 4:** Install here: `claude plugin install intervox@interagency-marketplace` (or update), then confirm the hook fires: edit a scratch file under a temp repo with `.voicepaths` and observe the advisory. Note: marketplace pulls from GitHub, so step 2 must precede step 4.
+**Step 5:** Log zklw/other-machine rollout as follow-up (publish wave runs from zklw per ops memory).
+
+<verify>
+- run: `cd ~/projects/Sylveste/interverse/intervox && git status -sb | head -1`
+  expect: contains "## main...origin/main"
+- run: `python3 -c "import json;a=json.load(open('/Users/sma/projects/Sylveste/interverse/intervox/.claude-plugin/plugin.json'));b=json.load(open('/Users/sma/projects/Sylveste/core/marketplace/.claude-plugin/marketplace.json'));v=[p for p in b['plugins'] if p['name']=='intervox'][0]['version'];assert a['version']==v=='0.3.0', (a['version'],v)"`
+  expect: exit 0
+</verify>
+
+---
+
+## Acceptance Criteria
+
+1. Register resolution works end-to-end, including the new register.
+   ```check
+   bash ~/projects/Sylveste/interverse/intervox/scripts/resolve-register.sh gsv-site >/dev/null
+   ```
+2. Full intervox test suite green (existing 52 + voicepaths + voice-check + hooks + resolve-register tests).
+   ```check
+   cd ~/projects/Sylveste/interverse/intervox && python3 -m pytest -q && bash tests/test_resolve_register.sh && bash tests/test_voice_check.sh && bash tests/test_hooks.sh
+   ```
+3. The gate blocks LLMese and passes clean copy: sloppy fixture exits 2 under `--gate`, clean fixture exits 0 (asserted inside test_voice_check.sh, run above).
+4. Undeclared files are untouched: a commit-gate invocation whose staged files match no `.voicepaths` glob exits 0 silently (asserted inside test_hooks.sh).
+5. Canon consolidated with mk's ruling recorded.
+   ```check
+   grep -q "Ruling (mk, 2026-08" ~/projects/gsvdotcom/docs/canon/copy-voice.md && [ "$(wc -l < ~/projects/gsvdotcom/COPY_GUIDE.md)" -le 5 ] && [ "$(wc -l < ~/projects/gsvdotcom/VOICE.md)" -le 5 ]
+   ```
+6. Both adopter repos declare paths and wire the gate for non-Claude agents.
+   ```check
+   test -s ~/projects/gsvdotcom/.voicepaths && grep -q voice-check ~/projects/gsvdotcom/AGENTS.md && test -s ~/projects/jawnomicon/.voicepaths && grep -q voice-check ~/projects/jawnomicon/AGENTS.md && grep -q voicepaths ~/.codex/AGENTS.md
+   ```
+7. Canonical Vale style lives in gsvdotcom (4 rules + .vale.ini); interbrowse copy marked vendored.
+   ```check
+   [ "$(ls ~/projects/gsvdotcom/vale/styles/GSV/*.yml | wc -l)" -eq 4 ] && test -s ~/projects/gsvdotcom/.vale.ini && grep -ql "vendored" ~/projects/Sylveste/interverse/interbrowse/vale/styles/GSV/Buzzwords.yml
+   ```
+8. gsv-site corpus contains no synthetic samples; fingerprint regenerated; word count recorded (rules-heavy mode documented if under floor).
+   ```check
+   [ "$(ls /Users/sma/.config/intervox/corpus/gsv-site/ | grep -c 'sample-2026071')" -eq 0 ]
+   ```
+9. intervox 0.3.0 published: repo clean vs origin, plugin.json/marketplace.json versions agree at 0.3.0 (task-13 verify commands).
+10. All repo work committed via `git commit -F <file> -- <paths>` and pushed; no repo left dirty. Stop after 2 failed attempts at any gate and escalate rather than looping (two-strikes rule).
+
+exec
+/bin/zsh -lc 'plan=docs/plans/2026-08-08-house-style-cross-agent.md; manifest=${plan%.md}.exec.yaml; if [ -f "$manifest" ]; then echo "MANIFEST $manifest"; else echo NO_MANIFEST; fi; if [ -f .claude/clodex-toggle.flag ]; then echo INTERSERVE_ACTIVE; else echo DIRECT_MODE; fi; rg -n "Execution Log|execution log|Task 1|zklw needs" "$plan"' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+MANIFEST docs/plans/2026-08-08-house-style-cross-agent.exec.yaml
+DIRECT_MODE
+48:### Task 1: Repair the voice-profile symlink chain
+65:**Step 4:** Record zklw follow-up: append one line to the plan's execution log noting "zklw needs the same symlink audit" (do not ssh-fix zklw in this task).
+320:### Task 10: jawnomicon adoption (rules-only until a fingerprint exists)
+333:### Task 11: Codex global wiring
+337:Append a `## House style` section: same content as task-9's but generic — "any repo with a `.voicepaths` file: run voice-check.sh --gate before committing declared files; canon lives at the path the repo's AGENTS.md names." Commit in whichever repo owns the file (dotfiles) or note "machine-local file, no repo" in the execution log.
+344:### Task 12: Rebuild the gsv-site fingerprint from real prose
+350:**Step 3:** `engine/intervox fingerprint` for register gsv-site; print total word count. Record honestly in the fingerprint meta and execution log: if < 20,000 words, note "gate stays rules-heavy (verify exit 1 passes)" — this is expected; do not pad the corpus to hit the floor.
+360:### Task 13: Publish intervox 0.3.0
+
+exec
+/bin/zsh -lc 'git status --short && git diff -- docs/plans/2026-08-08-house-style-cross-agent.md && find .clavain -maxdepth 2 -type f -print 2>/dev/null | head -20' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+?? .clavain/
+
+codex
+There is an execution manifest, but this request scopes only Task 1, while the manifest may describe the full 13-task rollout. I’m checking whether it supports selecting Task 1 and where it defines the execution log; I won’t launch the broader plan or any agents outside the requested slice.
+exec
+/bin/zsh -lc 'cat docs/plans/2026-08-08-house-style-cross-agent.exec.yaml' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+# Orchestrated subset: mechanical tasks only.
+# Held in-session (main, interactive or skill-flow): task-8 (canon consolidation,
+# mk ruling), task-12 (corpus ingest via /intervox ingest), task-13 (publish).
+# task-9's plan-level dep on task-8 is relaxed here: it references the canon
+# path, not the merged content; the path exists throughout.
+version: 1
+mode: dependency-driven
+tier: deep
+max_parallel: 4
+timeout_per_task: 600
+
+stages:
+  - name: "Wave 1 — repairs + independent groundwork"
+    tasks:
+      - id: task-1
+        title: "Repair voice-profile symlink chain"
+        files: []
+        depends: []
+      - id: task-3
+        title: "voicepaths.py declaration module"
+        files: [engine/voicepaths.py, tests/test_voicepaths.py]
+        depends: []
+      - id: task-7
+        title: "Vale GSV style canonical copy to gsvdotcom"
+        files: []
+        depends: []
+  - name: "Wave 2 — resolution + orchestrator"
+    tasks:
+      - id: task-2
+        title: "gsv-site register in resolve-register.sh"
+        files: [scripts/resolve-register.sh, tests/test_resolve_register.sh]
+        depends: [task-1]
+      - id: task-4
+        title: "voice-check.sh layered orchestrator"
+        files: [scripts/voice-check.sh, tests/test_voice_check.sh]
+        depends: [task-2, task-3]
+  - name: "Wave 3 — plugin surface + adoption"
+    tasks:
+      - id: task-5
+        title: "Plugin hooks (advisory + commit gate) + 0.3.0"
+        files: [hooks/hooks.json, hooks/voice-advisory.sh, hooks/voice-commit-gate.sh, tests/test_hooks.sh, .claude-plugin/plugin.json, kimi.plugin.json]
+        depends: [task-4]
+      - id: task-6
+        title: "housecheck skill"
+        files: [skills/housecheck/SKILL.md]
+        depends: [task-4]
+      - id: task-9
+        title: "gsvdotcom adoption (.voicepaths + AGENTS.md)"
+        files: []
+        depends: [task-4, task-7]
+      - id: task-10
+        title: "jawnomicon adoption (rules-only)"
+        files: []
+        depends: [task-4, task-7]
+      - id: task-11
+        title: "Codex global AGENTS.md wiring"
+        files: []
+        depends: [task-4]
+        tier: fast
+
+exec
+/bin/zsh -lc "find .clavain -maxdepth 3 -print 2>/dev/null; rg -n -i \"execution.?log|zklw needs the same symlink audit\" . --glob '"'!docs/plans/2026-08-08-house-style-cross-agent.md'"' --glob '"'!.git/**'"'" in /Users/sma/projects/Sylveste/interverse/intervox
+ exited 1 in 20ms:
+exec
+/bin/zsh -lc "find /Users/sma/.claude/plugins/cache -path '*/clavain/*/scripts/orchestrate.py' -print 2>/dev/null | head -5; find /Users/sma/projects -name orchestrate.py -path '*/clavain/scripts/*' -print 2>/dev/null | head -5" in /Users/sma/projects/Sylveste/interverse/intervox
+codex
+The manifest confirms Task 1 is independently selectable, and an existing `.clavain/orchestrate-runs/472b1a32/task-1` directory suggests this exact plan may already have been dispatched. I’m checking that run before making any changes so I don’t race or duplicate another worker.
+exec
+/bin/zsh -lc "find .clavain/orchestrate-runs/472b1a32 -maxdepth 3 -type f -print -exec sed -n '1,220p' {} \\;" in /Users/sma/projects/Sylveste/interverse/intervox
+exec
+/bin/zsh -lc "ls -laT .clavain .clavain/orchestrate-runs .clavain/orchestrate-runs/472b1a32 .clavain/orchestrate-runs/472b1a32/task-1; ps aux | rg '[o]rchestrate.py|[c]odex.*house-style|[c]laude.*house-style|[i]nterserve'" in /Users/sma/projects/Sylveste/interverse/intervox
+exec
+/bin/zsh -lc "rg --files /Users/sma/projects/Sylveste/os/Clavain /Users/sma/.codex 2>/dev/null | rg '/orchestrate\\.py"'$|orchestrate'"' | head -50" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 147ms:
+.clavain/orchestrate-runs/472b1a32/task-1/prompt.md
+## Task: Repair voice-profile symlink chain
+
+**Full plan:** docs/plans/2026-08-08-house-style-cross-agent.md
+Read the plan for detailed step-by-step instructions for this task.
+
+When done, report:
+VERDICT: CLEAN | NEEDS_ATTENTION [reason]
+FILES_CHANGED: [list]
+.clavain/orchestrate-runs/472b1a32/task-7/prompt.md
+## Task: Vale GSV style canonical copy to gsvdotcom
+
+**Full plan:** docs/plans/2026-08-08-house-style-cross-agent.md
+Read the plan for detailed step-by-step instructions for this task.
+
+When done, report:
+VERDICT: CLEAN | NEEDS_ATTENTION [reason]
+FILES_CHANGED: [list]
+.clavain/orchestrate-runs/472b1a32/task-3/prompt.md
+## Task: voicepaths.py declaration module
+
+**Files:**
+- engine/voicepaths.py
+- tests/test_voicepaths.py
+
+**Full plan:** docs/plans/2026-08-08-house-style-cross-agent.md
+Read the plan for detailed step-by-step instructions for this task.
+
+When done, report:
+VERDICT: CLEAN | NEEDS_ATTENTION [reason]
+FILES_CHANGED: [list]
+
+ exited 1 in 358ms:
+.clavain:
+total 0
+drwxr-xr-x   3 sma  staff   96 Aug  8 16:59:23 2026 .
+drwxr-xr-x  23 sma  staff  736 Aug  8 16:59:23 2026 ..
+drwxr-xr-x   3 sma  staff   96 Aug  8 16:59:23 2026 orchestrate-runs
+
+.clavain/orchestrate-runs:
+total 0
+drwxr-xr-x  3 sma  staff   96 Aug  8 16:59:23 2026 .
+drwxr-xr-x  3 sma  staff   96 Aug  8 16:59:23 2026 ..
+drwxr-xr-x  5 sma  staff  160 Aug  8 16:59:23 2026 472b1a32
+
+.clavain/orchestrate-runs/472b1a32:
+total 0
+drwxr-xr-x  5 sma  staff  160 Aug  8 16:59:23 2026 .
+drwxr-xr-x  3 sma  staff   96 Aug  8 16:59:23 2026 ..
+drwxr-xr-x  3 sma  staff   96 Aug  8 16:59:23 2026 task-1
+drwxr-xr-x  3 sma  staff   96 Aug  8 16:59:23 2026 task-3
+drwxr-xr-x  3 sma  staff   96 Aug  8 16:59:23 2026 task-7
+
+.clavain/orchestrate-runs/472b1a32/task-1:
+total 8
+drwxr-xr-x  3 sma  staff   96 Aug  8 16:59:23 2026 .
+drwxr-xr-x  5 sma  staff  160 Aug  8 16:59:23 2026 ..
+-rw-r--r--  1 sma  staff  261 Aug  8 16:59:23 2026 prompt.md
+zsh:1: operation not permitted: ps
+
+ succeeded in 663ms:
+/Users/sma/.codex/clavain/tests/structural/test_orchestrate.py
+/Users/sma/.codex/clavain/tests/structural/test_orchestrate_observability.py
+/Users/sma/.codex/clavain/scripts/orchestrate.py
+/Users/sma/projects/Sylveste/os/Clavain/scripts/orchestrate.py
+/Users/sma/projects/Sylveste/os/Clavain/tests/structural/test_orchestrate.py
+/Users/sma/projects/Sylveste/os/Clavain/tests/structural/test_orchestrate_observability.py
+
+codex
+This appears to be the orchestrator’s Task 1 worker context—the generated prompt exactly matches your request—so I’ll execute only this assigned slice. I’m now running the required readlink-first audit; any retargeting under `~/.config` will be limited to the three named links.
+exec
+/bin/zsh -lc 'for l in ~/.config/intervox/voice-profile.md ~/.config/intervox/fingerprints/voice-profile.md ~/.config/intervoice/voice-profile.md; do echo "$l -> $(readlink "$l" 2>/dev/null || echo MISSING)"; [ -e "$l" ] && echo "  resolves OK" || echo "  BROKEN"; done
+ls -la /Users/sma/projects/dotfiles/common/projects/voice-profile.md' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+/Users/sma/.config/intervox/voice-profile.md -> /Users/sma/projects/dotfiles/projects/voice-profile.md
+  BROKEN
+/Users/sma/.config/intervox/fingerprints/voice-profile.md -> MISSING
+  BROKEN
+/Users/sma/.config/intervoice/voice-profile.md -> /Users/sma/projects/dotfiles/projects/voice-profile.md
+  BROKEN
+-rw-r--r--  1 sma  staff  28493 May 29 09:08 /Users/sma/projects/dotfiles/common/projects/voice-profile.md
+
+exec
+/bin/zsh -lc 'ln -sfn /Users/sma/projects/dotfiles/common/projects/voice-profile.md /Users/sma/.config/intervox/voice-profile.md
+ln -sfn /Users/sma/projects/dotfiles/common/projects/voice-profile.md /Users/sma/.config/intervox/fingerprints/voice-profile.md
+ln -sfn /Users/sma/projects/dotfiles/common/projects/voice-profile.md /Users/sma/.config/intervoice/voice-profile.md' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+codex
+All three named links have now been retargeted to the live dotfiles profile. I’m validating both the physical link chain and the resolver’s register listing before deciding how to record the zklw-only follow-up without introducing an unintended repo change.
+exec
+/bin/zsh -lc "for l in /Users/sma/.config/intervox/voice-profile.md /Users/sma/.config/intervox/fingerprints/voice-profile.md /Users/sma/.config/intervoice/voice-profile.md; do printf '%s -> %s\\n' \""'$l" "$(readlink "$l" 2>/dev/null || echo MISSING)"; [ -e "$l" ] && echo '"'  resolves OK' || echo '  BROKEN'; done" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+/Users/sma/.config/intervox/voice-profile.md -> /Users/sma/projects/dotfiles/common/projects/voice-profile.md
+  resolves OK
+/Users/sma/.config/intervox/fingerprints/voice-profile.md -> /Users/sma/projects/dotfiles/common/projects/voice-profile.md
+  resolves OK
+/Users/sma/.config/intervoice/voice-profile.md -> /Users/sma/projects/dotfiles/common/projects/voice-profile.md
+  resolves OK
+
+exec
+/bin/zsh -lc 'bash /Users/sma/projects/Sylveste/interverse/intervox/scripts/resolve-register.sh --list' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+  1:## Foundation: Shared Voice DNA
+  52:## Register 1: Team
+  79:## Register 2: Internal
+  134:## Register 3: External
+  168:## Register 3 Extension: Slide Decks
+  236:## Register 4: Open Source
+
+exec
+/bin/zsh -lc 'git status --short --branch && git diff -- docs/plans/2026-08-08-house-style-cross-agent.md' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+## main...origin/main
+?? .clavain/
+?? tests/test_voicepaths.py
+
+codex
+A concurrent Task 3 worker has created `tests/test_voicepaths.py`; I’m leaving it untouched. Because this orchestrated run now has multiple workers sharing the checkout, I’m applying the repository coordination protocol before making any possible plan-log edit.
+exec
+/bin/zsh -lc 'cat /Users/sma/.codex/interlock/skills/coordination-protocol/SKILL.md' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+---
+name: coordination-protocol
+description: Use when multiple agents are editing the same repository — guides the reserve-work-release workflow to prevent file conflicts and lost work
+---
+
+## Overview
+
+Interlock provides file-level coordination for multi-agent sessions. Core principle: reserve before editing, release when done. This prevents silent overwrites and merge conflicts between concurrent agents.
+
+## Prerequisites
+
+- Agent must be registered via `/interlock:join` before reserving files
+- intermute service must be running (verify with `/interlock:status`)
+
+## The Workflow
+
+### 1. RESERVE: Before editing, call `reserve_files` with file patterns
+- Specify a reason (what you're doing)
+- Set appropriate TTL (default: 15 minutes)
+- If conflict returned, switch to conflict-recovery skill
+
+### 2. WORK: Edit reserved files normally
+- Call `my_reservations` to verify what you hold
+- Extend reservation if work takes longer than expected
+
+### 3. RELEASE: After done, call `release_files` or `release_all`
+- Release as soon as edits are committed
+- Stop hook auto-releases on session end (safety net, not primary)
+
+## MCP Tools Quick Reference
+
+| Tool | Purpose |
+|------|---------|
+| `reserve_files` | Reserve files by glob pattern before editing |
+| `release_files` | Release specific file reservations |
+| `release_all` | Release all your reservations at once |
+| `check_conflicts` | Check if files are reserved by another agent |
+| `my_reservations` | List your current reservations |
+| `list_agents` | Show all active agents in the project |
+| `send_message` | Send a message to another agent |
+| `fetch_inbox` | Check messages from other agents |
+| `request_release` | Ask another agent to release their reservation |
+| `negotiate_release` | Request release with urgency, thread tracking, and optional wait |
+| `respond_to_release` | Reply to a negotiation by releasing now or deferring with ETA |
+
+## Best Practices
+
+- **Reserve narrowly** — reserve specific files, not entire directories
+- **Short TTLs** — 15 minutes default; extend only if needed
+- **Release early** — release as soon as you commit, don't hold until session end
+- **Check before reserving** — call `check_conflicts` before `reserve_files` to avoid surprise 409s
+- **Include a reason** — helps other agents understand why files are held
+- **One concern per reservation** — separate reservations for separate tasks
+
+## Common Mistakes
+
+- Reserving too broadly (e.g., `src/**`) — reserve only files you will edit
+- Forgetting to release after committing — always `release_files` or `release_all` after `git commit`
+- Ignoring conflict responses — if `reserve_files` returns a conflict, do NOT edit the file; the git pre-commit hook will block the commit
+- Not joining first — `reserve_files` fails if agent is not registered; run `/interlock:join` first
+
+codex
+The coordination service tools are not available in this session, but no repo file needs editing for Task 1: the orchestrator captures this worker’s final report as the task execution record. I’ll put the required zklw follow-up there, avoiding a conflicting plan-file change. I’m now using `landing-a-change` for the final scope and verification checks; this task intentionally has no repo commit.
+exec
+/bin/zsh -lc 'cat /Users/sma/projects/Sylveste/os/Clavain/skills/landing-a-change/SKILL.md' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+---
+name: landing-a-change
+description: Use when implementation is complete and tests pass — verify, document, and land on trunk.
+---
+
+<!-- compact: SKILL-compact.md — if it exists in this directory, load it instead of following the full instructions below. The compact version contains the same verify → review → document → commit → confirm process. -->
+
+# Landing a Change
+
+Verify → Review evidence → Document → Commit → Confirm.
+
+**Announce:** "I'm using the landing-a-change skill to complete this work."
+
+## Step 1: Verify Tests
+
+**Artifact-cached skip:** If inside a sprint (`CLAVAIN_BEAD_ID` set), check whether tests already passed at current HEAD:
+
+```bash
+BEAD_ID="${CLAVAIN_BEAD_ID:-}"
+if [[ -n "$BEAD_ID" ]]; then
+    test_sha=$(clavain-cli get-artifact "$BEAD_ID" "test-pass-sha" 2>/dev/null) || test_sha=""
+    current_sha=$(git rev-parse HEAD)
+    if [[ "$test_sha" == "$current_sha" ]]; then
+        echo "Tests verified at $test_sha (current HEAD). Skipping re-run."
+        # Skip to Step 2
+    fi
+fi
+```
+
+If HEAD moved since the last recorded test pass, or no test-pass-sha artifact exists, or not in a sprint: run the full test suite (`go test ./...` / `npm test` / `pytest` / `cargo test`). If tests fail, stop and fix. Do not proceed.
+
+## Step 2: Verify Plan Compliance
+
+- Were all plan checkboxes checked?
+- Any unresolved TODO comments?
+- Implementation matches agreed scope?
+
+If a plan existed, invoke `verification-before-completion` skill. Otherwise proceed.
+
+## Step 3: Evidence Checklist
+
+- [ ] Tests pass
+- [ ] Plan checkpoints complete (if plan exists)
+- [ ] No unresolved TODOs in changed files
+- [ ] No debug artifacts (`console.log`, `fmt.Println`, etc.)
+- [ ] Changes in logical commits with descriptive messages
+- [ ] Deploy verification plan exists (if deploy-relevant)
+
+If deploy-relevant, consider invoking `fd-safety`.
+
+## Step 4: Present Options (AskUserQuestion)
+
+```
+question: "Implementation verified. How would you like to land this?"
+options:
+  - Commit and push
+  - Commit locally
+  - Changelog first (runs /clavain:changelog)
+  - Review first (show git diff, return to this step)
+```
+
+## Step 5: Execute
+
+**Commit and push / Commit locally:**
+```bash
+git add <specific files>      # NOT git add .
+git commit -m "feat(scope): description
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+git push                      # only for "Commit and push"
+```
+
+`Commit locally` leaves associated beads open. A close is only eligible after
+the implementation commit is visible on the remote.
+
+**Changelog first:** Run `/clavain:changelog`, then commit.
+
+**Review first:** Show `git diff --stat && git diff`, return to Step 4.
+
+## Step 5.5: Post-Push Canary (rsj.1.2)
+
+After push succeeds and inside a sprint (`CLAVAIN_BEAD_ID` set), run a lightweight canary check on the merged state:
+
+```bash
+if [[ -n "${CLAVAIN_BEAD_ID:-}" ]] && [[ "${CLAVAIN_SKIP_CANARY:-}" != "true" ]]; then
+    source "${CLAUDE_PLUGIN_ROOT}/hooks/lib-sprint.sh" 2>/dev/null || true
+    if ! sprint_canary_check "$CLAVAIN_BEAD_ID"; then
+        echo "⚠ Post-merge canary FAILED. Sprint NOT recorded as successful."
+        echo "  Fix the issue and re-run, or set CLAVAIN_SKIP_CANARY=true to override."
+        # Do NOT close the bead or record success
+    fi
+fi
+```
+
+If canary fails: warn user, emit `quality_failure` event to Interspect, do NOT record sprint as successful. If canary passes: normal flow continues.
+
+## Step 5.6: Close After Push
+
+Only after the push and post-push canary succeed, close each selected bead
+through the canonical gate:
+
+```bash
+for bead_id in <issue-ids>; do
+  "${CLAUDE_PLUGIN_ROOT}/scripts/gates/bead-close.sh" "$bead_id" "Landed in pushed commit $(git rev-parse --short HEAD)"
+done
+bd dolt push
+git push
+```
+
+The wrapper verifies any installed-runtime evidence requirement before changing
+tracker state. If it rejects a bead, leave that bead open and report the gate.
+
+## Step 6: Capture Learnings (Optional)
+
+Run `/clavain:compound` or note insights in project memory files.
+
+## Red Flags
+
+- Never push without verified tests
+- Never close a bead before its implementation commit is pushed
+- Never `git add .` — stage specific files
+- Never auto-push without user selecting Option 1
+- Never skip the evidence checklist
+
+exec
+/bin/zsh -lc 'if [ -f /Users/sma/projects/Sylveste/os/Clavain/skills/landing-a-change/SKILL-compact.md ]; then cat /Users/sma/projects/Sylveste/os/Clavain/skills/landing-a-change/SKILL-compact.md; else echo NO_COMPACT; fi' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+# Landing a Change (compact)
+
+Verify → Review evidence → Document → Commit → Confirm.
+
+## Process
+
+### Step 1: Verify Tests
+
+Run project test suite. **If tests fail: STOP.** Fix first.
+
+### Step 2: Verify Plan Compliance
+
+If a plan document exists: check all checkboxes, resolve TODOs, load `verification-before-completion` skill. If no plan: skip.
+
+### Step 3: Evidence Checklist
+
+- [ ] Tests pass
+- [ ] Plan checkpoints complete
+- [ ] No unresolved TODO comments in changed files
+- [ ] No debug artifacts (console.log, fmt.Println)
+- [ ] Changes in logical commit units
+- [ ] Deploy verification plan (if deploy-relevant)
+
+### Step 4: Present Options via AskUserQuestion
+
+1. **Commit and push** — commit to main, push to remote
+2. **Commit locally** — commit, don't push
+3. **Changelog first** — run `/clavain:changelog`, then commit
+4. **Review first** — show `git diff`, return to options
+
+### Step 5: Execute
+
+Stage specific files (not `git add .`), commit with a conventional message +
+Co-Authored-By, then push when that option was chosen. A local-only commit leaves
+its beads open.
+
+```bash
+git push  # only for the commit-and-push option
+```
+
+### Step 5.5: Post-Push Canary
+
+After push, if in a sprint: `sprint_canary_check "$CLAVAIN_BEAD_ID"`. On failure: warn, emit `quality_failure` to Interspect, do NOT close bead. Skip with `CLAVAIN_SKIP_CANARY=true`.
+
+### Step 5.6: Close After Push
+
+After the push and canary succeed, close each selected bead through
+`"${CLAUDE_PLUGIN_ROOT}/scripts/gates/bead-close.sh" "$bead_id" "Landed in pushed commit"`,
+run `bd dolt push`, then `git push` again. If the gate rejects a bead, leave it
+open and report the failure.
+
+### Step 6: Capture Learnings (optional)
+
+If notable learnings: run `/clavain:compound` or update memory files.
+
+## Red Flags
+
+Never push without passing tests. Never close before push. Never `git add .`. Never auto-push without user choosing it.
+
+---
+
+*For detailed integration points or common mistakes, read SKILL.md.*
+
+codex
+Final verification is scoped to Task 1’s observable contract: each named path must be a resolving symlink to the live profile, and `resolve-register.sh --list` must exit 0 while exposing Registers 1–4. No repository commit or push is applicable because the requested changes are machine-local.
+exec
+/bin/zsh -lc 'target=/Users/sma/projects/dotfiles/common/projects/voice-profile.md
+status=0
+for l in /Users/sma/.config/intervox/voice-profile.md /Users/sma/.config/intervox/fingerprints/voice-profile.md /Users/sma/.config/intervoice/voice-profile.md; do
+  actual=$(readlink "$l" 2>/dev/null || true)
+  if [ -L "$l" ] && [ -e "$l" ] && [ "$actual" = "$target" ]; then
+    printf '"'PASS symlink %s -> %s\\n' \""'$l" "$actual"
+  else
+    printf '"'FAIL symlink %s -> %s\\n' \""'$l" "${actual:-MISSING}"
+    status=1
+  fi
+done
+registers=$(bash /Users/sma/projects/Sylveste/interverse/intervox/scripts/resolve-register.sh --list) || status=1
+printf '"'%s\\n' \""'$registers"
+for n in 1 2 3 4; do
+  if printf '"'%s\\n' \""'$registers" | grep -q "## Register $n:"; then
+    printf '"'PASS register %s listed\\n' \""'$n"
+  else
+    printf '"'FAIL register %s missing\\n' \""'$n"
+    status=1
+  fi
+done
+exit "$status"' in /Users/sma/projects/Sylveste/interverse/intervox
+ exited 1 in 0ms:
+zsh:2: read-only variable: status
+
+codex
+The first verification harness itself failed before checking anything because zsh reserves `status` as a read-only variable. The symlink changes were unaffected; I’m rerunning the same checks with a task-specific variable name.
+exec
+/bin/zsh -lc 'target=/Users/sma/projects/dotfiles/common/projects/voice-profile.md
+voicecheck_rc=0
+for l in /Users/sma/.config/intervox/voice-profile.md /Users/sma/.config/intervox/fingerprints/voice-profile.md /Users/sma/.config/intervoice/voice-profile.md; do
+  actual=$(readlink "$l" 2>/dev/null || true)
+  if [ -L "$l" ] && [ -e "$l" ] && [ "$actual" = "$target" ]; then
+    printf '"'PASS symlink %s -> %s\\n' \""'$l" "$actual"
+  else
+    printf '"'FAIL symlink %s -> %s\\n' \""'$l" "${actual:-MISSING}"
+    voicecheck_rc=1
+  fi
+done
+registers=$(bash /Users/sma/projects/Sylveste/interverse/intervox/scripts/resolve-register.sh --list) || voicecheck_rc=1
+printf '"'%s\\n' \""'$registers"
+for n in 1 2 3 4; do
+  if printf '"'%s\\n' \""'$registers" | grep -q "## Register $n:"; then
+    printf '"'PASS register %s listed\\n' \""'$n"
+  else
+    printf '"'FAIL register %s missing\\n' \""'$n"
+    voicecheck_rc=1
+  fi
+done
+exit "$voicecheck_rc"' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+PASS symlink /Users/sma/.config/intervox/voice-profile.md -> /Users/sma/projects/dotfiles/common/projects/voice-profile.md
+PASS symlink /Users/sma/.config/intervox/fingerprints/voice-profile.md -> /Users/sma/projects/dotfiles/common/projects/voice-profile.md
+PASS symlink /Users/sma/.config/intervoice/voice-profile.md -> /Users/sma/projects/dotfiles/common/projects/voice-profile.md
+  1:## Foundation: Shared Voice DNA
+  52:## Register 1: Team
+  79:## Register 2: Internal
+  134:## Register 3: External
+  168:## Register 3 Extension: Slide Decks
+  236:## Register 4: Open Source
+PASS register 1 listed
+PASS register 2 listed
+PASS register 3 listed
+PASS register 4 listed
+
+codex
+VERDICT: CLEAN
+FILES_CHANGED: [/Users/sma/.config/intervox/voice-profile.md, /Users/sma/.config/intervox/fingerprints/voice-profile.md, /Users/sma/.config/intervoice/voice-profile.md]
+EXECUTION_LOG: zklw needs the same symlink audit
+tokens used
+59,460
+Warning: dispatch surfaced codex warn — verdict overridden: No model output — zero turns, messages, and commands.

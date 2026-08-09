@@ -1,0 +1,4725 @@
+VERDICT: CLEAN  
+FILES_CHANGED: [engine/voicepaths.py, tests/test_voicepaths.py]
+
+Committed as `a8845cc`. Verification: 71 pytest tests and 63 direct engine tests passed.
+
+--- stderr ---
+Tier 'deep' resolved to model: gpt-5.6-sol
+Note: gawk not found — running without live statusline updates
+Reading additional input from stdin...
+OpenAI Codex v0.146.0
+--------
+workdir: /Users/sma/projects/Sylveste/interverse/intervox
+model: gpt-5.6-sol
+provider: openai
+approval: on-request
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019fe3d1-31f2-7493-a1f4-6ca39c37c359
+--------
+user
+<!-- clavain-context-gateway:v1 sha256=ffd905648d785b7f8fe13ec616fd22d6a980b221722dc923021076a85dd813e5 -->
+<tldrs-context>
+# Agent context packet
+
+Use the precomputed candidates below to bound the first source read. Do not perform repository-wide discovery or invoke additional reconnaissance tools. Read full source where needed for a safe edit; the packet is not a substitute for verification.
+
+## Precomputed bounded context
+
+Generated only from the public task text and visible workspace source.
+Candidates are ranked hints; verify the local invariant before editing.
+
+### Candidate 1: tests/test_engine.py:55
+
+```py
+        self.assertNotIn("`", cleaned)
+
+    def test_sentence_split_protects_abbreviations(self):
+        text = "Dr. Smith went to the U.S. for a conference, e.g. Boston. Then he came home."
+        sentences = ie.split_sentences(text)
+        # Should NOT split on "Dr." or "U.S." or "e.g." — only 2 real sentences.
+        self.assertEqual(len(sentences), 2)
+        self.assertTrue(sentences[0].startswith("Dr. Smith"))
+
+    def test_sentence_split_basic(self):
+        text = "This is one. This is two! Is this three? Yes it is."
+        sentences = ie.split_sentences(text)
+        self.assertEqual(len(sentences), 4)
+
+    def test_fragment_classification(self):
+        sentences = ["This is a full sentence with words.", "No.", "Ok fine."]
+        full, frag = ie.classify_sentences(sentences)
+        # "No." has 1 word -> fragment; "Ok fine." has 2 words -> fragment
+        self.assertEqual(len(full), 1)
+        self.assertEqual(len(frag), 2)
+
+
+class TestSlopLexicon(unittest.TestCase):
+    def test_tier1_lexeme_hit(self):
+        scores = ie.slop_scores("We need to delve into this and leverage synergy.")
+```
+
+### Candidate 2: engine/intervox_engine.py:708
+
+```py
+        "sentence_count": len(full_sentences),
+        "fragment_count": len(fragments),
+        "paragraph_count": len(paras),
+        "chat_artifacts_found": slop["chat_artifacts_found"],
+        "sentence_lens": sentence_lens,
+        "paragraph_lens": [word_count_of(p) for p in paras],
+        "cleaned_text": cleaned,
+        "full_sentences": full_sentences,
+        "prose_
+```
+
+</tldrs-context>
+
+## Task: voicepaths.py declaration module
+
+**Files:**
+- engine/voicepaths.py
+- tests/test_voicepaths.py
+
+**Full plan:** docs/plans/2026-08-08-house-style-cross-agent.md
+Read the plan for detailed step-by-step instructions for this task.
+
+When done, report:
+VERDICT: CLEAN | NEEDS_ATTENTION [reason]
+FILES_CHANGED: [list]
+warning: Under-development features enabled: chronicle. Under-development features are incomplete and may behave unpredictably. To suppress this warning, set `suppress_unstable_features_warning = true` in /Users/sma/.codex/config.toml.
+hook: SessionStart
+hook: SessionStart Completed
+hook: UserPromptSubmit
+hook: UserPromptSubmit Completed
+codex
+I’m using the Beads workflow, plan-execution, test-driven-development, and completion-verification skills because this is a tracked implementation slice with an explicit plan and required tests. I’ll first read those instructions and the named plan, then create/claim the bead before touching code.
+exec
+/bin/zsh -lc "sed -n '1,240p' /Users/sma/projects/Sylveste/os/Clavain/skills/executing-plans/SKILL.md && sed -n '1,260p' /Users/sma/.codex/interphase/skills/beads-workflow/SKILL.md && sed -n '1,260p' /Users/sma/.codex/intertest/skills/test-driven-development/SKILL.md && sed -n '1,260p' /Users/sma/.codex/intertest/skills/verification-before-completion/SKILL.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+---
+name: executing-plans
+description: Execute a written implementation plan in a separate session with review checkpoints.
+---
+
+<!-- compact: SKILL-compact.md — if it exists in this directory, load it instead of following the full instructions below. The compact version contains the same batch execution and interserve dispatch protocol. -->
+
+# Executing Plans
+
+Load plan, review critically, execute tasks in batches, report for review between batches. Batch execution with checkpoints for architect review.
+
+**Announce at start:** "I'm using the executing-plans skill to implement this plan."
+
+## Step 1: Load and Review Plan
+
+1. Read plan file
+2. Review critically — raise questions/concerns with human partner before starting
+3. If no concerns: create TodoWrite and proceed
+
+## Step 2: Check Execution Mode
+
+Check for `.exec.yaml` manifest (replace plan's `.md` extension). If found → Step 2C (priority).
+
+Check interserve flag: `[ -f "$(pwd)/.claude/clodex-toggle.flag" ] && echo INTERSERVE_ACTIVE || echo DIRECT_MODE`
+
+Fallback chain:
+- Manifest exists → **2C: Orchestrated**
+- Flag exists, no manifest → **2A: Codex Dispatch**
+- Neither → **2B: Direct**
+
+## Step 2A: Codex Dispatch (interserve mode)
+
+Dispatch tasks to Codex agents for parallelization.
+
+1. **Classify tasks:** Independent (parallel → Codex) | Sequential (ordered dispatch) | Exploratory (Claude subagent)
+2. **Batch:** Independent tasks in same batch run in parallel; max 5 agents/batch
+3. **Per batch** via `clavain:interserve`:
+   - Write prompt files to `/tmp/codex-task-<name>.md` (goal, files, build/test commands, verdict suffix)
+   - Dispatch independent tasks in parallel Bash calls; wait for completion
+   - Read `.verdict` file first (7 lines) — STATUS `pass` → trust and move on; `warn`/`fail` → read full output
+   - No `.verdict` → fall back to full output
+4. **Between batches:** Report pass/fail/issues; wait for feedback
+5. **On failure:** Offer retry with tighter prompt, fall back to 2B, or skip
+
+## Step 2B: Direct Execution (default)
+
+Default: first 3 tasks per batch. Per task: mark in_progress → follow steps exactly → run verifications → mark completed.
+
+## Step 2C: Orchestrated Execution (manifest exists)
+
+1. **Locate orchestrator:**
+   ```bash
+   ORCHESTRATE=$(find ~/.claude/plugins/cache -path '*/clavain/*/scripts/orchestrate.py' 2>/dev/null | head -1)
+   [ -z "$ORCHESTRATE" ] && ORCHESTRATE=$(find ~/projects -name orchestrate.py -path '*/clavain/scripts/*' 2>/dev/null | head -1)
+   ```
+2. **Validate:** `python3 "$ORCHESTRATE" --validate "$MANIFEST"` — on failure, report errors, fall back to 2A/2B
+3. **Dry-run:** `python3 "$ORCHESTRATE" --dry-run "$MANIFEST"` — present wave breakdown (parallelism, cross-stage deps, tasks missing files)
+4. **Ask for approval** (AskUserQuestion): Approve | Edit mode | Skip to manual
+5. **Execute:** `python3 "$ORCHESTRATE" "$MANIFEST" --plan "$PLAN_PATH" --project-dir "$(pwd)"` with `timeout: 600000`
+6. **Read summary:** `pass` → trust; `warn` → read output, assess; `fail`/`error` → offer retry/manual/skip; `skipped` → report dep failure
+7. **On partial failure:** Offer re-run orchestrator (skips finished tasks) | execute failed tasks via 2B | skip
+
+## Step 2D: Post-Task Verification
+
+After each task (any mode): parse `<verify>...</verify>` block for `run:`/`expect:` pairs.
+- `expect: exit 0` — must exit 0; `expect: contains "string"` — output must include string
+- Pass → log "Verify passed for Task N"; failure → treat as Rule 1 auto-fix (3-attempt limit, then log and continue)
+- No verify block → skip silently
+
+**Vetting signal write** — when all per-task verifications pass for a plan that is part of a tracked bead, persist vetting state so the auto-proceed authz gate can evaluate at ship time (see `docs/canon/policy-merge.md`):
+```bash
+if [[ -n "${CLAVAIN_BEAD_ID:-}" ]]; then
+  bd set-state "$CLAVAIN_BEAD_ID" vetted_at="$(date +%s)"            --reason "executing-plans task verified" 2>/dev/null || true
+  bd set-state "$CLAVAIN_BEAD_ID" vetted_sha="$(git rev-parse HEAD)" --reason "executing-plans task verified" 2>/dev/null || true
+  bd set-state "$CLAVAIN_BEAD_ID" tests_passed="true"                --reason "executing-plans task verified" 2>/dev/null || true
+  bd set-state "$CLAVAIN_BEAD_ID" sprint_or_work_flow="true"         --reason "executing-plans task verified" 2>/dev/null || true
+fi
+```
+
+## Step 3: Report
+
+Per batch: what was implemented | verify results (pass/fail) | deviations (Rules 1-3) | deferred items | "Ready for feedback."
+
+## Step 4: Continue
+
+Apply feedback → next batch → repeat until complete.
+
+## Step 4B: Must-Have Validation
+
+After all tasks, check for `## Must-Haves` in plan header:
+- **Truths:** verify observable (run commands/URLs, check code paths)
+- **Artifacts:** verify file exists with listed exports (grep/read)
+- **Key Links:** verify connection in source (grep import + function call)
+
+Report results:
+```
+Must-Have Validation:
+  Truths: 3/3 verified
+  Artifacts: 2/2 exist with exports
+  Key Links: 1/2 — Registration endpoint missing validate_email call
+```
+
+Failures are advisory — user decides. No `Must-Haves` section → skip silently.
+
+## Step 5: Complete Development
+
+Announce: "I'm using the landing-a-change skill to complete this work." → **clavain:landing-a-change** (required).
+
+## Deviation Rules
+
+Track all deviations for batch report.
+
+- **Rule 1 — Auto-fix bugs:** Wrong queries, type errors, logic errors → fix inline, verify, continue. No permission.
+- **Rule 2 — Auto-add critical functionality:** Missing error handling, no input validation, no auth on protected routes, missing DB indexes → add, verify, continue. No permission.
+- **Rule 3 — Auto-fix blockers:** Missing dependency, broken imports, build config errors → fix, verify, continue. No permission.
+- **Rule 4 — Ask about architectural changes:** New DB table, switching libraries, breaking API changes, new service layer → STOP, report finding + proposed change + alternatives. User decision required.
+
+**Priority:** Rule 4 → STOP | Rules 1-3 → fix automatically | Unsure → treat as Rule 4.
+
+**Scope:** Only auto-fix issues caused by the current task's changes. Pre-existing warnings/failures in unrelated files → log to `deferred-items.md`, do NOT fix.
+
+**Fix attempt limit:** 3 attempts per task. After 3, document in "Deferred Issues" and continue.
+
+**Analysis paralysis guard:** 5+ consecutive Read/Grep/Glob without Edit/Write/Bash → STOP. State why in one sentence, then write code or report "blocked" with specific missing info.
+
+## Stop Conditions
+
+Stop immediately and ask when: mid-batch blocker | critical plan gaps | unclear instruction | repeated verification failure. Never start on main/master without explicit user consent.
+
+## Integration
+
+- **clavain:writing-plans** — creates the plan this skill executes
+- **clavain:landing-a-change** — required after all tasks complete
+- **clavain:interserve** — Codex dispatch (interserve mode)
+---
+name: beads-workflow
+description: Use when tracking work across sessions with Beads issue tracking — guides the bd CLI workflow for creating, managing, and closing issues with dependencies
+---
+
+# Beads Workflow
+
+## Overview
+
+Beads (`bd`) is a git-native issue tracker for persistent task tracking across sessions. Issues stored as JSONL in `.beads/`, synced via git, with hash-based IDs that prevent merge conflicts. Use it for work that spans multiple sessions or has dependencies. For simple single-session tasks, use in-memory `TaskCreate` instead.
+
+**IMPORTANT:** The beads database lives at the **Interverse monorepo root** (`/root/projects/Interverse/.beads/`), not in individual submodules. Always run `bd` commands from `/root/projects/Interverse/`. Submodule `.beads/` directories are read-only historical archives — running `bd` inside a submodule will fail with "no beads database found".
+
+**Backend:** Dolt (version-controlled SQL with cell-level merge) is the default. `.beads/dolt/` contains the database (gitignored). `.beads/issues.jsonl` is the git-portable sync layer. If Dolt issues surface, rebuild from JSONL: `bd doctor --fix --source=jsonl`.
+
+## When to Use Beads vs TaskCreate
+
+| Use Beads (`bd`) when... | Use TaskCreate when... |
+|--------------------------|------------------------|
+| Work spans multiple sessions | Single session task |
+| Tasks have dependencies | Independent tasks |
+| Need persistent tracking | Temporary tracking is fine |
+| Collaborating across agents | Solo execution |
+| Want git-synced state | Ephemeral state is fine |
+
+## Essential Commands
+
+### Finding Work
+```bash
+bd ready                          # Show issues ready to work (no blockers)
+bd list --status=open             # All open issues
+bd list --status=in_progress      # Active work
+bd blocked                        # Show all blocked issues
+bd show <id>                      # Detailed view with dependencies
+```
+
+### Creating Issues
+```bash
+bd create --title="..." --type=task|bug|feature|epic|decision --priority=2
+```
+
+**Priority scale:** 0-4 or P0-P4 (0=critical, 2=medium, 4=backlog). NOT "high"/"medium"/"low".
+
+### Hierarchical Issues
+
+Use dot notation for epic → task → sub-task hierarchies:
+```bash
+bd create --title="Auth overhaul" --type=feature --priority=1
+# Creates bd-a3f8
+
+bd create --title="JWT middleware" --parent=bd-a3f8 --priority=2
+# Creates bd-a3f8.1
+
+bd create --title="Token refresh logic" --parent=bd-a3f8.1 --priority=2
+# Creates bd-a3f8.1.1
+```
+
+### Updating Issues
+```bash
+bd update <id> --claim                 # Atomically claim (fails if already claimed)
+bd update <id> --status=in_progress    # Soft claim (no collision detection — prefer --claim)
+bd update <id> --assignee=username     # Assign
+bd close <id>                          # Mark complete
+bd close <id1> <id2> ...              # Close multiple at once
+bd close <id> --reason="explanation"   # Close with reason
+```
+
+### Dependencies
+```bash
+bd dep add <issue> <depends-on>    # issue depends on depends-on
+bd blocked                         # Show all blocked issues
+```
+
+### Sync
+```bash
+bd sync                  # Compatibility sync step (0.50.x syncs, 0.51+ no-op)
+bd doctor                # Health/status check
+```
+
+## Workflow Modes
+
+### Stealth Mode
+Local-only tracking, nothing committed to the main repo:
+```bash
+bd init --stealth
+```
+
+Use for: experimental planning, personal task tracking, throwaway exploration.
+
+### Contributor Mode
+Routes planning to a separate repo, keeping experimental work out of PRs:
+```bash
+bd init --contributor
+```
+
+Planning state stored in `~/.beads-planning` instead of the project's `.beads/`.
+
+### Maintainer Mode
+Full read-write access. Auto-detected via SSH or authenticated HTTPS:
+```bash
+git config beads.role maintainer    # Force maintainer mode
+```
+
+## Beads Viewer
+
+`bv` provides AI-friendly analytics on your task graph:
+```bash
+bv                    # Open viewer with PageRank, critical path, parallel tracks
+```
+
+Surfaces: task recommendations, execution order, blocking chains, parallel execution opportunities. Use before dispatching parallel agents to identify independent work streams.
+
+## Memory Compaction
+
+Closed tasks are semantically summarized to preserve context while reducing token cost. Beads handles this automatically — old completed tasks are compacted so agents get the gist without reading full histories.
+
+## Daily Maintenance
+
+Beads databases grow over time. Keep them healthy:
+
+- **`bd doctor --fix --yes`** — runs daily via systemd timer; fixes common issues automatically
+- **`bd admin cleanup --older-than 30 --force`** — prunes closed issues older than 30 days (always recoverable from git history)
+- **`bd sync`** — compatibility sync step for mixed beads versions (0.50.x syncs, 0.51+ no-op)
+- **Manual upgrade**: Run `bd upgrade` periodically to get latest fixes (not automated — requires binary install)
+
+If you see "issues.jsonl too large" or agents failing to parse beads, run `bd admin cleanup --older-than 7 --force` for aggressive cleanup.
+
+The daily hygiene runs at 6:15 AM Pacific across all projects in `/root/projects/`. Check logs: `journalctl -u clavain-beads-hygiene.service --since today`
+
+## Session Close Protocol
+
+**CRITICAL**: Before saying "done" or "complete", run this checklist:
+
+```bash
+git status              # Check what changed
+git add <files>         # Stage code changes
+git commit -m "..."     # Commit code
+bd backup               # Flush state to JSONL (survives Dolt crashes)
+bash .beads/push.sh     # Push Dolt to remote
+git push                # Push to remote
+```
+
+**NEVER skip this.** `bd backup` writes fresh JSONL that recovery reads — without it, closes are lost on the next Dolt crash. Work is not done until pushed.
+
+**Close + sync shortcut:** `bash .beads/close-and-sync.sh <id> [--reason="..."]` — closes, backs up, and pushes in one step.
+
+## Common Workflows
+
+**Starting work:**
+```bash
+bd ready                              # Find available work
+bd show <id>                          # Review details
+bd update <id> --claim                # Atomically claim it
+```
+
+**Completing work:**
+```bash
+bd close <id1> <id2> ...    # Close completed issues
+bd backup                   # Flush to JSONL immediately
+bash .beads/push.sh         # Push to Dolt remote
+```
+
+**Or in one step:** `bash .beads/close-and-sync.sh <id1> <id2> ... [--reason="..."]`
+
+**Creating dependent work:**
+```bash
+bd create --title="Implement feature X" --type=feature --priority=2
+bd create --title="Write tests for X" --type=task --priority=2
+bd dep add <tests-id> <feature-id>    # Tests depend on feature
+```
+
+**After batch creation (reviews, audits, planning):**
+
+Whenever you create 5+ beads in a session — especially from reviews, audits, or brainstorming — run a consolidation pass before moving on:
+
+```bash
+bd list --status=open    # Review the full backlog
+```
+
+Look for:
+1. **Same-file edits** — Multiple beads that touch the same file can often merge into one with combined acceptance criteria
+2. **Parent-child absorption** — Small beads whose scope is entirely contained within a larger bead should become acceptance criteria on the parent, then close with `--reason="absorbed into <parent-id>"`
+3. **Duplicate intent** — Beads phrased differently but targeting the same outcome — close the weaker one
+4. **Missing dependencies** — Beads that implicitly depend on each other (e.g., a schema change that a downstream consumer needs) should have explicit `bd dep add`
+5. **Missing descriptions** — Every bead should have a description with concrete acceptance criteria, not just a title
+
+```bash
+# Absorb child into parent
+bd update <parent-id> --description="...add child's criteria..."
+bd close <child-id> --force --reason="absorbed into <parent-id>"
+
+# Add missing dependency
+bd dep add <downstream-id> <upstream-id>
+```
+
+This typically reduces batch-created backlogs by 30-40% and prevents fragmented work.
+
+## Integration
+
+**Pairs with:**
+- `file-todos` — Beads for cross-session, file-todos for within-session
+- `landing-a-change` — Session close protocol ensures beads are synced
+- `triage` command — Categorize and prioritize beads issues
+- `dispatching-parallel-agents` — Use `bv` to identify independent work streams before dispatching
+---
+name: test-driven-development
+description: Use when implementing any feature or bugfix, before writing implementation code
+---
+
+# Test-Driven Development (TDD)
+
+## Overview
+
+Write the test first. Watch it fail. Write minimal code to pass.
+
+**Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
+
+**Violating the letter of the rules is violating the spirit of the rules.**
+
+## When to Use
+
+**Always:**
+- New features
+- Bug fixes
+- Refactoring
+- Behavior changes
+
+**Exceptions (ask your human partner):**
+- Throwaway prototypes
+- Generated code
+- Configuration files
+
+Thinking "skip TDD just this once"? Stop. That's rationalization.
+
+## The Iron Law
+
+```
+NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
+```
+
+Write code before the test? Delete it. Start over.
+
+**No exceptions:**
+- Don't keep it as "reference"
+- Don't "adapt" it while writing tests
+- Don't look at it
+- Delete means delete
+
+Implement fresh from tests. Period.
+
+## Red-Green-Refactor
+
+```dot
+digraph tdd_cycle {
+    rankdir=LR;
+    red [label="RED\nWrite failing test", shape=box, style=filled, fillcolor="#ffcccc"];
+    verify_red [label="Verify fails\ncorrectly", shape=diamond];
+    green [label="GREEN\nMinimal code", shape=box, style=filled, fillcolor="#ccffcc"];
+    verify_green [label="Verify passes\nAll green", shape=diamond];
+    refactor [label="REFACTOR\nClean up", shape=box, style=filled, fillcolor="#ccccff"];
+    next [label="Next", shape=ellipse];
+
+    red -> verify_red;
+    verify_red -> green [label="yes"];
+    verify_red -> red [label="wrong\nfailure"];
+    green -> verify_green;
+    verify_green -> refactor [label="yes"];
+    verify_green -> green [label="no"];
+    refactor -> verify_green [label="stay\ngreen"];
+    verify_green -> next;
+    next -> red;
+}
+```
+
+### RED - Write Failing Test
+
+Write one minimal test showing what should happen.
+
+<Good>
+```typescript
+test('retries failed operations 3 times', async () => {
+  let attempts = 0;
+  const operation = () => {
+    attempts++;
+    if (attempts < 3) throw new Error('fail');
+    return 'success';
+  };
+
+  const result = await retryOperation(operation);
+
+  expect(result).toBe('success');
+  expect(attempts).toBe(3);
+});
+```
+Clear name, tests real behavior, one thing
+</Good>
+
+<Bad>
+```typescript
+test('retry works', async () => {
+  const mock = jest.fn()
+    .mockRejectedValueOnce(new Error())
+    .mockRejectedValueOnce(new Error())
+    .mockResolvedValueOnce('success');
+  await retryOperation(mock);
+  expect(mock).toHaveBeenCalledTimes(3);
+});
+```
+Vague name, tests mock not code
+</Bad>
+
+**Requirements:**
+- One behavior
+- Clear name
+- Real code (no mocks unless unavoidable)
+
+### Verify RED - Watch It Fail
+
+**MANDATORY. Never skip.**
+
+```bash
+npm test path/to/test.test.ts
+```
+
+Confirm:
+- Test fails (not errors)
+- Failure message is expected
+- Fails because feature missing (not typos)
+
+**Test passes?** You're testing existing behavior. Fix test.
+
+**Test errors?** Fix error, re-run until it fails correctly.
+
+### GREEN - Minimal Code
+
+Write simplest code to pass the test.
+
+<Good>
+```typescript
+async function retryOperation<T>(fn: () => Promise<T>): Promise<T> {
+  for (let i = 0; i < 3; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (i === 2) throw e;
+    }
+  }
+  throw new Error('unreachable');
+}
+```
+Just enough to pass
+</Good>
+
+<Bad>
+```typescript
+async function retryOperation<T>(
+  fn: () => Promise<T>,
+  options?: {
+    maxRetries?: number;
+    backoff?: 'linear' | 'exponential';
+    onRetry?: (attempt: number) => void;
+  }
+): Promise<T> {
+  // YAGNI
+}
+```
+Over-engineered
+</Bad>
+
+Don't add features, refactor other code, or "improve" beyond the test.
+
+### Verify GREEN - Watch It Pass
+
+**MANDATORY.**
+
+```bash
+npm test path/to/test.test.ts
+```
+
+Confirm:
+- Test passes
+- Other tests still pass
+- Output pristine (no errors, warnings)
+
+**Test fails?** Fix code, not test.
+
+**Other tests fail?** Fix now.
+
+### REFACTOR - Clean Up
+
+After green only:
+- Remove duplication
+- Improve names
+- Extract helpers
+
+Keep tests green. Don't add behavior.
+
+### Repeat
+
+Next failing test for next feature.
+
+## Good Tests
+
+| Quality | Good | Bad |
+|---------|------|-----|
+| **Minimal** | One thing. "and" in name? Split it. | `test('validates email and domain and whitespace')` |
+| **Clear** | Name describes behavior | `test('test1')` |
+| **Shows intent** | Demonstrates desired API | Obscures what code should do |
+
+## Why Order Matters
+
+**"I'll write tests after to verify it works"**
+
+Tests written after code pass immediately. Passing immediately proves nothing:
+- Might test wrong thing
+- Might test implementation, not behavior
+- Might miss edge cases you forgot
+- You never saw it catch the bug
+
+Test-first forces you to see the test fail, proving it actually tests something.
+
+**"I already manually tested all the edge cases"**
+
+Manual testing is ad-hoc. You think you tested everything but:
+- No record of what you tested
+- Can't re-run when code changes
+- Easy to forget cases under pressure
+- "It worked when I tried it" ≠ comprehensive
+
+Automated tests are systematic. They run the same way every time.
+
+**"Deleting X hours of work is wasteful"**
+
+Sunk cost fallacy. The time is already gone. Your choice now:
+- Delete and rewrite with TDD (X more hours, high confidence)
+- Keep it and add tests after (30 min, low confidence, likely bugs)
+
+The "waste" is keeping code you can't trust. Working code without real tests is technical debt.
+
+**"TDD is dogmatic, being pragmatic means adapting"**
+
+TDD IS pragmatic:
+- Finds bugs before commit (faster than debugging after)
+- Prevents regressions (tests catch breaks immediately)
+- Documents behavior (tests show how to use code)
+- Enables refactoring (change freely, tests catch breaks)
+
+"Pragmatic" shortcuts = debugging in production = slower.
+
+**"Tests after achieve the same goals - it's spirit not ritual"**
+
+No. Tests-after answer "What does this do?" Tests-first answer "What should this do?"
+
+Tests-after are biased by your implementation. You test what you built, not what's required. You verify remembered edge cases, not discovered ones.
+
+Tests-first force edge case discovery before implementing. Tests-after verify you remembered everything (you didn't).
+
+30 minutes of tests after ≠ TDD. You get coverage, lose proof tests work.
+
+## Common Rationalizations
+
+| Excuse | Reality |
+|--------|---------|
+| "Too simple to test" | Simple code breaks. Test takes 30 seconds. |
+---
+name: verification-before-completion
+description: Use when about to claim work is complete, fixed, or passing, or before committing/creating PRs — requires running verification commands and confirming output before any success claims; evidence before assertions.
+---
+
+# Verification Before Completion
+
+## Overview
+
+Claiming work is complete without verification is dishonesty, not efficiency.
+
+**Core principle:** Evidence before claims, always.
+
+**Violating the letter of this rule is violating the spirit of this rule.**
+
+## The Iron Law
+
+```
+NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
+```
+
+If you haven't run the verification command in this message, you cannot claim it passes.
+
+## The Gate Function
+
+```
+BEFORE claiming any status or expressing satisfaction:
+
+1. IDENTIFY: What command proves this claim?
+2. RUN: Execute the FULL command (fresh, complete)
+3. READ: Full output, check exit code, count failures
+4. VERIFY: Does output confirm the claim?
+   - If NO: State actual status with evidence
+   - If YES: State claim WITH evidence
+5. ONLY THEN: Make the claim
+
+Skip any step = lying, not verifying
+```
+
+## Common Failures
+
+| Claim | Requires | Not Sufficient |
+|-------|----------|----------------|
+| Tests pass | Test command output: 0 failures | Previous run, "should pass" |
+| Linter clean | Linter output: 0 errors | Partial check, extrapolation |
+| Build succeeds | Build command: exit 0 | Linter passing, logs look good |
+| Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
+| Regression test works | Red-green cycle verified | Test passes once |
+| Agent completed | VCS diff shows changes | Agent reports "success" |
+| Requirements met | Line-by-line checklist | Tests passing |
+
+## Red Flags - STOP
+
+- Using "should", "probably", "seems to"
+- Expressing satisfaction before verification ("Great!", "Perfect!", "Done!", etc.)
+- About to commit/push/PR without verification
+- Trusting agent success reports
+- Relying on partial verification
+- Thinking "just this once"
+- Tired and wanting work over
+- **ANY wording implying success without having run verification**
+
+## Rationalization Prevention
+
+| Excuse | Reality |
+|--------|---------|
+| "Should work now" | RUN the verification |
+| "I'm confident" | Confidence ≠ evidence |
+| "Just this once" | No exceptions |
+| "Linter passed" | Linter ≠ compiler |
+| "Agent said success" | Verify independently |
+| "I'm tired" | Exhaustion ≠ excuse |
+| "Partial check is enough" | Partial proves nothing |
+| "Different words so rule doesn't apply" | Spirit over letter |
+
+## Key Patterns
+
+**Tests:**
+```
+✅ [Run test command] [See: 34/34 pass] "All tests pass"
+❌ "Should pass now" / "Looks correct"
+```
+
+**Regression tests (TDD Red-Green):**
+```
+✅ Write → Run (pass) → Revert fix → Run (MUST FAIL) → Restore → Run (pass)
+❌ "I've written a regression test" (without red-green verification)
+```
+
+**Build:**
+```
+✅ [Run build] [See: exit 0] "Build passes"
+❌ "Linter passed" (linter doesn't check compilation)
+```
+
+**Requirements:**
+```
+✅ Re-read plan → Create checklist → Verify each → Report gaps or completion
+❌ "Tests pass, phase complete"
+```
+
+**Agent delegation:**
+```
+✅ Agent reports success → Check VCS diff → Verify changes → Report actual state
+❌ Trust agent report
+```
+
+## Why This Matters
+
+From 24 failure memories:
+- your human partner said "I don't believe you" - trust broken
+- Undefined functions shipped - would crash
+- Missing requirements shipped - incomplete features
+- Time wasted on false completion → redirect → rework
+- Violates: "Honesty is a core value. If you lie, you'll be replaced."
+
+## When To Apply
+
+**ALWAYS before:**
+- ANY variation of success/completion claims
+- ANY expression of satisfaction
+- ANY positive statement about work state
+- Committing, PR creation, task completion
+- Moving to next task
+- Delegating to agents
+
+**Rule applies to:**
+- Exact phrases
+- Paraphrases and synonyms
+- Implications of success
+- ANY communication suggesting completion/correctness
+
+## The Bottom Line
+
+**No shortcuts for verification.**
+
+Run the command. Read the output. THEN claim the result.
+
+This is non-negotiable.
+
+exec
+/bin/zsh -lc "wc -l /Users/sma/.codex/intertest/skills/test-driven-development/SKILL.md /Users/sma/.codex/intertest/skills/verification-before-completion/SKILL.md && sed -n '261,620p' /Users/sma/.codex/intertest/skills/test-driven-development/SKILL.md && sed -n '261,620p' /Users/sma/.codex/intertest/skills/verification-before-completion/SKILL.md && sed -n '1,280p' docs/plans/2026-08-08-house-style-cross-agent.md && rg -n -i 'intervox|voicepaths|house.style.cross.agent' /Users/sma/.codex/memories/MEMORY.md || true && git status --short --branch && if [ -f docs/plans/2026-08-08-house-style-cross-agent.exec.yaml ]; then echo MANIFEST_PRESENT; else echo NO_MANIFEST; fi && if [ -f .claude/clodex-toggle.flag ]; then echo INTERSERVE_ACTIVE; else echo DIRECT_MODE; fi && bd prime" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 351ms:
+[bd prime] If this output is truncated by your host, read the full persisted hook output before continuing; it may contain project memories and session rules not visible in the preview.
+
+# Beads Workflow Context
+
+> **Context Recovery**: Run `bd prime` after compaction, clear, or new session
+> Hooks auto-call this in Claude Code and Codex when a beads workspace is resolved
+
+# 🚨 SESSION CLOSE PROTOCOL 🚨
+
+**CRITICAL**: Before saying "done" or "complete", you MUST run this checklist:
+
+```
+[ ] 1. bd close <id1> <id2> ...   (close completed issues)
+[ ] 2. run quality gates        (tests, linters, builds when relevant)
+[ ] 3. git status               (check what changed)
+[ ] 4. follow active profile    (conservative: report handoff; team-maintainer: commit/sync/push if enabled)
+```
+
+**Policy:** Conservative is the default. Commit, sync, or push only when the active user, orchestrator, or repository profile grants that authority.
+
+## Core Rules
+- **Default**: Use beads for ALL task tracking (`bd create`, `bd ready`, `bd close`)
+- **Prohibited**: Do NOT use TodoWrite, TaskCreate, or markdown files for task tracking
+- **Workflow**: Create beads issue BEFORE writing code, mark in_progress when starting
+- **Memory**: Use `bd remember "insight"` for persistent knowledge across sessions. Do NOT use MEMORY.md files — they fragment across accounts. Search with `bd memories <keyword>`.
+- Persistence you don't need beats lost context
+- Default: do not commit, push, or run dolt remote sync without explicit authority. Team-maintainer behavior is opt-in and still subordinate to user/orchestrator instructions.
+- Git workflow: conservative by default; commit/push only with explicit user/orchestrator or team-maintainer authority
+- Session management: check `bd ready` for available work
+
+## Essential Commands
+
+### Finding Work
+- `bd ready` - Show issues ready to work (no blockers)
+- `bd list --status=open` - All open issues
+- `bd list --status=in_progress` - Your active work
+- `bd show <id>` - Detailed issue view with dependencies
+
+### Creating & Updating
+- `bd create --title="Summary of this issue" --description="Why this issue exists and what needs to be done" --type=task|bug|feature --priority=2` - New issue
+  - Priority: 0-4 or P0-P4 (0=critical, 2=medium, 4=backlog). NOT "high"/"medium"/"low"
+- `bd create ... --parent=<id>` - Hierarchical child (task under epic, subtask under task; inherits parent labels)
+- `bd update <id> --claim` - Claim work
+- `bd update <id> --assignee=username` - Assign to someone
+- `bd update <id> --title/--description/--notes/--design` - Update fields inline
+- `bd close <id>` - Mark complete
+- `bd close <id1> <id2> ...` - Close multiple issues at once (more efficient)
+- `bd close <id> --reason="explanation"` - Close with reason
+- **Tip**: When creating multiple issues/tasks/epics, use parallel subagents for efficiency
+- **WARNING**: Do NOT use `bd edit` - it opens $EDITOR (vim/nano) which blocks agents
+
+### Dependencies & Blocking
+- `bd dep add <issue> <depends-on>` - Add dependency (issue depends on depends-on)
+- `bd blocked` - Show all blocked issues
+- `bd show <id>` - See what's blocking/blocked by this issue
+
+### Sync & Collaboration
+- `bd dolt push` - Push beads to Dolt remote
+- `bd dolt pull` - Pull beads from Dolt remote
+- `bd search <query>` - Search issues by keyword
+
+### Project Health
+- `bd stats` - Project statistics (open/closed/blocked counts)
+- `bd doctor` - Check for issues (sync problems, missing hooks)
+- `bd doctor --check=conventions` - Check for convention drift (lint, stale, orphans)
+
+### Quality Tools
+- `bd create --validate` - Check description has required sections
+- `bd create --acceptance="criteria"` - Set acceptance criteria (checked by --validate)
+- `bd create --design="decisions"` - Record design decisions
+- `bd create --notes="context"` - Add supplementary notes
+- `bd config set validation.on-create warn` - Auto-validate on every create
+- `bd lint` - Check existing issues for missing sections
+
+### Lifecycle & Hygiene
+- `bd defer <id> --until="date"` - Defer work to a future date
+- `bd supersede <id> --with=<new-id>` - Mark issue as superseded
+- `bd close <id> --suggest-next` - Show newly unblocked issues after closing
+- `bd stale` - Find issues with no recent activity
+- `bd orphans` - Find issues with broken dependencies
+- `bd preflight` - Pre-PR checks (lint, stale, orphans)
+- `bd human <id>` - Flag for human decision (list/respond/dismiss)
+
+### Structured Workflows
+- `bd formula list` - See available workflow templates
+- `bd mol pour <name>` - Start structured workflow from formula
+
+## Common Workflows
+
+**Starting work:**
+```bash
+bd ready           # Find available work
+bd show <id>       # Review issue details
+bd update <id> --claim  # Claim it
+```
+
+**Completing work:**
+```bash
+bd close <id1> <id2> ...    # Close all completed issues at once
+git status                  # Check changed files
+# Conservative/minimal/default: report status and proposed commands; wait for approval
+# Team-maintainer opt-in only, unless current instructions forbid it:
+# git add . && git commit -m "..."
+# bd dolt push
+# git push
+```
+
+**Creating dependent work:**
+```bash
+# Run bd create commands in parallel (use subagents for many items)
+bd create --title="Implement feature X" --description="Why this issue exists and what needs to be done" --type=feature
+bd create --title="Write tests for X" --description="Why this issue exists and what needs to be done" --type=task
+bd dep add beads-yyy beads-xxx  # Tests depend on Feature (Feature blocks tests)
+```
+
+> **Note**: AGENTS.md and CLAUDE.md are independent files (not symlinked and not sharing an inode). Mirror substantive edits across both, or symlink one to the other.
+
+codex
+The plan’s Task 3 is internally consistent with the requested two-file scope. One operational wrinkle surfaced: the plan has an orchestration manifest, but this request is already the bounded Task 3 execution, so I’m checking that manifest before deciding whether its whole-plan orchestration would exceed the user’s scope. The worktree is otherwise clean except for an unrelated untracked `.clavain/`, which I’ll leave untouched.
+exec
+/bin/zsh -lc "wc -l docs/plans/2026-08-08-house-style-cross-agent.md docs/plans/2026-08-08-house-style-cross-agent.exec.yaml && sed -n '281,760p' docs/plans/2026-08-08-house-style-cross-agent.md && sed -n '1,320p' docs/plans/2026-08-08-house-style-cross-agent.exec.yaml" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+     408 docs/plans/2026-08-08-house-style-cross-agent.md
+      59 docs/plans/2026-08-08-house-style-cross-agent.exec.yaml
+     467 total
+- run: `wc -l < ~/projects/gsvdotcom/COPY_GUIDE.md | tr -d ' '`
+  expect: contains "3"
+</verify>
+
+### Task 9: gsvdotcom adoption
+
+**Files:** Create: `gsvdotcom/.voicepaths`; Modify: `gsvdotcom/AGENTS.md`, `gsvdotcom/CLAUDE.md`
+
+`.voicepaths`:
+```
+# Voice-carrying paths — see docs/canon/copy-voice.md
+register: gsv-site
+style: GSV
+src/content/**/*.md
+src/content/**/*.mdx
+src/pages/**/*.astro
+docs/canon/*.md
+README.md
+```
+`AGENTS.md` — append (verbatim):
+```markdown
+## House style (all agents)
+
+Prose on paths declared in `.voicepaths` follows `docs/canon/copy-voice.md`.
+Before committing changes to those paths, run:
+
+    ~/projects/Sylveste/interverse/intervox/scripts/voice-check.sh --gate --root . <changed files>
+
+Exit 2 means fix the copy before committing. Claude Code sessions get this
+automatically via the intervox plugin hooks; Codex/Kimi sessions run it
+manually. Documented exceptions: prefix the commit command with VOICEGATE=skip.
+```
+`CLAUDE.md`: replace the `_Add your project-specific conventions here_` placeholder with a one-line pointer to that AGENTS.md section. Commit: `chore: declare voice-carrying paths + house-style gate wiring`.
+
+<verify>
+- run: `grep -q "voice-check.sh" ~/projects/gsvdotcom/AGENTS.md && test -s ~/projects/gsvdotcom/.voicepaths && echo ok`
+  expect: contains "ok"
+</verify>
+
+### Task 10: jawnomicon adoption (rules-only until a fingerprint exists)
+
+**Files:** Create: `jawnomicon/.voicepaths`; Modify: `jawnomicon/AGENTS.md`
+
+Pre-step: `git -C ~/projects/jawnomicon log --oneline -3` — if HEAD moved beyond `5dfdb86`, `git pull --rebase` first (sibling-owned repo).
+`.voicepaths`: register `gsv-site` is WRONG for jawnomicon's voice — omit `register:` (stylometric layer then uses `all.json`, mk's own baseline) and set `style: GSV` only if jawnomicon gets a `.vale.ini` (it does: copy gsvdotcom's `.vale.ini` — the four LLMese rules are brand-neutral except Buzzwords; include a `# Buzzwords derives from gsvdotcom canon; revisit if it over-fires here` comment). Globs: `site/src/pages/**/*.astro`, `site/src/layouts/**/*.astro`, `README.md`.
+AGENTS.md: same House-style section as task-9 with the jawnomicon paths. Commit (jawnomicon repo): `chore: declare voice-carrying paths (site chrome) + house-style gate`.
+
+<verify>
+- run: `test -s ~/projects/jawnomicon/.voicepaths && grep -q "voice-check.sh" ~/projects/jawnomicon/AGENTS.md && echo ok`
+  expect: contains "ok"
+</verify>
+
+### Task 11: Codex global wiring
+
+**Files:** Modify: `~/.codex/AGENTS.md` (readlink first — if it is a symlink into dotfiles, edit the target in the dotfiles repo and commit there)
+
+Append a `## House style` section: same content as task-9's but generic — "any repo with a `.voicepaths` file: run voice-check.sh --gate before committing declared files; canon lives at the path the repo's AGENTS.md names." Commit in whichever repo owns the file (dotfiles) or note "machine-local file, no repo" in the execution log.
+
+<verify>
+- run: `grep -q "voicepaths" ~/.codex/AGENTS.md && echo ok`
+  expect: contains "ok"
+</verify>
+
+### Task 12: Rebuild the gsv-site fingerprint from real prose
+
+**Files:** `~/.config/intervox/corpus/gsv-site/` (replace synthetic samples), `~/.config/intervox/fingerprints/gsv-site.json` (regenerate)
+
+**Step 1:** Remove the 8 synthetic `sample-2026071*-concept-*` files (they are fabricated baseline — worse than thin).
+**Step 2:** Ingest real shipped prose with provenance frontmatter per corpus convention: gsvdotcom `src/content/**/*.md*` body text (strip frontmatter), the post-consolidation `docs/canon/*.md`, and gsvdotcom page prose. Use the existing `/intervox ingest` skill flow (contamination screening included). Do NOT ingest jawnomicon copy (different voice).
+**Step 3:** `engine/intervox fingerprint` for register gsv-site; print total word count. Record honestly in the fingerprint meta and execution log: if < 20,000 words, note "gate stays rules-heavy (verify exit 1 passes)" — this is expected; do not pad the corpus to hit the floor.
+**Step 4:** No repo commit (config lives outside git); log the word count.
+
+<verify>
+- run: `python3 -c "import json,glob; d=json.load(open(glob.glob('/Users/sma/.config/intervox/fingerprints/gsv-site.json')[0])); print('wc', d.get('meta',{}).get('word_count') or d.get('meta',{}))"`
+  expect: contains "wc"
+- run: `ls /Users/sma/.config/intervox/corpus/gsv-site/ | grep -c "sample-2026071" || true`
+  expect: contains "0"
+</verify>
+
+### Task 13: Publish intervox 0.3.0
+
+**Files:** intervox repo (push), `Sylveste/core/marketplace/.claude-plugin/marketplace.json` (version sync)
+
+**Step 1:** Full intervox suite green: `python3 -m pytest -q` + the three bash test files.
+**Step 2:** Push intervox to `origin` (github.com/mistakeknot/intervox) — `git pull --rebase && git push`, verify `## main...origin/main` clean.
+**Step 3:** Version sync via `/interpub:release` (it syncs plugin.json ↔ marketplace.json). If the release skill is unavailable in-session, edit the marketplace entry's `"version"` to `0.3.0` by hand, commit in the Sylveste repo (protected main — land via the repo's normal flow; check branch rules before pushing).
+**Step 4:** Install here: `claude plugin install intervox@interagency-marketplace` (or update), then confirm the hook fires: edit a scratch file under a temp repo with `.voicepaths` and observe the advisory. Note: marketplace pulls from GitHub, so step 2 must precede step 4.
+**Step 5:** Log zklw/other-machine rollout as follow-up (publish wave runs from zklw per ops memory).
+
+<verify>
+- run: `cd ~/projects/Sylveste/interverse/intervox && git status -sb | head -1`
+  expect: contains "## main...origin/main"
+- run: `python3 -c "import json;a=json.load(open('/Users/sma/projects/Sylveste/interverse/intervox/.claude-plugin/plugin.json'));b=json.load(open('/Users/sma/projects/Sylveste/core/marketplace/.claude-plugin/marketplace.json'));v=[p for p in b['plugins'] if p['name']=='intervox'][0]['version'];assert a['version']==v=='0.3.0', (a['version'],v)"`
+  expect: exit 0
+</verify>
+
+---
+
+## Acceptance Criteria
+
+1. Register resolution works end-to-end, including the new register.
+   ```check
+   bash ~/projects/Sylveste/interverse/intervox/scripts/resolve-register.sh gsv-site >/dev/null
+   ```
+2. Full intervox test suite green (existing 52 + voicepaths + voice-check + hooks + resolve-register tests).
+   ```check
+   cd ~/projects/Sylveste/interverse/intervox && python3 -m pytest -q && bash tests/test_resolve_register.sh && bash tests/test_voice_check.sh && bash tests/test_hooks.sh
+   ```
+3. The gate blocks LLMese and passes clean copy: sloppy fixture exits 2 under `--gate`, clean fixture exits 0 (asserted inside test_voice_check.sh, run above).
+4. Undeclared files are untouched: a commit-gate invocation whose staged files match no `.voicepaths` glob exits 0 silently (asserted inside test_hooks.sh).
+5. Canon consolidated with mk's ruling recorded.
+   ```check
+   grep -q "Ruling (mk, 2026-08" ~/projects/gsvdotcom/docs/canon/copy-voice.md && [ "$(wc -l < ~/projects/gsvdotcom/COPY_GUIDE.md)" -le 5 ] && [ "$(wc -l < ~/projects/gsvdotcom/VOICE.md)" -le 5 ]
+   ```
+6. Both adopter repos declare paths and wire the gate for non-Claude agents.
+   ```check
+   test -s ~/projects/gsvdotcom/.voicepaths && grep -q voice-check ~/projects/gsvdotcom/AGENTS.md && test -s ~/projects/jawnomicon/.voicepaths && grep -q voice-check ~/projects/jawnomicon/AGENTS.md && grep -q voicepaths ~/.codex/AGENTS.md
+   ```
+7. Canonical Vale style lives in gsvdotcom (4 rules + .vale.ini); interbrowse copy marked vendored.
+   ```check
+   [ "$(ls ~/projects/gsvdotcom/vale/styles/GSV/*.yml | wc -l)" -eq 4 ] && test -s ~/projects/gsvdotcom/.vale.ini && grep -ql "vendored" ~/projects/Sylveste/interverse/interbrowse/vale/styles/GSV/Buzzwords.yml
+   ```
+8. gsv-site corpus contains no synthetic samples; fingerprint regenerated; word count recorded (rules-heavy mode documented if under floor).
+   ```check
+   [ "$(ls /Users/sma/.config/intervox/corpus/gsv-site/ | grep -c 'sample-2026071')" -eq 0 ]
+   ```
+9. intervox 0.3.0 published: repo clean vs origin, plugin.json/marketplace.json versions agree at 0.3.0 (task-13 verify commands).
+10. All repo work committed via `git commit -F <file> -- <paths>` and pushed; no repo left dirty. Stop after 2 failed attempts at any gate and escalate rather than looping (two-strikes rule).
+# Orchestrated subset: mechanical tasks only.
+# Held in-session (main, interactive or skill-flow): task-8 (canon consolidation,
+# mk ruling), task-12 (corpus ingest via /intervox ingest), task-13 (publish).
+# task-9's plan-level dep on task-8 is relaxed here: it references the canon
+# path, not the merged content; the path exists throughout.
+version: 1
+mode: dependency-driven
+tier: deep
+max_parallel: 4
+timeout_per_task: 600
+
+stages:
+  - name: "Wave 1 — repairs + independent groundwork"
+    tasks:
+      - id: task-1
+        title: "Repair voice-profile symlink chain"
+        files: []
+        depends: []
+      - id: task-3
+        title: "voicepaths.py declaration module"
+        files: [engine/voicepaths.py, tests/test_voicepaths.py]
+        depends: []
+      - id: task-7
+        title: "Vale GSV style canonical copy to gsvdotcom"
+        files: []
+        depends: []
+  - name: "Wave 2 — resolution + orchestrator"
+    tasks:
+      - id: task-2
+        title: "gsv-site register in resolve-register.sh"
+        files: [scripts/resolve-register.sh, tests/test_resolve_register.sh]
+        depends: [task-1]
+      - id: task-4
+        title: "voice-check.sh layered orchestrator"
+        files: [scripts/voice-check.sh, tests/test_voice_check.sh]
+        depends: [task-2, task-3]
+  - name: "Wave 3 — plugin surface + adoption"
+    tasks:
+      - id: task-5
+        title: "Plugin hooks (advisory + commit gate) + 0.3.0"
+        files: [hooks/hooks.json, hooks/voice-advisory.sh, hooks/voice-commit-gate.sh, tests/test_hooks.sh, .claude-plugin/plugin.json, kimi.plugin.json]
+        depends: [task-4]
+      - id: task-6
+        title: "housecheck skill"
+        files: [skills/housecheck/SKILL.md]
+        depends: [task-4]
+      - id: task-9
+        title: "gsvdotcom adoption (.voicepaths + AGENTS.md)"
+        files: []
+        depends: [task-4, task-7]
+      - id: task-10
+        title: "jawnomicon adoption (rules-only)"
+        files: []
+        depends: [task-4, task-7]
+      - id: task-11
+        title: "Codex global AGENTS.md wiring"
+        files: []
+        depends: [task-4]
+        tier: fast
+
+exec
+/bin/zsh -lc 'bd ready && bd search voicepaths && bd search "house style"' in /Users/sma/projects/Sylveste/interverse/intervox
+ exited 1 in 457ms:
+Warning: refusing to auto-apply 30 pending schema migrations to a remote-backed database (v23 -> v53): migrating clones independently forks the schema (#4259)
+  Read-only command: continuing on schema v23 without migrating.
+  Writes are blocked until the schema is reconciled.  This is a
+  coordination decision, not an auto-fix - do NOT run a migration unless
+  you are the single designated migrator (only ONE clone may migrate a
+  shared remote, else the schema forks; #4259):
+    • designated migrator (only ONE machine): BD_ALLOW_REMOTE_MIGRATE=1 bd migrate && bd dolt push
+    • every other clone (another already migrated): bd bootstrap
+Error: failed to get ready work: Error 1105: column "is_blocked" could not be found in any table in scope
+
+codex
+Beads is still blocked exactly as the plan records: the local database is schema v23 while the remote-backed schema expects v53, and even `bd ready` cannot query it. I won’t migrate a shared tracker from this clone. I’m proceeding with Task 3 in direct mode; the manifest covers the entire 13-task program and invoking it would exceed this request’s two-file scope.
+exec
+/bin/zsh -lc "sed -n '1,90p' tests/test_engine.py && if [ -e tests/test_voicepaths.py ]; then sed -n '1,260p' tests/test_voicepaths.py; else echo TEST_VOICEPATHS_MISSING; fi && if [ -e engine/voicepaths.py ]; then sed -n '1,260p' engine/voicepaths.py; else echo VOICEPATHS_MISSING; fi && ls -la engine | sed -n '1,80p' && ls -la tests | sed -n '1,120p'" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 50ms:
+#!/usr/bin/env python3
+"""Unit + subprocess tests for the intervox measurement engine.
+
+Run directly: python3 tests/test_engine.py
+Standard library only (unittest); no pip dependencies.
+"""
+
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
+FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
+CORPUS_DIR = FIXTURES_DIR / "corpus"
+SLOPPY_DRAFT = FIXTURES_DIR / "sloppy-draft.md"
+CLEAN_DRAFT = FIXTURES_DIR / "clean-draft.md"
+INTERVOX_SHIM = ENGINE_DIR / "intervox"
+
+sys.path.insert(0, str(ENGINE_DIR))
+import intervox_engine as ie  # noqa: E402
+
+
+def run_cli(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, str(INTERVOX_SHIM), *args],
+        capture_output=True,
+        text=True,
+    )
+
+
+class TestMarkdownAndSentences(unittest.TestCase):
+    def test_strip_markdown_removes_syntax_keeps_paragraphs(self):
+        text = "# Heading\n\nSome **bold** and *italic* text with a [link](http://x.com).\n\n- item one\n- item two\n"
+        cleaned = ie.strip_markdown(text)
+        self.assertNotIn("#", cleaned)
+        self.assertNotIn("**", cleaned)
+        self.assertNotIn("[link]", cleaned)
+        self.assertNotIn("http://x.com", cleaned)
+        self.assertIn("link", cleaned)
+        # paragraph boundary (blank line) preserved
+        self.assertIn("\n\n", cleaned)
+
+    def test_strip_markdown_code_fence_removed(self):
+        text = "before\n```python\ncode_here()\n```\nafter"
+        cleaned = ie.strip_markdown(text)
+        self.assertNotIn("code_here", cleaned)
+
+    def test_inline_backticks_keep_content_minus_backticks(self):
+        text = "use the `foo` function"
+        cleaned = ie.strip_markdown(text)
+        self.assertIn("foo", cleaned)
+        self.assertNotIn("`", cleaned)
+
+    def test_sentence_split_protects_abbreviations(self):
+        text = "Dr. Smith went to the U.S. for a conference, e.g. Boston. Then he came home."
+        sentences = ie.split_sentences(text)
+        # Should NOT split on "Dr." or "U.S." or "e.g." — only 2 real sentences.
+        self.assertEqual(len(sentences), 2)
+        self.assertTrue(sentences[0].startswith("Dr. Smith"))
+
+    def test_sentence_split_basic(self):
+        text = "This is one. This is two! Is this three? Yes it is."
+        sentences = ie.split_sentences(text)
+        self.assertEqual(len(sentences), 4)
+
+    def test_fragment_classification(self):
+        sentences = ["This is a full sentence with words.", "No.", "Ok fine."]
+        full, frag = ie.classify_sentences(sentences)
+        # "No." has 1 word -> fragment; "Ok fine." has 2 words -> fragment
+        self.assertEqual(len(full), 1)
+        self.assertEqual(len(frag), 2)
+
+
+class TestSlopLexicon(unittest.TestCase):
+    def test_tier1_lexeme_hit(self):
+        scores = ie.slop_scores("We need to delve into this and leverage synergy.")
+        self.assertGreater(scores["lexeme_hits_per_1k"], 0)
+
+    def test_tier2_phrase_hit(self):
+        scores = ie.slop_scores("This stands as a testament to our rich tapestry of ideas.")
+        self.assertGreater(scores["phrase_hits_per_1k"], 0)
+
+    def test_chat_artifact_detected(self):
+        scores = ie.slop_scores("Great question! Let me help.")
+        self.assertIn("great question", scores["chat_artifacts_found"])
+
+    def test_clean_text_no_hits(self):
+TEST_VOICEPATHS_MISSING
+VOICEPATHS_MISSING
+total 152
+drwxr-xr-x   6 sma  staff    192 Jul 14 20:24 .
+drwxr-xr-x  23 sma  staff    736 Aug  8 16:59 ..
+-rw-r--r--   1 sma  staff  11276 Jul 14 20:24 README.md
+drwxr-xr-x   3 sma  staff     96 Jul 14 20:21 __pycache__
+-rwxr-xr-x   1 sma  staff    515 Jul 14 13:43 intervox
+-rw-r--r--   1 sma  staff  60665 Jul 14 20:21 intervox_engine.py
+total 56
+drwxr-xr-x   5 sma  staff    160 Jul 14 20:22 .
+drwxr-xr-x  23 sma  staff    736 Aug  8 16:59 ..
+drwxr-xr-x   4 sma  staff    128 Jul 14 20:23 __pycache__
+drwxr-xr-x   5 sma  staff    160 Jul 14 13:45 fixtures
+-rw-r--r--   1 sma  staff  26848 Jul 14 20:22 test_engine.py
+
+apply patch
+patch: completed
+/Users/sma/projects/Sylveste/interverse/intervox/tests/test_voicepaths.py
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ff3e81870f0378901f90546038ea91a6a6f2bb4
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ff3e81870f0378901f90546038ea91a6a6f2bb4
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+exec
+/bin/zsh -lc 'python3 -m pytest tests/test_voicepaths.py -v' in /Users/sma/projects/Sylveste/interverse/intervox
+ exited 2 in 1484ms:
+============================= test session starts ==============================
+platform darwin -- Python 3.14.5, pytest-9.0.3, pluggy-1.6.0 -- /opt/homebrew/opt/python@3.14/bin/python3.14
+cachedir: .pytest_cache
+rootdir: /Users/sma/projects/Sylveste/interverse/intervox
+collecting ... collected 0 items / 1 error
+
+==================================== ERRORS ====================================
+__________________ ERROR collecting tests/test_voicepaths.py ___________________
+ImportError while importing test module '/Users/sma/projects/Sylveste/interverse/intervox/tests/test_voicepaths.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/homebrew/Cellar/python@3.14/3.14.5/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_voicepaths.py:16: in <module>
+    import voicepaths  # noqa: E402
+    ^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'voicepaths'
+=========================== short test summary info ============================
+ERROR tests/test_voicepaths.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 0.34s ===============================
+
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ff3e81870f0378901f90546038ea91a6a6f2bb4
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+codex
+The RED check failed for the intended reason: `voicepaths` does not exist yet (`ModuleNotFoundError`). I’m now adding the minimal stdlib implementation specified by Task 3, without extending the API beyond `load`, `match`, and the `match` CLI.
+apply patch
+patch: completed
+/Users/sma/projects/Sylveste/interverse/intervox/engine/voicepaths.py
+diff --git a/engine/voicepaths.py b/engine/voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2e298245767160e8c2cfe001ddc57bea92bb8c45
+--- /dev/null
++++ b/engine/voicepaths.py
+@@ -0,0 +1,78 @@
++#!/usr/bin/env python3
++"""voicepaths: parse a repo's .voicepaths declaration and match files against it."""
++
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++
++def _glob_to_re(glob: str) -> re.Pattern:
++    out, i = [], 0
++    while i < len(glob):
++        c = glob[i]
++        if glob[i : i + 3] == "**/":
++            out.append("(?:.+/)?")
++            i += 3
++        elif glob[i : i + 2] == "**":
++            out.append(".*")
++            i += 2
++        elif c == "*":
++            out.append("[^/]*")
++            i += 1
++        elif c == "?":
++            out.append("[^/]")
++            i += 1
++        else:
++            out.append(re.escape(c))
++            i += 1
++    return re.compile("^" + "".join(out) + "$")
++
++
++def load(root: str | Path) -> dict:
++    p = Path(root) / ".voicepaths"
++    cfg = {"register": None, "style": None, "globs": [], "patterns": []}
++    if not p.is_file():
++        return cfg
++
++    for raw in p.read_text(encoding="utf-8").splitlines():
++        line = raw.strip()
++        if not line or line.startswith("#"):
++            continue
++        if ":" in line and not any(
++            ch in line.split(":", 1)[0] for ch in "*/?."
++        ):
++            key, val = (s.strip() for s in line.split(":", 1))
++            if key in ("register", "style"):
++                cfg[key] = val
++                continue
++        cfg["globs"].append(line)
++        cfg["patterns"].append(_glob_to_re(line))
++    return cfg
++
++
++def match(root: str | Path, path: str | Path) -> bool:
++    cfg = load(root)
++    try:
++        rel = Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
++    except ValueError:
++        return False
++    return any(pattern.match(rel) for pattern in cfg["patterns"])
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) < 3 or argv[0] != "match":
++        print("usage: voicepaths.py match <root> <path>...", file=sys.stderr)
++        return 2
++
++    root, hits = argv[1], []
++    for path in argv[2:]:
++        if match(root, path):
++            hits.append(path)
++            print(path)
++    return 0 if hits else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(sys.argv[1:]))
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ff3e81870f0378901f90546038ea91a6a6f2bb4
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+diff --git a/engine/voicepaths.py b/engine/voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2e298245767160e8c2cfe001ddc57bea92bb8c45
+--- /dev/null
++++ b/engine/voicepaths.py
+@@ -0,0 +1,78 @@
++#!/usr/bin/env python3
++"""voicepaths: parse a repo's .voicepaths declaration and match files against it."""
++
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++
++def _glob_to_re(glob: str) -> re.Pattern:
++    out, i = [], 0
++    while i < len(glob):
++        c = glob[i]
++        if glob[i : i + 3] == "**/":
++            out.append("(?:.+/)?")
++            i += 3
++        elif glob[i : i + 2] == "**":
++            out.append(".*")
++            i += 2
++        elif c == "*":
++            out.append("[^/]*")
++            i += 1
++        elif c == "?":
++            out.append("[^/]")
++            i += 1
++        else:
++            out.append(re.escape(c))
++            i += 1
++    return re.compile("^" + "".join(out) + "$")
++
++
++def load(root: str | Path) -> dict:
++    p = Path(root) / ".voicepaths"
++    cfg = {"register": None, "style": None, "globs": [], "patterns": []}
++    if not p.is_file():
++        return cfg
++
++    for raw in p.read_text(encoding="utf-8").splitlines():
++        line = raw.strip()
++        if not line or line.startswith("#"):
++            continue
++        if ":" in line and not any(
++            ch in line.split(":", 1)[0] for ch in "*/?."
++        ):
++            key, val = (s.strip() for s in line.split(":", 1))
++            if key in ("register", "style"):
++                cfg[key] = val
++                continue
++        cfg["globs"].append(line)
++        cfg["patterns"].append(_glob_to_re(line))
++    return cfg
++
++
++def match(root: str | Path, path: str | Path) -> bool:
++    cfg = load(root)
++    try:
++        rel = Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
++    except ValueError:
++        return False
++    return any(pattern.match(rel) for pattern in cfg["patterns"])
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) < 3 or argv[0] != "match":
++        print("usage: voicepaths.py match <root> <path>...", file=sys.stderr)
++        return 2
++
++    root, hits = argv[1], []
++    for path in argv[2:]:
++        if match(root, path):
++            hits.append(path)
++            print(path)
++    return 0 if hits else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(sys.argv[1:]))
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ff3e81870f0378901f90546038ea91a6a6f2bb4
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+exec
+/bin/zsh -lc 'python3 -m pytest tests/test_voicepaths.py -v' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 2410ms:
+============================= test session starts ==============================
+platform darwin -- Python 3.14.5, pytest-9.0.3, pluggy-1.6.0 -- /opt/homebrew/opt/python@3.14/bin/python3.14
+cachedir: .pytest_cache
+rootdir: /Users/sma/projects/Sylveste/interverse/intervox
+collecting ... collected 8 items
+
+tests/test_voicepaths.py::test_load_parses_metadata_and_globs PASSED     [ 12%]
+tests/test_voicepaths.py::test_match_accepts_declared_nested_path PASSED [ 25%]
+tests/test_voicepaths.py::test_match_rejects_undeclared_path PASSED      [ 37%]
+tests/test_voicepaths.py::test_double_star_can_span_zero_directories PASSED [ 50%]
+tests/test_voicepaths.py::test_missing_declaration_has_no_matches PASSED [ 62%]
+tests/test_voicepaths.py::test_match_rejects_path_outside_root PASSED    [ 75%]
+tests/test_voicepaths.py::test_cli_prints_only_matching_paths PASSED     [ 87%]
+tests/test_voicepaths.py::test_cli_returns_one_when_no_paths_match PASSED [100%]
+
+============================== 8 passed in 0.30s ===============================
+
+diff --git a/engine/voicepaths.py b/engine/voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2e298245767160e8c2cfe001ddc57bea92bb8c45
+--- /dev/null
++++ b/engine/voicepaths.py
+@@ -0,0 +1,78 @@
++#!/usr/bin/env python3
++"""voicepaths: parse a repo's .voicepaths declaration and match files against it."""
++
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++
++def _glob_to_re(glob: str) -> re.Pattern:
++    out, i = [], 0
++    while i < len(glob):
++        c = glob[i]
++        if glob[i : i + 3] == "**/":
++            out.append("(?:.+/)?")
++            i += 3
++        elif glob[i : i + 2] == "**":
++            out.append(".*")
++            i += 2
++        elif c == "*":
++            out.append("[^/]*")
++            i += 1
++        elif c == "?":
++            out.append("[^/]")
++            i += 1
++        else:
++            out.append(re.escape(c))
++            i += 1
++    return re.compile("^" + "".join(out) + "$")
++
++
++def load(root: str | Path) -> dict:
++    p = Path(root) / ".voicepaths"
++    cfg = {"register": None, "style": None, "globs": [], "patterns": []}
++    if not p.is_file():
++        return cfg
++
++    for raw in p.read_text(encoding="utf-8").splitlines():
++        line = raw.strip()
++        if not line or line.startswith("#"):
++            continue
++        if ":" in line and not any(
++            ch in line.split(":", 1)[0] for ch in "*/?."
++        ):
++            key, val = (s.strip() for s in line.split(":", 1))
++            if key in ("register", "style"):
++                cfg[key] = val
++                continue
++        cfg["globs"].append(line)
++        cfg["patterns"].append(_glob_to_re(line))
++    return cfg
++
++
++def match(root: str | Path, path: str | Path) -> bool:
++    cfg = load(root)
++    try:
++        rel = Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
++    except ValueError:
++        return False
++    return any(pattern.match(rel) for pattern in cfg["patterns"])
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) < 3 or argv[0] != "match":
++        print("usage: voicepaths.py match <root> <path>...", file=sys.stderr)
++        return 2
++
++    root, hits = argv[1], []
++    for path in argv[2:]:
++        if match(root, path):
++            hits.append(path)
++            print(path)
++    return 0 if hits else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(sys.argv[1:]))
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ff3e81870f0378901f90546038ea91a6a6f2bb4
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+codex
+The targeted suite is GREEN: all 8 declaration, glob, boundary, and CLI tests pass. I’m using the required landing-a-change skill now to review the exact diff, run the repository’s full verification gates, and then follow the plan’s commit/push handoff.
+exec
+/bin/zsh -lc "sed -n '1,360p' /Users/sma/projects/Sylveste/os/Clavain/skills/landing-a-change/SKILL.md" in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+---
+name: landing-a-change
+description: Use when implementation is complete and tests pass — verify, document, and land on trunk.
+---
+
+<!-- compact: SKILL-compact.md — if it exists in this directory, load it instead of following the full instructions below. The compact version contains the same verify → review → document → commit → confirm process. -->
+
+# Landing a Change
+
+Verify → Review evidence → Document → Commit → Confirm.
+
+**Announce:** "I'm using the landing-a-change skill to complete this work."
+
+## Step 1: Verify Tests
+
+**Artifact-cached skip:** If inside a sprint (`CLAVAIN_BEAD_ID` set), check whether tests already passed at current HEAD:
+
+```bash
+BEAD_ID="${CLAVAIN_BEAD_ID:-}"
+if [[ -n "$BEAD_ID" ]]; then
+    test_sha=$(clavain-cli get-artifact "$BEAD_ID" "test-pass-sha" 2>/dev/null) || test_sha=""
+    current_sha=$(git rev-parse HEAD)
+    if [[ "$test_sha" == "$current_sha" ]]; then
+        echo "Tests verified at $test_sha (current HEAD). Skipping re-run."
+        # Skip to Step 2
+    fi
+fi
+```
+
+If HEAD moved since the last recorded test pass, or no test-pass-sha artifact exists, or not in a sprint: run the full test suite (`go test ./...` / `npm test` / `pytest` / `cargo test`). If tests fail, stop and fix. Do not proceed.
+
+## Step 2: Verify Plan Compliance
+
+- Were all plan checkboxes checked?
+- Any unresolved TODO comments?
+- Implementation matches agreed scope?
+
+If a plan existed, invoke `verification-before-completion` skill. Otherwise proceed.
+
+## Step 3: Evidence Checklist
+
+- [ ] Tests pass
+- [ ] Plan checkpoints complete (if plan exists)
+- [ ] No unresolved TODOs in changed files
+- [ ] No debug artifacts (`console.log`, `fmt.Println`, etc.)
+- [ ] Changes in logical commits with descriptive messages
+- [ ] Deploy verification plan exists (if deploy-relevant)
+
+If deploy-relevant, consider invoking `fd-safety`.
+
+## Step 4: Present Options (AskUserQuestion)
+
+```
+question: "Implementation verified. How would you like to land this?"
+options:
+  - Commit and push
+  - Commit locally
+  - Changelog first (runs /clavain:changelog)
+  - Review first (show git diff, return to this step)
+```
+
+## Step 5: Execute
+
+**Commit and push / Commit locally:**
+```bash
+git add <specific files>      # NOT git add .
+git commit -m "feat(scope): description
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+git push                      # only for "Commit and push"
+```
+
+`Commit locally` leaves associated beads open. A close is only eligible after
+the implementation commit is visible on the remote.
+
+**Changelog first:** Run `/clavain:changelog`, then commit.
+
+**Review first:** Show `git diff --stat && git diff`, return to Step 4.
+
+## Step 5.5: Post-Push Canary (rsj.1.2)
+
+After push succeeds and inside a sprint (`CLAVAIN_BEAD_ID` set), run a lightweight canary check on the merged state:
+
+```bash
+if [[ -n "${CLAVAIN_BEAD_ID:-}" ]] && [[ "${CLAVAIN_SKIP_CANARY:-}" != "true" ]]; then
+    source "${CLAUDE_PLUGIN_ROOT}/hooks/lib-sprint.sh" 2>/dev/null || true
+    if ! sprint_canary_check "$CLAVAIN_BEAD_ID"; then
+        echo "⚠ Post-merge canary FAILED. Sprint NOT recorded as successful."
+        echo "  Fix the issue and re-run, or set CLAVAIN_SKIP_CANARY=true to override."
+        # Do NOT close the bead or record success
+    fi
+fi
+```
+
+If canary fails: warn user, emit `quality_failure` event to Interspect, do NOT record sprint as successful. If canary passes: normal flow continues.
+
+## Step 5.6: Close After Push
+
+Only after the push and post-push canary succeed, close each selected bead
+through the canonical gate:
+
+```bash
+for bead_id in <issue-ids>; do
+  "${CLAUDE_PLUGIN_ROOT}/scripts/gates/bead-close.sh" "$bead_id" "Landed in pushed commit $(git rev-parse --short HEAD)"
+done
+bd dolt push
+git push
+```
+
+The wrapper verifies any installed-runtime evidence requirement before changing
+tracker state. If it rejects a bead, leave that bead open and report the gate.
+
+## Step 6: Capture Learnings (Optional)
+
+Run `/clavain:compound` or note insights in project memory files.
+
+## Red Flags
+
+- Never push without verified tests
+- Never close a bead before its implementation commit is pushed
+- Never `git add .` — stage specific files
+- Never auto-push without user selecting Option 1
+- Never skip the evidence checklist
+
+diff --git a/engine/voicepaths.py b/engine/voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2e298245767160e8c2cfe001ddc57bea92bb8c45
+--- /dev/null
++++ b/engine/voicepaths.py
+@@ -0,0 +1,78 @@
++#!/usr/bin/env python3
++"""voicepaths: parse a repo's .voicepaths declaration and match files against it."""
++
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++
++def _glob_to_re(glob: str) -> re.Pattern:
++    out, i = [], 0
++    while i < len(glob):
++        c = glob[i]
++        if glob[i : i + 3] == "**/":
++            out.append("(?:.+/)?")
++            i += 3
++        elif glob[i : i + 2] == "**":
++            out.append(".*")
++            i += 2
++        elif c == "*":
++            out.append("[^/]*")
++            i += 1
++        elif c == "?":
++            out.append("[^/]")
++            i += 1
++        else:
++            out.append(re.escape(c))
++            i += 1
++    return re.compile("^" + "".join(out) + "$")
++
++
++def load(root: str | Path) -> dict:
++    p = Path(root) / ".voicepaths"
++    cfg = {"register": None, "style": None, "globs": [], "patterns": []}
++    if not p.is_file():
++        return cfg
++
++    for raw in p.read_text(encoding="utf-8").splitlines():
++        line = raw.strip()
++        if not line or line.startswith("#"):
++            continue
++        if ":" in line and not any(
++            ch in line.split(":", 1)[0] for ch in "*/?."
++        ):
++            key, val = (s.strip() for s in line.split(":", 1))
++            if key in ("register", "style"):
++                cfg[key] = val
++                continue
++        cfg["globs"].append(line)
++        cfg["patterns"].append(_glob_to_re(line))
++    return cfg
++
++
++def match(root: str | Path, path: str | Path) -> bool:
++    cfg = load(root)
++    try:
++        rel = Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
++    except ValueError:
++        return False
++    return any(pattern.match(rel) for pattern in cfg["patterns"])
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) < 3 or argv[0] != "match":
++        print("usage: voicepaths.py match <root> <path>...", file=sys.stderr)
++        return 2
++
++    root, hits = argv[1], []
++    for path in argv[2:]:
++        if match(root, path):
++            hits.append(path)
++            print(path)
++    return 0 if hits else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(sys.argv[1:]))
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ff3e81870f0378901f90546038ea91a6a6f2bb4
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+exec
+/bin/zsh -lc 'python3 -m pytest -q && python3 tests/test_engine.py && git diff --check && git diff -- engine/voicepaths.py tests/test_voicepaths.py' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 7472ms:
+.......................................................................  [100%]
+71 passed in 4.97s
+test_identical_vectors (__main__.TestCosineSimilarity.test_identical_vectors) ... ok
+test_orthogonal_vectors (__main__.TestCosineSimilarity.test_orthogonal_vectors) ... ok
+test_zero_vector_returns_zero (__main__.TestCosineSimilarity.test_zero_vector_returns_zero) ... ok
+test_catastrophic_divergence_still_fails (__main__.TestDistributionalAdvisoryBand.test_catastrophic_divergence_still_fails) ... ok
+test_moderate_divergence_warns_not_fails (__main__.TestDistributionalAdvisoryBand.test_moderate_divergence_warns_not_fails) ... ok
+test_capital_i_counted (__main__.TestFirstPersonCounter.test_capital_i_counted) ... ok
+test_at_most_two_non_ok_features (__main__.TestLintCleanDraft.test_at_most_two_non_ok_features) ... ok
+test_all_19_features_present (__main__.TestLintSloppyDraft.test_all_19_features_present) ... ok
+test_at_least_six_features_flagged (__main__.TestLintSloppyDraft.test_at_least_six_features_flagged) ... ok
+test_burstiness_warn_or_fail (__main__.TestLintSloppyDraft.test_burstiness_warn_or_fail) ... ok
+test_chat_artifacts_fail (__main__.TestLintSloppyDraft.test_chat_artifacts_fail) ... ok
+test_em_dash_density_warn_or_fail (__main__.TestLintSloppyDraft.test_em_dash_density_warn_or_fail) ... ok
+test_rule_of_three_warn_or_fail (__main__.TestLintSloppyDraft.test_rule_of_three_warn_or_fail) ... ok
+test_slop_lexemes_fail (__main__.TestLintSloppyDraft.test_slop_lexemes_fail) ... ok
+test_table_format_renders (__main__.TestLintSloppyDraft.test_table_format_renders) ... ok
+test_fragment_classification (__main__.TestMarkdownAndSentences.test_fragment_classification) ... ok
+test_inline_backticks_keep_content_minus_backticks (__main__.TestMarkdownAndSentences.test_inline_backticks_keep_content_minus_backticks) ... ok
+test_sentence_split_basic (__main__.TestMarkdownAndSentences.test_sentence_split_basic) ... ok
+test_sentence_split_protects_abbreviations (__main__.TestMarkdownAndSentences.test_sentence_split_protects_abbreviations) ... ok
+test_strip_markdown_code_fence_removed (__main__.TestMarkdownAndSentences.test_strip_markdown_code_fence_removed) ... ok
+test_strip_markdown_removes_syntax_keeps_paragraphs (__main__.TestMarkdownAndSentences.test_strip_markdown_removes_syntax_keeps_paragraphs) ... ok
+test_blocks_cannot_merge (__main__.TestMarkdownBlockTermination.test_blocks_cannot_merge) ... ok
+test_frontmatter_stripped (__main__.TestMarkdownBlockTermination.test_frontmatter_stripped) ... ok
+test_mattr_full_diversity (__main__.TestMattr.test_mattr_full_diversity) ... ok
+test_mattr_no_diversity (__main__.TestMattr.test_mattr_no_diversity) ... ok
+test_mattr_short_text_fallback (__main__.TestMattr.test_mattr_short_text_fallback) ... ok
+test_chatty_fixture_scores_oral (__main__.TestOralityAxis.test_chatty_fixture_scores_oral) ... ok
+test_determinism (__main__.TestOralityAxis.test_determinism) ... ok
+test_formal_fixture_scores_literate (__main__.TestOralityAxis.test_formal_fixture_scores_literate) ... ok
+test_lint_skips_feature_19_against_baseline_without_orality_block (__main__.TestOralityAxis.test_lint_skips_feature_19_against_baseline_without_orality_block) ... ok
+test_orality_drift_never_fails_even_with_extreme_drift (__main__.TestOralityAxis.test_orality_drift_never_fails_even_with_extreme_drift) ... ok
+test_char_trigrams_top_200 (__main__.TestProfileSchema.test_char_trigrams_top_200) ... ok
+test_connectives_scan_list (__main__.TestProfileSchema.test_connectives_scan_list) ... ok
+test_constructions_keys (__main__.TestProfileSchema.test_constructions_keys) ... ok
+test_copula_keys (__main__.TestProfileSchema.test_copula_keys) ... ok
+test_fingerprint_meta_via_cli (__main__.TestProfileSchema.test_fingerprint_meta_via_cli) ... ok
+test_function_words_list (__main__.TestProfileSchema.test_function_words_list) ... ok
+test_lexical_mattr_key (__main__.TestProfileSchema.test_lexical_mattr_key) ... ok
+test_per_1k_keys (__main__.TestProfileSchema.test_per_1k_keys) ... ok
+test_punct_per_1k_keys (__main__.TestProfileSchema.test_punct_per_1k_keys) ... ok
+test_sentence_rhythm_keys (__main__.TestProfileSchema.test_sentence_rhythm_keys) ... ok
+test_slop_keys (__main__.TestProfileSchema.test_slop_keys) ... ok
+test_top_level_keys (__main__.TestProfileSchema.test_top_level_keys) ... ok
+test_prose_and_long_list_items_kept (__main__.TestProseExtraction.test_prose_and_long_list_items_kept) ... ok
+test_structured_doc_skips_distributional_features (__main__.TestProseExtraction.test_structured_doc_skips_distributional_features) ... ok
+test_table_invariance_of_distributions (__main__.TestProseExtraction.test_table_invariance_of_distributions) ... ok
+test_tables_headings_fragments_dropped (__main__.TestProseExtraction.test_tables_headings_fragments_dropped) ... ok
+test_parses_inline_profile_fixture (__main__.TestRegisters.test_parses_inline_profile_fixture) ... ok
+test_registers_cli (__main__.TestRegisters.test_registers_cli) ... ok
+test_chunk_paragraphs_merges_short (__main__.TestRetrieve.test_chunk_paragraphs_merges_short) ... ok
+test_retrieve_cli_returns_json (__main__.TestRetrieve.test_retrieve_cli_returns_json) ... ok
+test_retrieve_k_results_descending (__main__.TestRetrieve.test_retrieve_k_results_descending) ... ok
+test_hard_fail_forces_reject (__main__.TestScoreAndVerdict.test_hard_fail_forces_reject) ... ok
+test_score_starts_at_100_and_floors_at_0 (__main__.TestScoreAndVerdict.test_score_starts_at_100_and_floors_at_0) ... ok
+test_skipped_excluded_from_score (__main__.TestScoreAndVerdict.test_skipped_excluded_from_score) ... ok
+test_slop_fail_alone_does_not_hard_reject (__main__.TestScoreAndVerdict.test_slop_fail_alone_does_not_hard_reject) ... ok
+test_chat_artifact_detected (__main__.TestSlopLexicon.test_chat_artifact_detected) ... ok
+test_clean_text_no_hits (__main__.TestSlopLexicon.test_clean_text_no_hits) ... ok
+test_lexicon_override_removes_and_adds (__main__.TestSlopLexicon.test_lexicon_override_removes_and_adds) ... ok
+test_tier1_lexeme_hit (__main__.TestSlopLexicon.test_tier1_lexeme_hit) ... ok
+test_tier2_phrase_hit (__main__.TestSlopLexicon.test_tier2_phrase_hit) ... ok
+test_verify_clean_exits_0 (__main__.TestVerifySubprocess.test_verify_clean_exits_0) ... ok
+test_verify_sloppy_exits_2 (__main__.TestVerifySubprocess.test_verify_sloppy_exits_2) ... ok
+
+----------------------------------------------------------------------
+Ran 63 tests in 1.419s
+
+OK
+
+diff --git a/engine/voicepaths.py b/engine/voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2e298245767160e8c2cfe001ddc57bea92bb8c45
+--- /dev/null
++++ b/engine/voicepaths.py
+@@ -0,0 +1,78 @@
++#!/usr/bin/env python3
++"""voicepaths: parse a repo's .voicepaths declaration and match files against it."""
++
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++
++def _glob_to_re(glob: str) -> re.Pattern:
++    out, i = [], 0
++    while i < len(glob):
++        c = glob[i]
++        if glob[i : i + 3] == "**/":
++            out.append("(?:.+/)?")
++            i += 3
++        elif glob[i : i + 2] == "**":
++            out.append(".*")
++            i += 2
++        elif c == "*":
++            out.append("[^/]*")
++            i += 1
++        elif c == "?":
++            out.append("[^/]")
++            i += 1
++        else:
++            out.append(re.escape(c))
++            i += 1
++    return re.compile("^" + "".join(out) + "$")
++
++
++def load(root: str | Path) -> dict:
++    p = Path(root) / ".voicepaths"
++    cfg = {"register": None, "style": None, "globs": [], "patterns": []}
++    if not p.is_file():
++        return cfg
++
++    for raw in p.read_text(encoding="utf-8").splitlines():
++        line = raw.strip()
++        if not line or line.startswith("#"):
++            continue
++        if ":" in line and not any(
++            ch in line.split(":", 1)[0] for ch in "*/?."
++        ):
++            key, val = (s.strip() for s in line.split(":", 1))
++            if key in ("register", "style"):
++                cfg[key] = val
++                continue
++        cfg["globs"].append(line)
++        cfg["patterns"].append(_glob_to_re(line))
++    return cfg
++
++
++def match(root: str | Path, path: str | Path) -> bool:
++    cfg = load(root)
++    try:
++        rel = Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
++    except ValueError:
++        return False
++    return any(pattern.match(rel) for pattern in cfg["patterns"])
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) < 3 or argv[0] != "match":
++        print("usage: voicepaths.py match <root> <path>...", file=sys.stderr)
++        return 2
++
++    root, hits = argv[1], []
++    for path in argv[2:]:
++        if match(root, path):
++            hits.append(path)
++            print(path)
++    return 0 if hits else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(sys.argv[1:]))
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ff3e81870f0378901f90546038ea91a6a6f2bb4
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+codex
+Full verification is clean: `71 passed` under pytest, the repository-mandated direct engine run passed `63/63`, and whitespace checks reported no errors. The plan itself selects a local Task 3 commit; publication/push is deliberately deferred to Task 13, after the later hook/orchestrator work and the full 0.3.0 release gate. I’m staging only the two requested files for an exact cached-diff review.
+diff --git a/engine/voicepaths.py b/engine/voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2e298245767160e8c2cfe001ddc57bea92bb8c45
+--- /dev/null
++++ b/engine/voicepaths.py
+@@ -0,0 +1,78 @@
++#!/usr/bin/env python3
++"""voicepaths: parse a repo's .voicepaths declaration and match files against it."""
++
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++
++def _glob_to_re(glob: str) -> re.Pattern:
++    out, i = [], 0
++    while i < len(glob):
++        c = glob[i]
++        if glob[i : i + 3] == "**/":
++            out.append("(?:.+/)?")
++            i += 3
++        elif glob[i : i + 2] == "**":
++            out.append(".*")
++            i += 2
++        elif c == "*":
++            out.append("[^/]*")
++            i += 1
++        elif c == "?":
++            out.append("[^/]")
++            i += 1
++        else:
++            out.append(re.escape(c))
++            i += 1
++    return re.compile("^" + "".join(out) + "$")
++
++
++def load(root: str | Path) -> dict:
++    p = Path(root) / ".voicepaths"
++    cfg = {"register": None, "style": None, "globs": [], "patterns": []}
++    if not p.is_file():
++        return cfg
++
++    for raw in p.read_text(encoding="utf-8").splitlines():
++        line = raw.strip()
++        if not line or line.startswith("#"):
++            continue
++        if ":" in line and not any(
++            ch in line.split(":", 1)[0] for ch in "*/?."
++        ):
++            key, val = (s.strip() for s in line.split(":", 1))
++            if key in ("register", "style"):
++                cfg[key] = val
++                continue
++        cfg["globs"].append(line)
++        cfg["patterns"].append(_glob_to_re(line))
++    return cfg
++
++
++def match(root: str | Path, path: str | Path) -> bool:
++    cfg = load(root)
++    try:
++        rel = Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
++    except ValueError:
++        return False
++    return any(pattern.match(rel) for pattern in cfg["patterns"])
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) < 3 or argv[0] != "match":
++        print("usage: voicepaths.py match <root> <path>...", file=sys.stderr)
++        return 2
++
++    root, hits = argv[1], []
++    for path in argv[2:]:
++        if match(root, path):
++            hits.append(path)
++            print(path)
++    return 0 if hits else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(sys.argv[1:]))
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ff3e81870f0378901f90546038ea91a6a6f2bb4
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+exec
+/bin/zsh -lc 'git add engine/voicepaths.py tests/test_voicepaths.py && git diff --cached --check && git diff --cached --stat && git diff --cached -- engine/voicepaths.py tests/test_voicepaths.py' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 0ms:
+ engine/voicepaths.py     |  78 ++++++++++++++++++++++++++++++++
+ tests/test_voicepaths.py | 115 +++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 193 insertions(+)
+diff --git a/engine/voicepaths.py b/engine/voicepaths.py
+new file mode 100644
+index 0000000..2e29824
+--- /dev/null
++++ b/engine/voicepaths.py
+@@ -0,0 +1,78 @@
++#!/usr/bin/env python3
++"""voicepaths: parse a repo's .voicepaths declaration and match files against it."""
++
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++
++def _glob_to_re(glob: str) -> re.Pattern:
++    out, i = [], 0
++    while i < len(glob):
++        c = glob[i]
++        if glob[i : i + 3] == "**/":
++            out.append("(?:.+/)?")
++            i += 3
++        elif glob[i : i + 2] == "**":
++            out.append(".*")
++            i += 2
++        elif c == "*":
++            out.append("[^/]*")
++            i += 1
++        elif c == "?":
++            out.append("[^/]")
++            i += 1
++        else:
++            out.append(re.escape(c))
++            i += 1
++    return re.compile("^" + "".join(out) + "$")
++
++
++def load(root: str | Path) -> dict:
++    p = Path(root) / ".voicepaths"
++    cfg = {"register": None, "style": None, "globs": [], "patterns": []}
++    if not p.is_file():
++        return cfg
++
++    for raw in p.read_text(encoding="utf-8").splitlines():
++        line = raw.strip()
++        if not line or line.startswith("#"):
++            continue
++        if ":" in line and not any(
++            ch in line.split(":", 1)[0] for ch in "*/?."
++        ):
++            key, val = (s.strip() for s in line.split(":", 1))
++            if key in ("register", "style"):
++                cfg[key] = val
++                continue
++        cfg["globs"].append(line)
++        cfg["patterns"].append(_glob_to_re(line))
++    return cfg
++
++
++def match(root: str | Path, path: str | Path) -> bool:
++    cfg = load(root)
++    try:
++        rel = Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
++    except ValueError:
++        return False
++    return any(pattern.match(rel) for pattern in cfg["patterns"])
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) < 3 or argv[0] != "match":
++        print("usage: voicepaths.py match <root> <path>...", file=sys.stderr)
++        return 2
++
++    root, hits = argv[1], []
++    for path in argv[2:]:
++        if match(root, path):
++            hits.append(path)
++            print(path)
++    return 0 if hits else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(sys.argv[1:]))
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000..3ff3e81
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+diff --git a/engine/voicepaths.py b/engine/voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2e298245767160e8c2cfe001ddc57bea92bb8c45
+--- /dev/null
++++ b/engine/voicepaths.py
+@@ -0,0 +1,78 @@
++#!/usr/bin/env python3
++"""voicepaths: parse a repo's .voicepaths declaration and match files against it."""
++
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++
++def _glob_to_re(glob: str) -> re.Pattern:
++    out, i = [], 0
++    while i < len(glob):
++        c = glob[i]
++        if glob[i : i + 3] == "**/":
++            out.append("(?:.+/)?")
++            i += 3
++        elif glob[i : i + 2] == "**":
++            out.append(".*")
++            i += 2
++        elif c == "*":
++            out.append("[^/]*")
++            i += 1
++        elif c == "?":
++            out.append("[^/]")
++            i += 1
++        else:
++            out.append(re.escape(c))
++            i += 1
++    return re.compile("^" + "".join(out) + "$")
++
++
++def load(root: str | Path) -> dict:
++    p = Path(root) / ".voicepaths"
++    cfg = {"register": None, "style": None, "globs": [], "patterns": []}
++    if not p.is_file():
++        return cfg
++
++    for raw in p.read_text(encoding="utf-8").splitlines():
++        line = raw.strip()
++        if not line or line.startswith("#"):
++            continue
++        if ":" in line and not any(
++            ch in line.split(":", 1)[0] for ch in "*/?."
++        ):
++            key, val = (s.strip() for s in line.split(":", 1))
++            if key in ("register", "style"):
++                cfg[key] = val
++                continue
++        cfg["globs"].append(line)
++        cfg["patterns"].append(_glob_to_re(line))
++    return cfg
++
++
++def match(root: str | Path, path: str | Path) -> bool:
++    cfg = load(root)
++    try:
++        rel = Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
++    except ValueError:
++        return False
++    return any(pattern.match(rel) for pattern in cfg["patterns"])
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) < 3 or argv[0] != "match":
++        print("usage: voicepaths.py match <root> <path>...", file=sys.stderr)
++        return 2
++
++    root, hits = argv[1], []
++    for path in argv[2:]:
++        if match(root, path):
++            hits.append(path)
++            print(path)
++    return 0 if hits else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(sys.argv[1:]))
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ff3e81870f0378901f90546038ea91a6a6f2bb4
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+apply patch
+patch: completed
+/tmp/intervox-task3-commit-message.txt
+diff --git a//tmp/intervox-task3-commit-message.txt b//tmp/intervox-task3-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..0972ce94bac22c3e473402ff99eb76e5f17834f7
+--- /dev/null
++++ b//tmp/intervox-task3-commit-message.txt
+@@ -0,0 +1 @@
++feat: voicepaths declaration module (.voicepaths parser + matcher)
+diff --git a/engine/voicepaths.py b/engine/voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2e298245767160e8c2cfe001ddc57bea92bb8c45
+--- /dev/null
++++ b/engine/voicepaths.py
+@@ -0,0 +1,78 @@
++#!/usr/bin/env python3
++"""voicepaths: parse a repo's .voicepaths declaration and match files against it."""
++
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++
++def _glob_to_re(glob: str) -> re.Pattern:
++    out, i = [], 0
++    while i < len(glob):
++        c = glob[i]
++        if glob[i : i + 3] == "**/":
++            out.append("(?:.+/)?")
++            i += 3
++        elif glob[i : i + 2] == "**":
++            out.append(".*")
++            i += 2
++        elif c == "*":
++            out.append("[^/]*")
++            i += 1
++        elif c == "?":
++            out.append("[^/]")
++            i += 1
++        else:
++            out.append(re.escape(c))
++            i += 1
++    return re.compile("^" + "".join(out) + "$")
++
++
++def load(root: str | Path) -> dict:
++    p = Path(root) / ".voicepaths"
++    cfg = {"register": None, "style": None, "globs": [], "patterns": []}
++    if not p.is_file():
++        return cfg
++
++    for raw in p.read_text(encoding="utf-8").splitlines():
++        line = raw.strip()
++        if not line or line.startswith("#"):
++            continue
++        if ":" in line and not any(
++            ch in line.split(":", 1)[0] for ch in "*/?."
++        ):
++            key, val = (s.strip() for s in line.split(":", 1))
++            if key in ("register", "style"):
++                cfg[key] = val
++                continue
++        cfg["globs"].append(line)
++        cfg["patterns"].append(_glob_to_re(line))
++    return cfg
++
++
++def match(root: str | Path, path: str | Path) -> bool:
++    cfg = load(root)
++    try:
++        rel = Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
++    except ValueError:
++        return False
++    return any(pattern.match(rel) for pattern in cfg["patterns"])
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) < 3 or argv[0] != "match":
++        print("usage: voicepaths.py match <root> <path>...", file=sys.stderr)
++        return 2
++
++    root, hits = argv[1], []
++    for path in argv[2:]:
++        if match(root, path):
++            hits.append(path)
++            print(path)
++    return 0 if hits else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(sys.argv[1:]))
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ff3e81870f0378901f90546038ea91a6a6f2bb4
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+diff --git a//tmp/intervox-task3-commit-message.txt b//tmp/intervox-task3-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..0972ce94bac22c3e473402ff99eb76e5f17834f7
+--- /dev/null
++++ b//tmp/intervox-task3-commit-message.txt
+@@ -0,0 +1 @@
++feat: voicepaths declaration module (.voicepaths parser + matcher)
+diff --git a/engine/voicepaths.py b/engine/voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2e298245767160e8c2cfe001ddc57bea92bb8c45
+--- /dev/null
++++ b/engine/voicepaths.py
+@@ -0,0 +1,78 @@
++#!/usr/bin/env python3
++"""voicepaths: parse a repo's .voicepaths declaration and match files against it."""
++
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++
++def _glob_to_re(glob: str) -> re.Pattern:
++    out, i = [], 0
++    while i < len(glob):
++        c = glob[i]
++        if glob[i : i + 3] == "**/":
++            out.append("(?:.+/)?")
++            i += 3
++        elif glob[i : i + 2] == "**":
++            out.append(".*")
++            i += 2
++        elif c == "*":
++            out.append("[^/]*")
++            i += 1
++        elif c == "?":
++            out.append("[^/]")
++            i += 1
++        else:
++            out.append(re.escape(c))
++            i += 1
++    return re.compile("^" + "".join(out) + "$")
++
++
++def load(root: str | Path) -> dict:
++    p = Path(root) / ".voicepaths"
++    cfg = {"register": None, "style": None, "globs": [], "patterns": []}
++    if not p.is_file():
++        return cfg
++
++    for raw in p.read_text(encoding="utf-8").splitlines():
++        line = raw.strip()
++        if not line or line.startswith("#"):
++            continue
++        if ":" in line and not any(
++            ch in line.split(":", 1)[0] for ch in "*/?."
++        ):
++            key, val = (s.strip() for s in line.split(":", 1))
++            if key in ("register", "style"):
++                cfg[key] = val
++                continue
++        cfg["globs"].append(line)
++        cfg["patterns"].append(_glob_to_re(line))
++    return cfg
++
++
++def match(root: str | Path, path: str | Path) -> bool:
++    cfg = load(root)
++    try:
++        rel = Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
++    except ValueError:
++        return False
++    return any(pattern.match(rel) for pattern in cfg["patterns"])
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) < 3 or argv[0] != "match":
++        print("usage: voicepaths.py match <root> <path>...", file=sys.stderr)
++        return 2
++
++    root, hits = argv[1], []
++    for path in argv[2:]:
++        if match(root, path):
++            hits.append(path)
++            print(path)
++    return 0 if hits else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(sys.argv[1:]))
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ff3e81870f0378901f90546038ea91a6a6f2bb4
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+exec
+/bin/zsh -lc 'git commit -F /tmp/intervox-task3-commit-message.txt -- engine/voicepaths.py tests/test_voicepaths.py' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 1097ms:
+[main a8845cc] feat: voicepaths declaration module (.voicepaths parser + matcher)
+ 2 files changed, 193 insertions(+)
+ create mode 100644 engine/voicepaths.py
+ create mode 100644 tests/test_voicepaths.py
+
+diff --git a//tmp/intervox-task3-commit-message.txt b//tmp/intervox-task3-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..0972ce94bac22c3e473402ff99eb76e5f17834f7
+--- /dev/null
++++ b//tmp/intervox-task3-commit-message.txt
+@@ -0,0 +1 @@
++feat: voicepaths declaration module (.voicepaths parser + matcher)
+diff --git a/engine/voicepaths.py b/engine/voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2e298245767160e8c2cfe001ddc57bea92bb8c45
+--- /dev/null
++++ b/engine/voicepaths.py
+@@ -0,0 +1,78 @@
++#!/usr/bin/env python3
++"""voicepaths: parse a repo's .voicepaths declaration and match files against it."""
++
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++
++def _glob_to_re(glob: str) -> re.Pattern:
++    out, i = [], 0
++    while i < len(glob):
++        c = glob[i]
++        if glob[i : i + 3] == "**/":
++            out.append("(?:.+/)?")
++            i += 3
++        elif glob[i : i + 2] == "**":
++            out.append(".*")
++            i += 2
++        elif c == "*":
++            out.append("[^/]*")
++            i += 1
++        elif c == "?":
++            out.append("[^/]")
++            i += 1
++        else:
++            out.append(re.escape(c))
++            i += 1
++    return re.compile("^" + "".join(out) + "$")
++
++
++def load(root: str | Path) -> dict:
++    p = Path(root) / ".voicepaths"
++    cfg = {"register": None, "style": None, "globs": [], "patterns": []}
++    if not p.is_file():
++        return cfg
++
++    for raw in p.read_text(encoding="utf-8").splitlines():
++        line = raw.strip()
++        if not line or line.startswith("#"):
++            continue
++        if ":" in line and not any(
++            ch in line.split(":", 1)[0] for ch in "*/?."
++        ):
++            key, val = (s.strip() for s in line.split(":", 1))
++            if key in ("register", "style"):
++                cfg[key] = val
++                continue
++        cfg["globs"].append(line)
++        cfg["patterns"].append(_glob_to_re(line))
++    return cfg
++
++
++def match(root: str | Path, path: str | Path) -> bool:
++    cfg = load(root)
++    try:
++        rel = Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
++    except ValueError:
++        return False
++    return any(pattern.match(rel) for pattern in cfg["patterns"])
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) < 3 or argv[0] != "match":
++        print("usage: voicepaths.py match <root> <path>...", file=sys.stderr)
++        return 2
++
++    root, hits = argv[1], []
++    for path in argv[2:]:
++        if match(root, path):
++            hits.append(path)
++            print(path)
++    return 0 if hits else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(sys.argv[1:]))
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ff3e81870f0378901f90546038ea91a6a6f2bb4
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+codex
+The staged review matches the plan exactly and the local commit is `a8845cc`. I’m doing the post-commit verification now because HEAD changed; this will re-run both the complete pytest suite and the repository’s direct engine test command, then confirm only the pre-existing `.clavain/` remains untracked.
+exec
+/bin/zsh -lc 'python3 -m pytest -q && python3 tests/test_engine.py && git status --short --branch && git show --stat --oneline --summary HEAD' in /Users/sma/projects/Sylveste/interverse/intervox
+ succeeded in 1731ms:
+.......................................................................  [100%]
+71 passed in 0.85s
+test_identical_vectors (__main__.TestCosineSimilarity.test_identical_vectors) ... ok
+test_orthogonal_vectors (__main__.TestCosineSimilarity.test_orthogonal_vectors) ... ok
+test_zero_vector_returns_zero (__main__.TestCosineSimilarity.test_zero_vector_returns_zero) ... ok
+test_catastrophic_divergence_still_fails (__main__.TestDistributionalAdvisoryBand.test_catastrophic_divergence_still_fails) ... ok
+test_moderate_divergence_warns_not_fails (__main__.TestDistributionalAdvisoryBand.test_moderate_divergence_warns_not_fails) ... ok
+test_capital_i_counted (__main__.TestFirstPersonCounter.test_capital_i_counted) ... ok
+test_at_most_two_non_ok_features (__main__.TestLintCleanDraft.test_at_most_two_non_ok_features) ... ok
+test_all_19_features_present (__main__.TestLintSloppyDraft.test_all_19_features_present) ... ok
+test_at_least_six_features_flagged (__main__.TestLintSloppyDraft.test_at_least_six_features_flagged) ... ok
+test_burstiness_warn_or_fail (__main__.TestLintSloppyDraft.test_burstiness_warn_or_fail) ... ok
+test_chat_artifacts_fail (__main__.TestLintSloppyDraft.test_chat_artifacts_fail) ... ok
+test_em_dash_density_warn_or_fail (__main__.TestLintSloppyDraft.test_em_dash_density_warn_or_fail) ... ok
+test_rule_of_three_warn_or_fail (__main__.TestLintSloppyDraft.test_rule_of_three_warn_or_fail) ... ok
+test_slop_lexemes_fail (__main__.TestLintSloppyDraft.test_slop_lexemes_fail) ... ok
+test_table_format_renders (__main__.TestLintSloppyDraft.test_table_format_renders) ... ok
+test_fragment_classification (__main__.TestMarkdownAndSentences.test_fragment_classification) ... ok
+test_inline_backticks_keep_content_minus_backticks (__main__.TestMarkdownAndSentences.test_inline_backticks_keep_content_minus_backticks) ... ok
+test_sentence_split_basic (__main__.TestMarkdownAndSentences.test_sentence_split_basic) ... ok
+test_sentence_split_protects_abbreviations (__main__.TestMarkdownAndSentences.test_sentence_split_protects_abbreviations) ... ok
+test_strip_markdown_code_fence_removed (__main__.TestMarkdownAndSentences.test_strip_markdown_code_fence_removed) ... ok
+test_strip_markdown_removes_syntax_keeps_paragraphs (__main__.TestMarkdownAndSentences.test_strip_markdown_removes_syntax_keeps_paragraphs) ... ok
+test_blocks_cannot_merge (__main__.TestMarkdownBlockTermination.test_blocks_cannot_merge) ... ok
+test_frontmatter_stripped (__main__.TestMarkdownBlockTermination.test_frontmatter_stripped) ... ok
+test_mattr_full_diversity (__main__.TestMattr.test_mattr_full_diversity) ... ok
+test_mattr_no_diversity (__main__.TestMattr.test_mattr_no_diversity) ... ok
+test_mattr_short_text_fallback (__main__.TestMattr.test_mattr_short_text_fallback) ... ok
+test_chatty_fixture_scores_oral (__main__.TestOralityAxis.test_chatty_fixture_scores_oral) ... ok
+test_determinism (__main__.TestOralityAxis.test_determinism) ... ok
+test_formal_fixture_scores_literate (__main__.TestOralityAxis.test_formal_fixture_scores_literate) ... ok
+test_lint_skips_feature_19_against_baseline_without_orality_block (__main__.TestOralityAxis.test_lint_skips_feature_19_against_baseline_without_orality_block) ... ok
+test_orality_drift_never_fails_even_with_extreme_drift (__main__.TestOralityAxis.test_orality_drift_never_fails_even_with_extreme_drift) ... ok
+test_char_trigrams_top_200 (__main__.TestProfileSchema.test_char_trigrams_top_200) ... ok
+test_connectives_scan_list (__main__.TestProfileSchema.test_connectives_scan_list) ... ok
+test_constructions_keys (__main__.TestProfileSchema.test_constructions_keys) ... ok
+test_copula_keys (__main__.TestProfileSchema.test_copula_keys) ... ok
+test_fingerprint_meta_via_cli (__main__.TestProfileSchema.test_fingerprint_meta_via_cli) ... ok
+test_function_words_list (__main__.TestProfileSchema.test_function_words_list) ... ok
+test_lexical_mattr_key (__main__.TestProfileSchema.test_lexical_mattr_key) ... ok
+test_per_1k_keys (__main__.TestProfileSchema.test_per_1k_keys) ... ok
+test_punct_per_1k_keys (__main__.TestProfileSchema.test_punct_per_1k_keys) ... ok
+test_sentence_rhythm_keys (__main__.TestProfileSchema.test_sentence_rhythm_keys) ... ok
+test_slop_keys (__main__.TestProfileSchema.test_slop_keys) ... ok
+test_top_level_keys (__main__.TestProfileSchema.test_top_level_keys) ... ok
+test_prose_and_long_list_items_kept (__main__.TestProseExtraction.test_prose_and_long_list_items_kept) ... ok
+test_structured_doc_skips_distributional_features (__main__.TestProseExtraction.test_structured_doc_skips_distributional_features) ... ok
+test_table_invariance_of_distributions (__main__.TestProseExtraction.test_table_invariance_of_distributions) ... ok
+test_tables_headings_fragments_dropped (__main__.TestProseExtraction.test_tables_headings_fragments_dropped) ... ok
+test_parses_inline_profile_fixture (__main__.TestRegisters.test_parses_inline_profile_fixture) ... ok
+test_registers_cli (__main__.TestRegisters.test_registers_cli) ... ok
+test_chunk_paragraphs_merges_short (__main__.TestRetrieve.test_chunk_paragraphs_merges_short) ... ok
+test_retrieve_cli_returns_json (__main__.TestRetrieve.test_retrieve_cli_returns_json) ... ok
+test_retrieve_k_results_descending (__main__.TestRetrieve.test_retrieve_k_results_descending) ... ok
+test_hard_fail_forces_reject (__main__.TestScoreAndVerdict.test_hard_fail_forces_reject) ... ok
+test_score_starts_at_100_and_floors_at_0 (__main__.TestScoreAndVerdict.test_score_starts_at_100_and_floors_at_0) ... ok
+test_skipped_excluded_from_score (__main__.TestScoreAndVerdict.test_skipped_excluded_from_score) ... ok
+test_slop_fail_alone_does_not_hard_reject (__main__.TestScoreAndVerdict.test_slop_fail_alone_does_not_hard_reject) ... ok
+test_chat_artifact_detected (__main__.TestSlopLexicon.test_chat_artifact_detected) ... ok
+test_clean_text_no_hits (__main__.TestSlopLexicon.test_clean_text_no_hits) ... ok
+test_lexicon_override_removes_and_adds (__main__.TestSlopLexicon.test_lexicon_override_removes_and_adds) ... ok
+test_tier1_lexeme_hit (__main__.TestSlopLexicon.test_tier1_lexeme_hit) ... ok
+test_tier2_phrase_hit (__main__.TestSlopLexicon.test_tier2_phrase_hit) ... ok
+test_verify_clean_exits_0 (__main__.TestVerifySubprocess.test_verify_clean_exits_0) ... ok
+test_verify_sloppy_exits_2 (__main__.TestVerifySubprocess.test_verify_sloppy_exits_2) ... ok
+
+----------------------------------------------------------------------
+Ran 63 tests in 0.550s
+
+OK
+## main...origin/main [ahead 1]
+?? .clavain/
+a8845cc feat: voicepaths declaration module (.voicepaths parser + matcher)
+ engine/voicepaths.py     |  78 ++++++++++++++++++++++++++++++++
+ tests/test_voicepaths.py | 115 +++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 193 insertions(+)
+ create mode 100644 engine/voicepaths.py
+ create mode 100644 tests/test_voicepaths.py
+
+diff --git a//tmp/intervox-task3-commit-message.txt b//tmp/intervox-task3-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..0972ce94bac22c3e473402ff99eb76e5f17834f7
+--- /dev/null
++++ b//tmp/intervox-task3-commit-message.txt
+@@ -0,0 +1 @@
++feat: voicepaths declaration module (.voicepaths parser + matcher)
+diff --git a/engine/voicepaths.py b/engine/voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2e298245767160e8c2cfe001ddc57bea92bb8c45
+--- /dev/null
++++ b/engine/voicepaths.py
+@@ -0,0 +1,78 @@
++#!/usr/bin/env python3
++"""voicepaths: parse a repo's .voicepaths declaration and match files against it."""
++
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++
++def _glob_to_re(glob: str) -> re.Pattern:
++    out, i = [], 0
++    while i < len(glob):
++        c = glob[i]
++        if glob[i : i + 3] == "**/":
++            out.append("(?:.+/)?")
++            i += 3
++        elif glob[i : i + 2] == "**":
++            out.append(".*")
++            i += 2
++        elif c == "*":
++            out.append("[^/]*")
++            i += 1
++        elif c == "?":
++            out.append("[^/]")
++            i += 1
++        else:
++            out.append(re.escape(c))
++            i += 1
++    return re.compile("^" + "".join(out) + "$")
++
++
++def load(root: str | Path) -> dict:
++    p = Path(root) / ".voicepaths"
++    cfg = {"register": None, "style": None, "globs": [], "patterns": []}
++    if not p.is_file():
++        return cfg
++
++    for raw in p.read_text(encoding="utf-8").splitlines():
++        line = raw.strip()
++        if not line or line.startswith("#"):
++            continue
++        if ":" in line and not any(
++            ch in line.split(":", 1)[0] for ch in "*/?."
++        ):
++            key, val = (s.strip() for s in line.split(":", 1))
++            if key in ("register", "style"):
++                cfg[key] = val
++                continue
++        cfg["globs"].append(line)
++        cfg["patterns"].append(_glob_to_re(line))
++    return cfg
++
++
++def match(root: str | Path, path: str | Path) -> bool:
++    cfg = load(root)
++    try:
++        rel = Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
++    except ValueError:
++        return False
++    return any(pattern.match(rel) for pattern in cfg["patterns"])
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) < 3 or argv[0] != "match":
++        print("usage: voicepaths.py match <root> <path>...", file=sys.stderr)
++        return 2
++
++    root, hits = argv[1], []
++    for path in argv[2:]:
++        if match(root, path):
++            hits.append(path)
++            print(path)
++    return 0 if hits else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(sys.argv[1:]))
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ff3e81870f0378901f90546038ea91a6a6f2bb4
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+codex
+VERDICT: CLEAN  
+FILES_CHANGED: [engine/voicepaths.py, tests/test_voicepaths.py]
+
+Committed as `a8845cc`. Verification: 71 pytest tests and 63 direct engine tests passed.
+diff --git a//tmp/intervox-task3-commit-message.txt b//tmp/intervox-task3-commit-message.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..0972ce94bac22c3e473402ff99eb76e5f17834f7
+--- /dev/null
++++ b//tmp/intervox-task3-commit-message.txt
+@@ -0,0 +1 @@
++feat: voicepaths declaration module (.voicepaths parser + matcher)
+diff --git a/engine/voicepaths.py b/engine/voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2e298245767160e8c2cfe001ddc57bea92bb8c45
+--- /dev/null
++++ b/engine/voicepaths.py
+@@ -0,0 +1,78 @@
++#!/usr/bin/env python3
++"""voicepaths: parse a repo's .voicepaths declaration and match files against it."""
++
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++
++def _glob_to_re(glob: str) -> re.Pattern:
++    out, i = [], 0
++    while i < len(glob):
++        c = glob[i]
++        if glob[i : i + 3] == "**/":
++            out.append("(?:.+/)?")
++            i += 3
++        elif glob[i : i + 2] == "**":
++            out.append(".*")
++            i += 2
++        elif c == "*":
++            out.append("[^/]*")
++            i += 1
++        elif c == "?":
++            out.append("[^/]")
++            i += 1
++        else:
++            out.append(re.escape(c))
++            i += 1
++    return re.compile("^" + "".join(out) + "$")
++
++
++def load(root: str | Path) -> dict:
++    p = Path(root) / ".voicepaths"
++    cfg = {"register": None, "style": None, "globs": [], "patterns": []}
++    if not p.is_file():
++        return cfg
++
++    for raw in p.read_text(encoding="utf-8").splitlines():
++        line = raw.strip()
++        if not line or line.startswith("#"):
++            continue
++        if ":" in line and not any(
++            ch in line.split(":", 1)[0] for ch in "*/?."
++        ):
++            key, val = (s.strip() for s in line.split(":", 1))
++            if key in ("register", "style"):
++                cfg[key] = val
++                continue
++        cfg["globs"].append(line)
++        cfg["patterns"].append(_glob_to_re(line))
++    return cfg
++
++
++def match(root: str | Path, path: str | Path) -> bool:
++    cfg = load(root)
++    try:
++        rel = Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
++    except ValueError:
++        return False
++    return any(pattern.match(rel) for pattern in cfg["patterns"])
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) < 3 or argv[0] != "match":
++        print("usage: voicepaths.py match <root> <path>...", file=sys.stderr)
++        return 2
++
++    root, hits = argv[1], []
++    for path in argv[2:]:
++        if match(root, path):
++            hits.append(path)
++            print(path)
++    return 0 if hits else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main(sys.argv[1:]))
+diff --git a/tests/test_voicepaths.py b/tests/test_voicepaths.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3ff3e81870f0378901f90546038ea91a6a6f2bb4
+--- /dev/null
++++ b/tests/test_voicepaths.py
+@@ -0,0 +1,115 @@
++#!/usr/bin/env python3
++"""Tests for .voicepaths declaration parsing and path matching."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++import pytest
++
++ENGINE_DIR = Path(__file__).resolve().parent.parent / "engine"
++VOICEPATHS_CLI = ENGINE_DIR / "voicepaths.py"
++
++sys.path.insert(0, str(ENGINE_DIR))
++import voicepaths  # noqa: E402
++
++
++@pytest.fixture
++def declared_repo(tmp_path: Path) -> Path:
++    (tmp_path / ".voicepaths").write_text(
++        """\
++# .voicepaths -- declared voice-carrying paths
++register: gsv-site
++style: GSV
++src/content/**/*.md
++src/pages/**/*.astro
++""",
++        encoding="utf-8",
++    )
++    return tmp_path
++
++
++def test_load_parses_metadata_and_globs(declared_repo: Path) -> None:
++    config = voicepaths.load(declared_repo)
++
++    assert config["register"] == "gsv-site"
++    assert config["style"] == "GSV"
++    assert config["globs"] == [
++        "src/content/**/*.md",
++        "src/pages/**/*.astro",
++    ]
++    assert len(config["patterns"]) == 2
++
++
++def test_match_accepts_declared_nested_path(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/a/b.md")
++
++
++def test_match_rejects_undeclared_path(declared_repo: Path) -> None:
++    assert not voicepaths.match(declared_repo, declared_repo / "src/lib/x.ts")
++
++
++def test_double_star_can_span_zero_directories(declared_repo: Path) -> None:
++    assert voicepaths.match(declared_repo, declared_repo / "src/content/post.md")
++
++
++def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
++    config = voicepaths.load(tmp_path)
++
++    assert config == {
++        "register": None,
++        "style": None,
++        "globs": [],
++        "patterns": [],
++    }
++    assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
++
++
++def test_match_rejects_path_outside_root(declared_repo: Path, tmp_path: Path) -> None:
++    outside = tmp_path.parent / "outside.md"
++
++    assert not voicepaths.match(declared_repo, outside)
++
++
++def test_cli_prints_only_matching_paths(declared_repo: Path) -> None:
++    matching = declared_repo / "src/content/a/b.md"
++    other = declared_repo / "src/lib/x.ts"
++
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(matching),
++            str(other),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 0
++    assert result.stdout.splitlines() == [str(matching)]
++    assert result.stderr == ""
++
++
++def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
++    result = subprocess.run(
++        [
++            sys.executable,
++            str(VOICEPATHS_CLI),
++            "match",
++            str(declared_repo),
++            str(declared_repo / "src/lib/x.ts"),
++        ],
++        capture_output=True,
++        text=True,
++        check=False,
++    )
++
++    assert result.returncode == 1
++    assert result.stdout == ""
++    assert result.stderr == ""
+
+tokens used
+72,036
+Warning: dispatch surfaced codex error — verdict overridden: ERROR tests/test_voicepaths.py

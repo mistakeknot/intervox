@@ -1,0 +1,24 @@
+{
+  "task": "task-7",
+  "title": "Vale GSV style canonical copy to gsvdotcom",
+  "tier": "deep",
+  "cmd": [
+    "bash",
+    "/Users/sma/.claude/plugins/cache/interagency-marketplace/clavain/0.6.295/scripts/dispatch.sh",
+    "--prompt-file",
+    "/Users/sma/projects/Sylveste/interverse/intervox/.clavain/orchestrate-runs/472b1a32/task-7/prompt.md",
+    "-C",
+    "/Users/sma/projects/Sylveste/interverse/intervox",
+    "-o",
+    "/Users/sma/projects/Sylveste/interverse/intervox/.clavain/orchestrate-runs/472b1a32/task-7/output.md",
+    "--tier",
+    "deep",
+    "-s",
+    "workspace-write"
+  ],
+  "returncode": 0,
+  "timed_out": false,
+  "duration_s": 368.7,
+  "status": "warn",
+  "note": null
+}
