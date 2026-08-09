@@ -62,7 +62,7 @@ def load(root: str | Path) -> dict:
             ch in line.split(":", 1)[0] for ch in "*/?."
         ):
             key, val = (s.strip() for s in line.split(":", 1))
-            if key in ("register", "style"):
+            if key in ("register", "style", "gate"):
                 cfg[key] = val
                 continue
         cfg["globs"].append(line)
