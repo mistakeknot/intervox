@@ -690,7 +690,13 @@ class TestSingleDraftCalibration(unittest.TestCase):
         self.assertAlmostEqual(scores["lexeme_hits_per_1k"], expected, places=6)
 
     def test_connective_drift_skips_when_draft_uses_no_connectives(self):
-        draft_text = self._long_draft(em_dashes=0)  # no tracked connectives
+        # _long_draft's filler mentions "first"/"second" (tracked
+        # enumerators), so strip those sentences to get a draft with zero
+        # tracked connectives.
+        draft_text = " ".join(
+            s for s in self._long_draft(em_dashes=0).split(". ")
+            if "first" not in s and "second" not in s and "Second" not in s
+        )
         results = self._eval(draft_text, self.base)
         r = next(x for x in results if x["id"] == 16)
         self.assertEqual(r["status"], "skipped")
