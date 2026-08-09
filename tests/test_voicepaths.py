@@ -63,6 +63,7 @@ def test_missing_declaration_has_no_matches(tmp_path: Path) -> None:
         "style": None,
         "globs": [],
         "patterns": [],
+        "layers": [],
     }
     assert not voicepaths.match(tmp_path, tmp_path / "anything.md")
 
@@ -113,3 +114,56 @@ def test_cli_returns_one_when_no_paths_match(declared_repo: Path) -> None:
     assert result.returncode == 1
     assert result.stdout == ""
     assert result.stderr == ""
+
+
+@pytest.fixture
+def layered_repo(tmp_path: Path) -> Path:
+    (tmp_path / ".voicepaths").write_text(
+        """\
+register: gsv-site
+style: GSV
+src/content/**/*.md
+rules-only: docs/canon/*.md
+rules-only: README.md
+""",
+        encoding="utf-8",
+    )
+    return tmp_path
+
+
+def test_rules_only_lines_parse_as_globs_with_rules_layer(layered_repo: Path) -> None:
+    config = voicepaths.load(layered_repo)
+
+    assert config["globs"] == ["src/content/**/*.md", "docs/canon/*.md", "README.md"]
+    assert config["layers"] == ["full", "rules", "rules"]
+
+
+def test_match_layer_distinguishes_full_from_rules(layered_repo: Path) -> None:
+    assert voicepaths.match_layer(layered_repo, layered_repo / "src/content/projects/x.md") == "full"
+    assert voicepaths.match_layer(layered_repo, layered_repo / "docs/canon/copy-voice.md") == "rules"
+    assert voicepaths.match_layer(layered_repo, layered_repo / "src/lib/x.ts") is None
+
+
+def test_rules_only_paths_still_match_plain_match(layered_repo: Path) -> None:
+    assert voicepaths.match(layered_repo, layered_repo / "README.md")
+
+
+def test_cli_layer_full_filters_rules_only_paths(layered_repo: Path) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(VOICEPATHS_CLI),
+            "match",
+            "--layer=full",
+            str(layered_repo),
+            str(layered_repo / "src/content/projects/x.md"),
+            str(layered_repo / "docs/canon/copy-voice.md"),
+            str(layered_repo / "README.md"),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert result.stdout.splitlines() == [str(layered_repo / "src/content/projects/x.md")]
