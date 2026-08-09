@@ -1402,10 +1402,30 @@ def cmd_fingerprint(args: argparse.Namespace) -> int:
     return 0
 
 
+# Below this much flowing prose there is nothing to measure: frontmatter-only
+# collection entries and stub files otherwise verify an empty string and
+# collapse to a deterministic reject (dogfood: 65 gsvdotcom files, all
+# metrics 0.000). Vale still covers such files; the stylometric layer skips.
+MIN_VERIFY_PROSE_WORDS = 50
+
+
+def _skip_for_thin_prose(draft_internal: dict) -> int | None:
+    prose_wc = draft_internal.get("prose_word_count", draft_internal.get("word_count", 0))
+    return prose_wc if prose_wc < MIN_VERIFY_PROSE_WORDS else None
+
+
 def cmd_lint(args: argparse.Namespace) -> int:
     lexicon = load_lexicon_override(args.lexicon)
     baseline = _load_baseline(args.baseline)
     draft_profile, draft_internal = _profile_for_draft(args.draft, lexicon)
+    thin = _skip_for_thin_prose(draft_internal)
+    if thin is not None:
+        msg = f"intervox: skipped — {thin}w of flowing prose (floor {MIN_VERIFY_PROSE_WORDS}w); nothing to measure."
+        if args.format == "json":
+            print(json.dumps({"verdict": "skip", "note": msg}, indent=2))
+        else:
+            print(msg)
+        return 0
     results = evaluate_lint(draft_profile, draft_internal, baseline)
 
     if args.format == "json":
