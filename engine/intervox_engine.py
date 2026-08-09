@@ -989,13 +989,17 @@ def evaluate_lint(draft_profile: dict, draft_internal: dict, baseline: dict) -> 
         hint = f"Punctuation-interval burstiness: SD {dv_pi:.2f} vs baseline {bv_pi:.2f} (ratio {ratio:.2f}) — vary the gaps between punctuation marks."
     results.append(_feature_result(14, "punct_interval_burstiness", dv_pi, bv_pi, ratio, status, hint))
 
-    # 15. paragraph_uniformity
+    # 15. paragraph_uniformity — the scaffold-marker check is a lexical tell
+    # and stays on at any length; only the CV-ratio comparison is a rhythm
+    # statistic and gates on the prose floor.
     dv_cv = draft_profile["paragraphs"]["cv"]
-    bv_cv = baseline["paragraphs"]["cv"]
+    bv_cv = per_file.get("paragraph_cv_median") or baseline["paragraphs"]["cv"]
     ratio = dv_cv / bv_cv if bv_cv else 1.0
     scaffold_found = bool(SCAFFOLD_MARKERS_RE.search(draft_internal["cleaned_text"]))
     if scaffold_found:
         status = "fail"
+    elif not rhythm_ready:
+        status = "skipped"
     else:
         status = "warn" if ratio < 0.6 else "ok"
     hint = f"Paragraph uniformity: CV {dv_cv:.2f} vs baseline {bv_cv:.2f}"
