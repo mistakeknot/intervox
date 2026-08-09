@@ -80,6 +80,34 @@ rules_only_output="$(XDG_CONFIG_HOME="$CONFIG" "$VOICE_CHECK" --gate --root "$LA
 full_layer_output="$(XDG_CONFIG_HOME="$CONFIG" "$VOICE_CHECK" --gate --root "$LAYERED_REPO" "$LAYERED_REPO/copy.md")"
 [[ "$full_layer_output" == *'intervox verify'* ]]
 
+# "gate: strict" makes verify exit 1 (revise) block; the default gate lets
+# it pass. A stub engine pins the exit code so the scenario is deterministic
+# across engine recalibrations.
+STRICT_REPO="$TMP_DIR/strict"
+mkdir -p "$STRICT_REPO" "$TMP_DIR/stub"
+cp "$FIXTURES/clean-draft.md" "$STRICT_REPO/copy.md"
+printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  'printf '\''%s\n'\'' '\''{"verdict": "revise", "score": 70}'\''' \
+  'exit 1' >"$TMP_DIR/stub/intervox"
+chmod +x "$TMP_DIR/stub/intervox"
+
+printf '%s\n' '*.md' >"$STRICT_REPO/.voicepaths"
+set +e
+default_revise_output="$(INTERVOX_ENGINE="$TMP_DIR/stub/intervox" XDG_CONFIG_HOME="$CONFIG" "$VOICE_CHECK" --gate --root "$STRICT_REPO" "$STRICT_REPO/copy.md" 2>&1)"
+default_revise_status=$?
+set -e
+[[ $default_revise_status -eq 0 ]]
+[[ "$default_revise_output" == *'"verdict": "revise"'* ]]
+
+printf '%s\n' 'gate: strict' '*.md' >"$STRICT_REPO/.voicepaths"
+set +e
+strict_revise_output="$(INTERVOX_ENGINE="$TMP_DIR/stub/intervox" XDG_CONFIG_HOME="$CONFIG" "$VOICE_CHECK" --gate --root "$STRICT_REPO" "$STRICT_REPO/copy.md" 2>&1)"
+strict_revise_status=$?
+set -e
+[[ $strict_revise_status -eq 2 ]]
+[[ "$strict_revise_output" == *'revise blocks under gate: strict'* ]]
+
 # Non-markdown files never reach the stylometric layer even at full layer.
 ASTRO_REPO="$TMP_DIR/astro"
 mkdir -p "$ASTRO_REPO"
