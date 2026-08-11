@@ -59,6 +59,21 @@ fi
 
 [[ ${#files[@]} -gt 0 ]] || { usage; exit 2; }
 
+# A file argument containing a newline is never a real path in this estate —
+# it is a file LIST that arrived as one argument (the original incident: zsh
+# does not word-split unquoted $var, so `voice-check $changed` passed the whole
+# newline-joined `git diff --name-only` output as a single arg, matched
+# nothing, and exited 0: a false-green gate). Unconditional, because no caller
+# can mean this.
+for file in "${files[@]}"; do
+  if [[ "$file" == *$'\n'* ]]; then
+    echo "voice-check: INVOCATION ERROR — a file argument contains a newline" >&2
+    echo "  (a whole file list arrived as one argument; pass one path per" >&2
+    echo "  argument, e.g. via \"\${files[@]}\" or xargs, not an unquoted \$var)" >&2
+    exit 3
+  fi
+done
+
 if [[ -z "$root" ]]; then
   root="$(git rev-parse --show-toplevel 2>/dev/null || pwd -P)"
 fi
