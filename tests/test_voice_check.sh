@@ -116,4 +116,33 @@ printf '%s\n' '*.astro' >"$ASTRO_REPO/.voicepaths"
 astro_output="$(XDG_CONFIG_HOME="$CONFIG" "$VOICE_CHECK" --gate --root "$ASTRO_REPO" "$ASTRO_REPO/page.astro")"
 [[ "$astro_output" != *'intervox verify'* ]]
 
+# ── regression: the zsh unquoted-$var incident ──────────────────────────────
+# zsh does not word-split an unquoted $var, so `voice-check --gate $changed`
+# passed the whole newline-joined `git diff --name-only` output as ONE
+# argument. It matched nothing and the gate exited 0 — a false green over a
+# sloppy draft. A newline inside a file argument must now fail loudly (exit
+# 3), flag or no flag.
+joined_list="$REPO/sloppy.md"$'\n'"$REPO/clean.md"
+set +e
+joined_output="$(XDG_CONFIG_HOME="$CONFIG" "$VOICE_CHECK" --gate --root "$REPO" "$joined_list" 2>&1)"
+joined_status=$?
+set -e
+[[ $joined_status -eq 3 ]]
+[[ "$joined_output" == *'INVOCATION ERROR'* ]]
+
+# --require-match: explicit args resolving to zero declared voice files is an
+# invocation failure (exit 3), not a clean pass...
+set +e
+require_miss_output="$(XDG_CONFIG_HOME="$CONFIG" "$VOICE_CHECK" --gate --require-match --root "$REPO" "$REPO/notes.txt" 2>&1)"
+require_miss_status=$?
+set -e
+[[ $require_miss_status -eq 3 ]]
+[[ "$require_miss_output" == *'REQUIRE-MATCH FAILED'* ]]
+
+# ...while a matching file still passes clean under the flag...
+XDG_CONFIG_HOME="$CONFIG" "$VOICE_CHECK" --gate --require-match --root "$REPO" "$REPO/clean.md" >/dev/null
+
+# ...and WITHOUT the flag, undeclared files keep the legacy clean-pass exit 0
+# (already asserted above) so non-gate callers are unaffected.
+
 echo "voice-check tests passed"
