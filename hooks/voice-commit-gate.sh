@@ -56,11 +56,35 @@ while IFS= read -r matched_path; do
 done <<<"$matched_output"
 [[ ${#matched[@]} -gt 0 ]] || exit 0
 
-if report="$("$VOICE_CHECK" --gate --root "$root" "${matched[@]}" 2>&1)"; then
+# --require-match because this hook already matched the staged files against
+# .voicepaths: if voice-check now resolves zero of them, the two match passes
+# disagree (root mismatch, mangled list) and the prose was NOT checked — that
+# must block loudly, never read as a clean pass (exit 3, distinct from the
+# style verdict's 2).
+if report="$("$VOICE_CHECK" --gate --require-match --root "$root" "${matched[@]}" 2>&1)"; then
   status=0
 else
   status=$?
 fi
+
+if [[ $status -eq 3 ]]; then
+  printf '%s' "$report" | python3 -c '
+import json
+import sys
+
+report = sys.stdin.read()
+reason = (
+    "HOUSE-STYLE GATE INTERNAL ERROR: the gate matched staged voice files "
+    "but voice-check resolved none of them — the prose was NOT checked.\n"
+    + report
+    + "\nThis is an invocation bug, not a style verdict. Fix the gate "
+      "wiring, or use VOICEGATE=skip for a documented exception."
+)
+print(json.dumps({"decision": "block", "reason": reason}))
+'
+  exit 0
+fi
+
 [[ $status -eq 2 ]] || exit 0
 
 printf '%s' "$report" | python3 -c '
