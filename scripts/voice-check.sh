@@ -11,10 +11,11 @@ VOICEPATHS="$PROJECT_ROOT/engine/voicepaths.py"
 ENGINE="${INTERVOX_ENGINE:-$PROJECT_ROOT/engine/intervox}"
 
 usage() {
-  echo "usage: voice-check.sh [--gate] [--root <repo-root>] <file>..." >&2
+  echo "usage: voice-check.sh [--gate] [--require-match] [--root <repo-root>] <file>..." >&2
 }
 
 gate=0
+require_match=0
 root=""
 files=()
 
@@ -22,6 +23,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --gate)
       gate=1
+      shift
+      ;;
+    --require-match)
+      require_match=1
       shift
       ;;
     --root)
