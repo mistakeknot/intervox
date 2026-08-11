@@ -93,6 +93,16 @@ matched_output="$(python3 "$VOICEPATHS" match "$root" "${paths[@]}")"
 match_status=$?
 set -e
 if [[ $match_status -ne 0 ]]; then
+  # Zero declared matches. Without --require-match this is a legitimate clean
+  # pass (a code-only change list). WITH it, the caller asserted these args
+  # are voice files — zero matches means the invocation is broken (wrong
+  # --root, mangled list, stale declaration), not that the prose is clean.
+  # Exit 3, distinct from the gate's style verdict (2).
+  if [[ $require_match -eq 1 ]]; then
+    echo "voice-check: REQUIRE-MATCH FAILED — ${#files[@]} file argument(s) resolved to zero declared voice files" >&2
+    echo "  (root: $root; check the file list, the --root, and .voicepaths)" >&2
+    exit 3
+  fi
   echo "voice-check: no declared voice files touched"
   exit 0
 fi
