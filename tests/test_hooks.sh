@@ -50,7 +50,11 @@ assert hooks["hooks"]["PreToolUse"][0]["matcher"] == "Bash"
 import re
 assert re.fullmatch(r"\d+\.\d+\.\d+", claude["version"]), claude["version"]
 assert kimi["version"] == claude["version"], (kimi["version"], claude["version"])
-assert claude["hooks"] == "./hooks/hooks.json"
+# hooks/hooks.json is the STANDARD path — Claude Code auto-loads it. An
+# explicit plugin.json "hooks" declaration pointing at the same file double
+# registers every hook (caught by ic publish's post-release probe at 0.3.3;
+# shipped that way since 0.3.0). The key must stay absent.
+assert "hooks" not in claude, "plugin.json must not re-declare the standard hooks path"
 PY
 
 advisory_input="$(python3 -c 'import json,sys; print(json.dumps({"tool_input":{"file_path":sys.argv[1]}}))' "$DECLARED_REPO/sloppy.md")"
