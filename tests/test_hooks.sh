@@ -65,6 +65,23 @@ gate_input="$(python3 -c 'import json,sys; print(json.dumps({"cwd":sys.argv[1],"
 gate_output="$(printf '%s\n' "$gate_input" | XDG_CONFIG_HOME="$CONFIG" "$COMMIT_GATE")"
 python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["decision"] == "block"; assert "HOUSE-STYLE GATE:" in d["reason"]; assert "Fix the flagged copy" in d["reason"]' <<<"$gate_output"
 
+# voice-check exit 3 (require-match failure) must BLOCK as an internal error,
+# never pass silently: the hook matched voice files, so voice-check resolving
+# none of them means the prose was not checked. Forced via a stub plugin root
+# whose voicepaths.py matches everything and whose voice-check.sh exits 3.
+STUB_PLUGIN="$TMP_DIR/stub-plugin"
+mkdir -p "$STUB_PLUGIN/engine" "$STUB_PLUGIN/scripts"
+printf '%s\n' \
+  'import sys' \
+  'print(sys.argv[-1])' >"$STUB_PLUGIN/engine/voicepaths.py"
+printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  'echo "voice-check: REQUIRE-MATCH FAILED — stub" >&2' \
+  'exit 3' >"$STUB_PLUGIN/scripts/voice-check.sh"
+chmod +x "$STUB_PLUGIN/scripts/voice-check.sh"
+mismatch_output="$(printf '%s\n' "$gate_input" | CLAUDE_PLUGIN_ROOT="$STUB_PLUGIN" XDG_CONFIG_HOME="$CONFIG" "$COMMIT_GATE")"
+python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["decision"] == "block"; assert "GATE INTERNAL ERROR" in d["reason"]; assert "REQUIRE-MATCH FAILED" in d["reason"]' <<<"$mismatch_output"
+
 undeclared_advisory_input="$(python3 -c 'import json,sys; print(json.dumps({"tool_input":{"file_path":sys.argv[1]}}))' "$UNDECLARED_REPO/notes.txt")"
 undeclared_advisory_output="$(printf '%s\n' "$undeclared_advisory_input" | XDG_CONFIG_HOME="$CONFIG" "$ADVISORY")"
 [[ -z "$undeclared_advisory_output" ]]
