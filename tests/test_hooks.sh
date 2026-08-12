@@ -45,9 +45,12 @@ kimi = json.load(open(kimi_path, encoding="utf-8"))
 
 assert hooks["hooks"]["PostToolUse"][0]["matcher"] == "Edit|Write|MultiEdit"
 assert hooks["hooks"]["PreToolUse"][0]["matcher"] == "Bash"
-assert claude["version"] == "0.3.0"
+# Version consistency, not a literal: a hardcoded version rotted silently
+# (asserted 0.3.0 while the plugin shipped 0.3.2, red since 0.3.1).
+import re
+assert re.fullmatch(r"\d+\.\d+\.\d+", claude["version"]), claude["version"]
+assert kimi["version"] == claude["version"], (kimi["version"], claude["version"])
 assert claude["hooks"] == "./hooks/hooks.json"
-assert kimi["version"] == "0.3.0"
 PY
 
 advisory_input="$(python3 -c 'import json,sys; print(json.dumps({"tool_input":{"file_path":sys.argv[1]}}))' "$DECLARED_REPO/sloppy.md")"
