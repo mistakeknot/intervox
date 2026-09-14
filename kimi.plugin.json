@@ -19,5 +19,19 @@
     "shortDescription": "Voice engine with a closed loop: generate and edit prose in your voice, then verify it against your measured fingerpr..."
   },
   "skills": "./skills/",
-  "commands": "./commands/"
+  "commands": "./commands/",
+  "hooks": [
+    {
+      "event": "PostToolUse",
+      "matcher": "Edit|Write",
+      "command": "${KIMI_PLUGIN_ROOT}/hooks/voice-advisory.sh",
+      "timeout": 10
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "command": "${KIMI_PLUGIN_ROOT}/hooks/voice-commit-gate.sh",
+      "timeout": 20
+    }
+  ]
 }
