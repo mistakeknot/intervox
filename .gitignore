@@ -7,3 +7,10 @@ __pycache__/
 # "embeddeddolt/", so that rule never matched. intervoice carries this line;
 # intervox did not, so 82 files of binary database were tracked.
 .beads/embeddeddolt/
+
+# Agent working state: local tooling, not product.
+.beads/
+.clavain/
+.claude/settings.json
+.claude/settings.local.json
+.git-autosync
