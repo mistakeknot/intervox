@@ -21,7 +21,6 @@ Voice engine with a closed loop: prose profile steers generation, stylometric fi
 
 ## Key docs
 
-- `docs/plans/2026-07-14-intervox-v0-build-plan.md` — v0 scope, lineage decisions, migration runbook
 - `docs/research/` — the research brief and three source reports the architecture is built on
 - `PHILOSOPHY.md` — core positions; read before proposing architecture changes
 
