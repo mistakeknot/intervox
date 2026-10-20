@@ -5,7 +5,7 @@ See AGENTS.md for the operational guide to this repo.
 ## Issue Tracking
 
 This project uses **bd (beads)**. `bd prime` carries the workflow and session-close protocol —
-the beads hooks inject it at session start, so this block is only the pointer.
+run it at session start; this block is only the pointer.
 
 ```bash
 bd ready                     # unblocked work

@@ -8,8 +8,12 @@ __pycache__/
 # intervox did not, so 82 files of binary database were tracked.
 .beads/embeddeddolt/
 
-# Agent working state: local tooling, not product.
-.beads/
+# Agent working state: local tooling, not product. The pre-commit hook is the
+# exception: it runs the secret scan, so it stays tracked.
+.beads/*
+!.beads/hooks/
+.beads/hooks/*
+!.beads/hooks/pre-commit
 .clavain/
 .claude/settings.json
 .claude/settings.local.json
