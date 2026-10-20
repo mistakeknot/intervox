@@ -578,7 +578,7 @@ It should be noted that the categorization employed throughout this discussion w
 
 
 class TestSingleDraftCalibration(unittest.TestCase):
-    """The 2026-08-08 gsvdotcom dogfood fixes: a verifier must not reject the
+    """The 2026-08-08 site dogfood fixes: a verifier must not reject the
     corpus its own fingerprint was built from. Em-dash absolute threshold
     yields to the author baseline, rhythm features gate on the 300w prose
     floor, thin drafts skip entirely, and fingerprints carry per-file rhythm

@@ -177,7 +177,7 @@ main() {
   print_section "$foundation_heading"
   echo
   if is_gsv_site_register "$reg"; then
-    echo '<!-- register: gsv-site (prose delta: External; canon: gsvdotcom docs/canon/copy-voice.md) -->'
+    echo '<!-- register: gsv-site (prose delta: External; canon: site-repo docs/canon/copy-voice.md) -->'
   fi
   print_section "$heading"
 }

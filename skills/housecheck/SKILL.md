@@ -47,4 +47,4 @@ For every finding, show:
 
 End each file's card with `pass`, `revise`, or `fail`, matching the checker output. Do not edit the files unless the user also asks for revisions.
 
-Rules derive from gsvdotcom `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
+Rules derive from the site repo's `docs/canon/copy-voice.md` — when a finding feels wrong, the canon doc wins; propose a canon amendment rather than muting the rule.
