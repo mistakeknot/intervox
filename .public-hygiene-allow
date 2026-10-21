@@ -1,0 +1,2 @@
+# Reviewed exemptions for the public-repo push guard.
+agent-dir .beads/hooks/pre-commit -- shared secret-scan dispatcher that must stay tracked so the scan runs
