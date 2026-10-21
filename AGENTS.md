@@ -21,7 +21,6 @@ Voice engine with a closed loop: prose profile steers generation, stylometric fi
 
 ## Key docs
 
-- `docs/plans/2026-07-14-intervox-v0-build-plan.md` — v0 scope, lineage decisions, migration runbook
 - `docs/research/` — the research brief and three source reports the architecture is built on
 - `PHILOSOPHY.md` — core positions; read before proposing architecture changes
 
@@ -29,7 +28,7 @@ Voice engine with a closed loop: prose profile steers generation, stylometric fi
 ## Issue Tracking
 
 This project uses **bd (beads)**. `bd prime` carries the workflow and session-close protocol —
-the beads hooks inject it at session start, so this block is only the pointer.
+run it at session start; this block is only the pointer.
 
 ```bash
 bd ready                     # unblocked work

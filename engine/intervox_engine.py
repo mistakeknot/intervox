@@ -1433,7 +1433,7 @@ def cmd_fingerprint(args: argparse.Namespace) -> int:
 
 # Below this much flowing prose there is nothing to measure: frontmatter-only
 # collection entries and stub files otherwise verify an empty string and
-# collapse to a deterministic reject (dogfood: 65 gsvdotcom files, all
+# collapse to a deterministic reject (dogfood: 65 site files, all
 # metrics 0.000). Vale still covers such files; the stylometric layer skips.
 MIN_VERIFY_PROSE_WORDS = 50
 

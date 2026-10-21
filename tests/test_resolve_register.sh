@@ -37,7 +37,7 @@ resolve() {
 }
 
 direct_output="$(resolve gsv-site)"
-[[ "$direct_output" == *'<!-- register: gsv-site (prose delta: External; canon: gsvdotcom docs/canon/copy-voice.md) -->'* ]]
+[[ "$direct_output" == *'<!-- register: gsv-site (prose delta: External; canon: site-repo docs/canon/copy-voice.md) -->'* ]]
 [[ "$direct_output" == *'## Foundation'* ]]
 [[ "$direct_output" == *'## Register 3: External'* ]]
 
